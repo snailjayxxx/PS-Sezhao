@@ -35,3 +35,25 @@ test("UI initialization is retryable and prerequisite errors are visible", funct
   assert.match(main, /app\.showAlert\(message\)/);
   assert.match(main, /请先点击“自动分析边框”/);
 });
+
+test("Photoshop pixel analysis runs inside executeAsModal", function () {
+  const analyzeStart = main.indexOf("async function analyze(useSelection)");
+  const validateStart = main.indexOf("function validateAnalysisSource", analyzeStart);
+  assert.ok(analyzeStart >= 0 && validateStart > analyzeStart, "analyze function should exist");
+  const analyzeSource = main.slice(analyzeStart, validateStart);
+  assert.match(analyzeSource, /core\.executeAsModal\(/);
+  assert.match(analyzeSource, /preview\s*=\s*await getPreview\(source\)/);
+  assert.match(analyzeSource, /await imaging\.getSelection\(/);
+  assert.ok(
+    analyzeSource.indexOf("core.executeAsModal(") < analyzeSource.indexOf("preview = await getPreview(source)"),
+    "getPixels must be reached only after entering the modal scope"
+  );
+  assert.match(analyzeSource, /timeOut:\s*10/);
+});
+
+test("busy labels distinguish analysis from conversion", function () {
+  assert.match(main, /setBusy\(true, "analyze"\)/);
+  assert.match(main, /setBusy\(true, "convert"\)/);
+  assert.match(main, /正在分析胶片基底/);
+  assert.match(main, /正在生成正片/);
+});
