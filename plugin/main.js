@@ -4,7 +4,7 @@ const { app, imaging, core } = require("photoshop");
 const { entrypoints } = require("uxp");
 const engine = require("./engine.js");
 
-const VERSION = "0.1.1";
+const VERSION = "0.1.2";
 const MAX_PREVIEW_EDGE = 720;
 const TARGET_TILE_BYTES = 24 * 1024 * 1024;
 const ROLL_KEY = "ps-sezhao-roll-v1";
@@ -22,6 +22,7 @@ const state = {
   sourceLayerId: null,
   sourceLayerName: null,
   busy: false,
+  busyAction: null,
   initialized: false,
   initTimer: null
 };
@@ -68,7 +69,9 @@ function updateReadiness() {
   const readiness = byId("readinessValue");
   if (!readiness) return;
   if (state.busy) {
-    readiness.textContent = "正在处理，请勿切换文档或图层";
+    readiness.textContent = state.busyAction === "analyze"
+      ? "正在分析胶片基底，请勿切换文档或图层"
+      : "正在生成正片，请勿切换文档或图层";
     readiness.className = "readiness busy";
   } else if (state.analysis) {
     readiness.textContent = "已完成基底分析，可以生成正片";
@@ -79,14 +82,19 @@ function updateReadiness() {
   }
 }
 
-function setBusy(busy) {
+function setBusy(busy, action) {
   state.busy = busy;
+  state.busyAction = busy ? action || null : null;
   ACTION_IDS.forEach(function (id) {
     const element = byId(id);
     if (element) element.disabled = busy;
   });
   const convertButton = byId("convert");
-  if (convertButton) convertButton.textContent = busy ? "正在生成，请稍候…" : "生成正片图层";
+  if (convertButton) {
+    convertButton.textContent = busy && state.busyAction === "convert"
+      ? "正在生成，请稍候…"
+      : "生成正片图层";
+  }
   updateReadiness();
 }
 
@@ -191,72 +199,92 @@ async function getPreview(source) {
 
 async function analyze(useSelection) {
   if (state.busy) return;
-  setBusy(true);
+  setBusy(true, "analyze");
   setProgress(0.08);
   setStatus(useSelection ? "正在读取选区与负片像素…" : "正在分析胶片边框…");
 
-  let preview;
-  let selectionResult;
   try {
-    const source = ensureSource();
-    preview = await getPreview(source);
-    setProgress(0.35);
-
-    let maskResult;
     const borderFraction = Number(byId("borderFraction").value) / 100;
-    if (useSelection) {
-      selectionResult = await imaging.getSelection({
-        documentID: source.doc.id,
-        sourceBounds: preview.requestedBounds,
-        targetSize: { width: preview.width, height: preview.height }
-      });
-      const selectionData = await selectionResult.imageData.getData({ chunky: true });
-      maskResult = engine.estimateMaskFromSelection(
-        preview.data,
-        selectionData,
-        preview.width,
-        preview.height,
-        preview.components,
-        selectionResult.imageData.components,
-        { maxValue: 255, selectionMax: 255 }
-      );
-    } else {
-      maskResult = engine.estimateMaskFromBorder(
-        preview.data,
-        preview.width,
-        preview.height,
-        preview.components,
-        { maxValue: 255, borderFraction: borderFraction }
-      );
-    }
+    const result = await core.executeAsModal(async function (executionContext) {
+      const source = ensureSource();
+      let preview;
+      let selectionResult;
 
-    setProgress(0.65);
-    const analysis = engine.analysisFromThumbnail(
-      preview.data,
-      preview.width,
-      preview.height,
-      preview.components,
-      maskResult,
-      { maxValue: 255, borderFraction: borderFraction }
-    );
+      try {
+        try { executionContext.reportProgress({ value: 0.12, commandName: "读取负片像素" }); } catch (_) { /* Optional host UI. */ }
+        preview = await getPreview(source);
+        setProgress(0.35);
 
-    state.analysis = analysis;
-    state.sourceDocumentId = source.doc.id;
-    state.sourceLayerId = source.layer.id;
-    state.sourceLayerName = source.layer.name;
-    byId("baseValue").textContent = displayRGB(analysis.base);
-    byId("confidenceValue").textContent = Math.round(analysis.confidence * 100) + "%" + (useSelection ? "（选区）" : "（边框）");
-    byId("sourceValue").textContent = source.layer.name;
+        let maskResult;
+        if (useSelection) {
+          try { executionContext.reportProgress({ value: 0.4, commandName: "读取当前选区" }); } catch (_) { /* Optional host UI. */ }
+          selectionResult = await imaging.getSelection({
+            documentID: source.doc.id,
+            sourceBounds: preview.requestedBounds,
+            targetSize: { width: preview.width, height: preview.height }
+          });
+          const selectionData = await selectionResult.imageData.getData({ chunky: true });
+          maskResult = engine.estimateMaskFromSelection(
+            preview.data,
+            selectionData,
+            preview.width,
+            preview.height,
+            preview.components,
+            selectionResult.imageData.components,
+            { maxValue: 255, selectionMax: 255 }
+          );
+        } else {
+          maskResult = engine.estimateMaskFromBorder(
+            preview.data,
+            preview.width,
+            preview.height,
+            preview.components,
+            { maxValue: 255, borderFraction: borderFraction }
+          );
+        }
+
+        setProgress(0.65);
+        try { executionContext.reportProgress({ value: 0.7, commandName: "计算胶片基底" }); } catch (_) { /* Optional host UI. */ }
+        const analysis = engine.analysisFromThumbnail(
+          preview.data,
+          preview.width,
+          preview.height,
+          preview.components,
+          maskResult,
+          { maxValue: 255, borderFraction: borderFraction }
+        );
+
+        return {
+          analysis: analysis,
+          sourceDocumentId: source.doc.id,
+          sourceLayerId: source.layer.id,
+          sourceLayerName: source.layer.name
+        };
+      } finally {
+        if (selectionResult && selectionResult.imageData) selectionResult.imageData.dispose();
+        if (preview && preview.result && preview.result.imageData) preview.result.imageData.dispose();
+      }
+    }, {
+      commandName: useSelection ? "从选区采样胶片基底" : "分析胶片基底",
+      timeOut: 10
+    });
+
+    state.analysis = result.analysis;
+    state.sourceDocumentId = result.sourceDocumentId;
+    state.sourceLayerId = result.sourceLayerId;
+    state.sourceLayerName = result.sourceLayerName;
+    byId("baseValue").textContent = displayRGB(result.analysis.base);
+    byId("confidenceValue").textContent = Math.round(result.analysis.confidence * 100) + "%" + (useSelection ? "（选区）" : "（边框）");
+    byId("sourceValue").textContent = result.sourceLayerName;
     setProgress(1);
     setStatus("分析完成，可以生成正片图层。", "ok");
-    updateReadiness();
   } catch (error) {
     state.analysis = null;
-    updateReadiness();
+    state.sourceDocumentId = null;
+    state.sourceLayerId = null;
+    state.sourceLayerName = null;
     await reportError(error, true);
   } finally {
-    if (preview && preview.result && preview.result.imageData) preview.result.imageData.dispose();
-    if (selectionResult && selectionResult.imageData) selectionResult.imageData.dispose();
     setBusy(false);
   }
 }
@@ -285,7 +313,7 @@ async function convert() {
     return;
   }
 
-  setBusy(true);
+  setBusy(true, "convert");
   setProgress(0.02);
   setStatus("准备生成正片图层…");
 
@@ -367,7 +395,7 @@ async function convert() {
         setProgress(progress);
         try { executionContext.reportProgress({ value: progress, commandName: "正在生成正片" }); } catch (_) { /* Older hosts may omit progress UI. */ }
       }
-    }, { commandName: "胶片去色罩转正" });
+    }, { commandName: "胶片去色罩转正", timeOut: 10 });
 
     setProgress(1);
     setStatus("正片图层已生成，原负片图层未修改。", "ok");
