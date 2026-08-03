@@ -60,7 +60,6 @@ const state = {
   previewTimer: null,
   previewRendering: false,
   previewQueued: false,
-  previewUseScaleFallback: false,
   operation: null,
   initialized: false,
   initTimer: null
@@ -470,34 +469,14 @@ async function ensurePreviewLayer(doc) {
   return layer;
 }
 
-async function putScaledPreview(doc, layer, imageData, thumbnail) {
+async function replaceScaledPreview(doc, imageData, thumbnail) {
   const dimensions = documentDimensions(doc);
-  if (!state.previewUseScaleFallback) {
-    try {
-      await imaging.putPixels({
-        documentID: doc.id,
-        layerID: layer.id,
-        imageData: imageData,
-        replace: true,
-        targetBounds: { left: 0, top: 0, right: dimensions.width, bottom: dimensions.height },
-        targetSize: { width: dimensions.width, height: dimensions.height },
-        commandName: "更新胶片实时预览"
-      });
-      return layer;
-    } catch (error) {
-      console.warn("putPixels targetSize failed; using layer scale fallback", error);
-      state.previewUseScaleFallback = true;
-      await layer.delete();
-      state.previewLayerId = null;
-      state.previewLayerRef = null;
-      layer = await ensurePreviewLayer(doc);
-    }
-  }
-
-  if (layer) await layer.delete();
+  const existing = state.previewLayerId ? findLayer(doc, state.previewLayerId) : null;
+  if (existing) await existing.delete();
   state.previewLayerId = null;
   state.previewLayerRef = null;
-  layer = await ensurePreviewLayer(doc);
+
+  const layer = await ensurePreviewLayer(doc);
   await imaging.putPixels({
     documentID: doc.id,
     layerID: layer.id,
@@ -552,8 +531,7 @@ async function renderPreview(force) {
         fullRange: true
       });
       try {
-        let layer = await ensurePreviewLayer(source.doc);
-        layer = await putScaledPreview(source.doc, layer, outputImage, thumbnail);
+        const layer = await replaceScaledPreview(source.doc, outputImage, thumbnail);
         state.previewLayerId = layer.id;
         state.previewLayerRef = layer;
         layer.visible = true;

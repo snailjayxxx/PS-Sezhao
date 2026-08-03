@@ -26,11 +26,12 @@ test("advanced color controls are present", function () {
   assert.match(engine, /estimateNeutralGains/);
 });
 
-test("preview uses debounce, a temporary canvas layer and full-size scaling", function () {
+test("preview uses debounce, a temporary canvas layer and supported layer scaling", function () {
   assert.match(main, /PREVIEW_DEBOUNCE_MS/);
   assert.match(main, /PS-Sezhao · 实时预览/);
-  assert.match(main, /targetSize:\s*\{ width: dimensions\.width, height: dimensions\.height \}/);
+  assert.match(main, /async function replaceScaledPreview/);
   assert.match(main, /layer\.scale\(scaleX, scaleY/);
+  assert.doesNotMatch(main, /imaging\.putPixels\(\{[\s\S]{0,500}targetSize:/);
   assert.match(main, /interactive:\s*true/);
 });
 
@@ -44,7 +45,7 @@ test("analysis and image writes stay inside modal scopes", function () {
   assert.match(analyzeBlock, /core\.executeAsModal/);
   assert.match(analyzeBlock, /readThumbnail/);
   assert.match(previewBlock, /core\.executeAsModal/);
-  assert.match(main, /async function putScaledPreview[\s\S]*imaging\.putPixels/);
+  assert.match(main, /async function replaceScaledPreview[\s\S]*imaging\.putPixels/);
 });
 
 test("final render uses stored source rather than the active preview layer", function () {
