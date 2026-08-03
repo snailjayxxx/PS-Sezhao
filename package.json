@@ -1,6 +1,6 @@
 {
   "name": "ps-sezhao",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Photoshop UXP plugin for local color-negative mask removal and positive conversion.",
   "scripts": {
