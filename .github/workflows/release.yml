@@ -1,0 +1,53 @@
+name: Test, package and release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate plugin
+        run: node scripts/validate.mjs
+
+      - name: Run engine tests
+        run: node --test tests/*.test.js
+
+      - name: Build CCX and source archive
+        run: bash scripts/build-release.sh
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PS-Sezhao-release
+          path: dist/*
+
+      - name: Create GitHub Release once per VERSION
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; tests and artifact build completed."
+            exit 0
+          fi
+          gh release create "$TAG" dist/* \
+            --target "$GITHUB_SHA" \
+            --title "PS-Sezhao $TAG" \
+            --notes-file RELEASE_NOTES.md

@@ -1,0 +1,53 @@
+:root {
+  --bg: #252525;
+  --card: #303030;
+  --card-2: #383838;
+  --text: #f1f1f1;
+  --muted: #b8b8b8;
+  --line: #494949;
+  --accent: #f59b45;
+  --accent-2: #ffbd73;
+  --danger: #ff7777;
+  --ok: #79d39a;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 13px; }
+button, select, input { font: inherit; }
+
+.panel { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.hero { display: flex; justify-content: space-between; align-items: flex-start; padding: 4px 2px 2px; }
+.hero h1 { margin: 3px 0 4px; font-size: 22px; letter-spacing: .02em; }
+.hero p { margin: 0; color: var(--muted); line-height: 1.5; }
+.eyebrow { color: var(--accent-2); font-size: 10px; letter-spacing: .12em; }
+.badge { border: 1px solid var(--accent); color: var(--accent-2); border-radius: 999px; padding: 5px 8px; font-weight: 700; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.card h2 { font-size: 14px; margin: 0 0 9px; }
+.hint { color: var(--muted); margin: 0 0 10px; line-height: 1.55; }
+.button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.button-grid.compact { margin-top: 12px; }
+button { border: 1px solid #5a5a5a; background: var(--card-2); color: var(--text); min-height: 32px; border-radius: 5px; padding: 6px 9px; cursor: pointer; }
+button:hover { border-color: #777; }
+button:disabled { opacity: .55; cursor: default; }
+button.primary { background: #b65f22; border-color: #d47a35; color: white; font-weight: 650; }
+button.convert { width: 100%; min-height: 40px; font-size: 14px; margin-bottom: 8px; }
+
+.field { display: flex; flex-direction: column; gap: 5px; margin-top: 11px; }
+.field > span { display: flex; justify-content: space-between; color: #ddd; }
+.field output { color: var(--accent-2); }
+.select-field select { width: 100%; min-height: 31px; color: var(--text); background: var(--card-2); border: 1px solid #5a5a5a; border-radius: 4px; padding: 4px 7px; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+.diagnostics { margin-top: 11px; border-top: 1px solid var(--line); padding-top: 7px; }
+.diagnostics div { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; }
+.diagnostics span { color: var(--muted); }
+.diagnostics strong { text-align: right; font-weight: 600; }
+.action-card { text-align: center; }
+.status { min-height: 18px; margin: 9px 0 6px; color: var(--muted); line-height: 1.4; }
+.status.error { color: var(--danger); }
+.status.ok { color: var(--ok); }
+.progress-track { height: 4px; background: #202020; border-radius: 99px; overflow: hidden; }
+.progress-bar { width: 0%; height: 100%; background: var(--accent); transition: width .12s linear; }
+footer { color: #999; font-size: 10px; line-height: 1.5; padding: 0 3px 8px; }
