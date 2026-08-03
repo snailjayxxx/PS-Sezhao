@@ -6,9 +6,10 @@ PS-Sezhao 是一个面向**彩色负片扫描和相机翻拍**的 Photoshop UXP 
 
 ## 最新版本
 
-当前版本：**v0.1.1**
+当前版本：**v0.1.2**
 
-v0.1.1 修复首版在 Photoshop 中按钮不显示、面板不能滚动以及点击生成时错误信息不可见的问题。
+- v0.1.2：修复 Photoshop 2026 点击分析时出现“only allowed from inside a modal scope”（错误代码 1000）。
+- v0.1.1：修复按钮不显示、面板不能滚动和错误状态不可见。
 
 ## 功能
 
@@ -23,10 +24,11 @@ v0.1.1 修复首版在 Photoshop 中按钮不显示、面板不能滚动以及�
 - 保存和复用“本卷参数”
 - 输出到新图层，保持非破坏式工作流
 - 面板内容独立滚动，生成状态始终可见
+- Photoshop像素与选区读取统一使用模态作用域
 
 ## 安装
 
-下载 GitHub Release 中的 `PS-Sezhao-v0.1.1.ccx`，双击后由 Adobe Creative Cloud Desktop 安装。安装后完全退出并重新打开 Photoshop，然后进入：
+下载 GitHub Release 中的 `PS-Sezhao-v0.1.2.ccx`，双击后由 Adobe Creative Cloud Desktop 安装。安装后完全退出并重新打开 Photoshop，然后进入：
 
 `插件（Plugins） → 胶片去色罩`
 
