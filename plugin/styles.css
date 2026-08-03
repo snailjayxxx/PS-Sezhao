@@ -28,20 +28,30 @@ button, select, input { font: inherit; }
 .card { width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
 .card h2 { font-size: 14px; margin: 0 0 9px; }
 .hint { color: var(--muted); margin: 0 0 10px; line-height: 1.55; }
-.button-grid { width: 100%; display: flex; flex-direction: row; align-items: stretch; gap: 8px; }
-.button-grid.compact { margin-top: 12px; }
-.button-grid button { flex: 1 1 0; min-width: 0; white-space: normal; }
+.microcopy { color: #a9a9a9; font-size: 11px; line-height: 1.45; margin: 8px 0 2px; }
+.button-row { width: 100%; display: flex; align-items: stretch; gap: 8px; }
+.button-row.compact { margin-top: 12px; }
+.button-row button { flex: 1 1 0; min-width: 0; white-space: normal; }
+.button-row.single-action button { flex-basis: 100%; }
 button { border: 1px solid #5a5a5a; background: var(--card-2); color: var(--text); min-height: 32px; border-radius: 5px; padding: 6px 9px; cursor: pointer; }
 button:hover { border-color: #777; }
-button:disabled { opacity: .55; cursor: default; }
+button:disabled { opacity: .52; cursor: default; }
 button.primary { background: #b65f22; border-color: #d47a35; color: white; font-weight: 650; }
 button.convert { width: 100%; min-height: 40px; font-size: 14px; }
+.secondary-wide { width: 100%; }
 
 label.field { width: 100%; display: flex; flex-direction: column; flex-wrap: nowrap; gap: 5px; margin-top: 11px; }
 .field > span { width: 100%; display: flex; justify-content: space-between; color: #ddd; }
 .field output { color: var(--accent-2); }
 .select-field select { width: 100%; min-height: 31px; color: var(--text); background: var(--card-2); border: 1px solid #5a5a5a; border-radius: 4px; padding: 4px 7px; }
 input[type="range"] { width: 100%; accent-color: var(--accent); }
+input[type="checkbox"] { margin-right: 7px; vertical-align: middle; }
+.switch-row { display: flex; align-items: center; margin: 2px 0 4px; }
+.check-label { color: #ddd; }
+.channel-title { color: #ddd; margin-top: 13px; font-size: 12px; font-weight: 600; }
+.channel.red output { color: #ff9b91; }
+.channel.green output { color: #94dca7; }
+.channel.blue output { color: #98bfff; }
 
 .diagnostics { margin-top: 11px; border-top: 1px solid var(--line); padding-top: 7px; }
 .diagnostics div { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; }

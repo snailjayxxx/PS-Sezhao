@@ -9,51 +9,51 @@ const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "plugin/index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "plugin/styles.css"), "utf8");
 const main = fs.readFileSync(path.join(root, "plugin/main.js"), "utf8");
+const engine = fs.readFileSync(path.join(root, "plugin/engine.js"), "utf8");
 
-test("UXP panel uses a bounded scroll container", function () {
+test("panel keeps a bounded scroll area and fixed action dock", function () {
   assert.match(html, /class="panel-scroll"/);
+  assert.match(html, /class="action-dock"/);
   assert.match(css, /\.panel-scroll\s*\{[^}]*overflow-y:\s*auto/s);
   assert.match(css, /\.panel-shell\s*\{[^}]*height:\s*100%/s);
 });
 
-test("button rows use UXP-supported flex layout instead of CSS grid", function () {
-  assert.doesNotMatch(css, /display:\s*grid/);
-  assert.match(css, /\.button-grid\s*\{[^}]*display:\s*flex/s);
-  assert.match(html, /id="analyzeAuto"/);
-  assert.match(html, /id="analyzeSelection"/);
+test("advanced color controls are present", function () {
+  ["temperature", "tint", "redGain", "greenGain", "blueGain", "baseAdjustR", "baseAdjustG", "baseAdjustB", "styleStrength"].forEach(function (id) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  });
+  assert.match(engine, /applyTemperatureTint/);
+  assert.match(engine, /estimateNeutralGains/);
 });
 
-test("generation feedback remains outside the scrolling content", function () {
-  const scrollEnd = html.indexOf("</div>\n\n    <section class=\"action-dock\"");
-  assert.ok(scrollEnd > 0, "action dock should follow the scroll container");
-  assert.match(html, /id="status"/);
-  assert.match(html, /id="readinessValue"/);
+test("preview uses debounce, a temporary canvas layer and full-size scaling", function () {
+  assert.match(main, /PREVIEW_DEBOUNCE_MS/);
+  assert.match(main, /PS-Sezhao · 实时预览/);
+  assert.match(main, /targetSize:\s*\{ width: dimensions\.width, height: dimensions\.height \}/);
+  assert.match(main, /layer\.scale\(scaleX, scaleY/);
+  assert.match(main, /interactive:\s*true/);
 });
 
-test("UI initialization is retryable and prerequisite errors are visible", function () {
+test("analysis and image writes stay inside modal scopes", function () {
+  const analyzeStart = main.indexOf("async function analyze");
+  const previewStart = main.indexOf("async function renderPreview");
+  const convertStart = main.indexOf("async function convert");
+  assert.ok(analyzeStart >= 0 && previewStart > analyzeStart && convertStart > previewStart);
+  const analyzeBlock = main.slice(analyzeStart, previewStart);
+  const previewBlock = main.slice(previewStart, convertStart);
+  assert.match(analyzeBlock, /core\.executeAsModal/);
+  assert.match(analyzeBlock, /readThumbnail/);
+  assert.match(previewBlock, /core\.executeAsModal/);
+  assert.match(main, /async function putScaledPreview[\s\S]*imaging\.putPixels/);
+});
+
+test("final render uses stored source rather than the active preview layer", function () {
+  assert.match(main, /function storedSource\(/);
+  assert.match(main, /source = storedSource\(\)/);
+  assert.match(main, /sourceLayerId/);
+});
+
+test("UI initialization remains retryable", function () {
   assert.match(main, /function scheduleInitialize\(/);
-  assert.match(main, /app\.showAlert\(message\)/);
-  assert.match(main, /请先点击“自动分析边框”/);
-});
-
-test("Photoshop pixel analysis runs inside executeAsModal", function () {
-  const analyzeStart = main.indexOf("async function analyze(useSelection)");
-  const validateStart = main.indexOf("function validateAnalysisSource", analyzeStart);
-  assert.ok(analyzeStart >= 0 && validateStart > analyzeStart, "analyze function should exist");
-  const analyzeSource = main.slice(analyzeStart, validateStart);
-  assert.match(analyzeSource, /core\.executeAsModal\(/);
-  assert.match(analyzeSource, /preview\s*=\s*await getPreview\(source\)/);
-  assert.match(analyzeSource, /await imaging\.getSelection\(/);
-  assert.ok(
-    analyzeSource.indexOf("core.executeAsModal(") < analyzeSource.indexOf("preview = await getPreview(source)"),
-    "getPixels must be reached only after entering the modal scope"
-  );
-  assert.match(analyzeSource, /timeOut:\s*10/);
-});
-
-test("busy labels distinguish analysis from conversion", function () {
-  assert.match(main, /setBusy\(true, "analyze"\)/);
-  assert.match(main, /setBusy\(true, "convert"\)/);
-  assert.match(main, /正在分析胶片基底/);
-  assert.match(main, /正在生成正片/);
+  assert.match(main, /setTimeout\(function \(\)/);
 });

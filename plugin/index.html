@@ -8,27 +8,27 @@
 </head>
 <body>
   <main class="panel-shell">
-    <div id="panelScroll" class="panel-scroll">
+    <div class="panel-scroll">
       <div class="content-stack">
         <header class="hero">
           <div>
-            <div class="eyebrow">PS-SEZHAO · 0.1.2</div>
+            <div class="eyebrow">PS-SEZHAO · 0.2.0</div>
             <h1>胶片去色罩</h1>
-            <p>彩色负片本地转正，不上传照片。</p>
+            <p>彩色负片转正、精细校色与画布实时预览。</p>
           </div>
-          <span class="badge">V1</span>
+          <span class="badge">V2</span>
         </header>
 
         <section class="card">
           <h2>1. 分析胶片基底</h2>
-          <p class="hint">选中负片所在图层。画面最好保留一圈未曝光的橙色胶片边框。</p>
-          <div class="button-grid">
+          <p class="hint">选中原始负片像素图层。优先保留一圈未曝光的橙色边框。</p>
+          <div class="button-row">
             <button id="analyzeAuto" class="primary">自动分析边框</button>
-            <button id="analyzeSelection">从当前选区采样</button>
+            <button id="analyzeSelection">从选区采样色罩</button>
           </div>
           <label class="field">
             <span>边框采样宽度 <output id="borderValue">7%</output></span>
-            <input id="borderFraction" type="range" min="4" max="16" step="1" value="7" />
+            <input id="borderFraction" type="range" min="3" max="20" step="1" value="7" />
           </label>
           <div class="diagnostics">
             <div><span>胶片基底</span><strong id="baseValue">尚未分析</strong></div>
@@ -37,8 +37,29 @@
           </div>
         </section>
 
+        <section class="card preview-card">
+          <h2>2. 画布实时预览</h2>
+          <div class="switch-row">
+            <label class="check-label"><input id="autoPreview" type="checkbox" checked /> 参数变化后自动更新</label>
+          </div>
+          <label class="field select-field">
+            <span>预览精度</span>
+            <select id="previewEdge">
+              <option value="800">快速 · 长边 800 px</option>
+              <option value="1200" selected>标准 · 长边 1200 px</option>
+              <option value="1800">精细 · 长边 1800 px</option>
+            </select>
+          </label>
+          <div class="button-row compact">
+            <button id="refreshPreview">立即刷新预览</button>
+            <button id="togglePreview">隐藏预览</button>
+            <button id="removePreview">移除预览</button>
+          </div>
+          <p class="microcopy">预览使用低分辨率临时图层；最终按钮仍以原始位深和完整分辨率生成。</p>
+        </section>
+
         <section class="card">
-          <h2>2. 转正设置</h2>
+          <h2>3. 基础转正</h2>
           <label class="field select-field">
             <span>胶片起始配置</span>
             <select id="profile">
@@ -49,45 +70,54 @@
               <option value="ecn2">ECN-2 低反差起始风格</option>
             </select>
           </label>
+          <label class="field"><span>风格强度 <output id="styleStrengthValue">100%</output></span><input id="styleStrength" type="range" min="0" max="200" step="1" value="100" /></label>
+          <label class="field"><span>曝光 <output id="exposureValue">0.00 EV</output></span><input id="exposure" type="range" min="-300" max="300" step="5" value="0" /></label>
+          <label class="field"><span>对比度 <output id="contrastValue">1.00</output></span><input id="contrast" type="range" min="50" max="200" step="1" value="100" /></label>
+          <label class="field"><span>中间调 <output id="gammaValue">1.00</output></span><input id="gamma" type="range" min="50" max="200" step="1" value="100" /></label>
+          <label class="field"><span>饱和度 <output id="saturationValue">1.00</output></span><input id="saturation" type="range" min="0" max="250" step="1" value="100" /></label>
+        </section>
 
-          <label class="field">
-            <span>曝光 <output id="exposureValue">0.00 EV</output></span>
-            <input id="exposure" type="range" min="-200" max="200" step="5" value="0" />
-          </label>
-          <label class="field">
-            <span>对比度 <output id="contrastValue">1.00</output></span>
-            <input id="contrast" type="range" min="70" max="150" step="1" value="100" />
-          </label>
-          <label class="field">
-            <span>中间调 <output id="gammaValue">1.00</output></span>
-            <input id="gamma" type="range" min="70" max="150" step="1" value="100" />
-          </label>
-          <label class="field">
-            <span>饱和度 <output id="saturationValue">1.00</output></span>
-            <input id="saturation" type="range" min="0" max="180" step="1" value="100" />
-          </label>
-          <label class="field">
-            <span>冷暖 <output id="warmthValue">0</output></span>
-            <input id="warmth" type="range" min="-100" max="100" step="1" value="0" />
-          </label>
+        <section class="card color-card">
+          <h2>4. 白平衡与色彩</h2>
+          <div class="button-row single-action"><button id="neutralizeSelection" class="secondary-wide">从当前选区校正中性色</button></div>
+          <p class="microcopy">先框选白衬衫、灰卡或应为中性的区域，再点击上方按钮。</p>
+          <label class="field"><span>色温 <output id="temperatureValue">0</output></span><input id="temperature" type="range" min="-300" max="300" step="1" value="0" /></label>
+          <label class="field"><span>色调（绿 ↔ 洋红） <output id="tintValue">0</output></span><input id="tint" type="range" min="-200" max="200" step="1" value="0" /></label>
+          <div class="channel-title">RGB 输出增益</div>
+          <label class="field channel red"><span>红色 <output id="redGainValue">1.00</output></span><input id="redGain" type="range" min="25" max="300" step="1" value="100" /></label>
+          <label class="field channel green"><span>绿色 <output id="greenGainValue">1.00</output></span><input id="greenGain" type="range" min="25" max="300" step="1" value="100" /></label>
+          <label class="field channel blue"><span>蓝色 <output id="blueGainValue">1.00</output></span><input id="blueGain" type="range" min="25" max="300" step="1" value="100" /></label>
+        </section>
 
-          <div class="button-grid compact">
+        <section class="card">
+          <h2>5. 明暗细节</h2>
+          <label class="field"><span>黑点 <output id="blackPointValue">0</output></span><input id="blackPoint" type="range" min="-100" max="100" step="1" value="0" /></label>
+          <label class="field"><span>白点 <output id="whitePointValue">0</output></span><input id="whitePoint" type="range" min="-100" max="100" step="1" value="0" /></label>
+          <label class="field"><span>阴影 <output id="shadowsValue">0</output></span><input id="shadows" type="range" min="-100" max="100" step="1" value="0" /></label>
+          <label class="field"><span>高光 <output id="highlightsValue">0</output></span><input id="highlights" type="range" min="-100" max="100" step="1" value="0" /></label>
+        </section>
+
+        <section class="card">
+          <h2>6. 胶片基底微调</h2>
+          <p class="microcopy">用于修正自动采样与实际胶片基底之间的通道误差。数值显示最终使用的 8 位等效基底。</p>
+          <label class="field channel red"><span>基底 R <output id="baseAdjustRValue">—</output></span><input id="baseAdjustR" type="range" min="-64" max="64" step="1" value="0" /></label>
+          <label class="field channel green"><span>基底 G <output id="baseAdjustGValue">—</output></span><input id="baseAdjustG" type="range" min="-64" max="64" step="1" value="0" /></label>
+          <label class="field channel blue"><span>基底 B <output id="baseAdjustBValue">—</output></span><input id="baseAdjustB" type="range" min="-64" max="64" step="1" value="0" /></label>
+          <div class="button-row compact">
             <button id="saveRoll">保存为本卷参数</button>
             <button id="loadRoll">载入本卷参数</button>
           </div>
         </section>
 
-        <footer>
-          第一版使用密度空间转正与分块处理。配置名称表示起始风格，并非实验室标定 ICC 配置。
-        </footer>
+        <footer>实时预览为临时低分辨率图层。最终输出仍使用完整分辨率、原文档位深与分块处理。</footer>
       </div>
     </div>
 
     <section class="action-dock" aria-label="生成操作">
-      <button id="convert" class="primary convert">生成正片图层</button>
+      <button id="convert" class="primary convert">生成最终正片图层</button>
       <div class="action-meta">
-        <button id="reset" class="reset-button">恢复默认</button>
-        <span id="readinessValue" class="readiness">请先完成第 1 步：分析胶片基底</span>
+        <button id="reset" class="reset-button">恢复调整默认值</button>
+        <span id="readinessValue" class="readiness">请先分析胶片基底</span>
       </div>
       <p id="status" class="status" aria-live="polite">准备就绪。请先分析胶片基底。</p>
       <div class="progress-track" aria-hidden="true"><div id="progress" class="progress-bar"></div></div>
