@@ -7,84 +7,91 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main class="panel">
-    <header class="hero">
-      <div>
-        <div class="eyebrow">PS-SEZHAO · 0.1.0</div>
-        <h1>胶片去色罩</h1>
-        <p>彩色负片本地转正，不上传照片。</p>
+  <main class="panel-shell">
+    <div id="panelScroll" class="panel-scroll">
+      <div class="content-stack">
+        <header class="hero">
+          <div>
+            <div class="eyebrow">PS-SEZHAO · 0.1.1</div>
+            <h1>胶片去色罩</h1>
+            <p>彩色负片本地转正，不上传照片。</p>
+          </div>
+          <span class="badge">V1</span>
+        </header>
+
+        <section class="card">
+          <h2>1. 分析胶片基底</h2>
+          <p class="hint">选中负片所在图层。画面最好保留一圈未曝光的橙色胶片边框。</p>
+          <div class="button-grid">
+            <button id="analyzeAuto" class="primary">自动分析边框</button>
+            <button id="analyzeSelection">从当前选区采样</button>
+          </div>
+          <label class="field">
+            <span>边框采样宽度 <output id="borderValue">7%</output></span>
+            <input id="borderFraction" type="range" min="4" max="16" step="1" value="7" />
+          </label>
+          <div class="diagnostics">
+            <div><span>胶片基底</span><strong id="baseValue">尚未分析</strong></div>
+            <div><span>分析可信度</span><strong id="confidenceValue">—</strong></div>
+            <div><span>输入图层</span><strong id="sourceValue">—</strong></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>2. 转正设置</h2>
+          <label class="field select-field">
+            <span>胶片起始配置</span>
+            <select id="profile">
+              <option value="generic">通用 C-41（中性）</option>
+              <option value="portra">Kodak Portra 起始风格</option>
+              <option value="gold">Kodak Gold 起始风格</option>
+              <option value="fuji">Fujifilm C-41 起始风格</option>
+              <option value="ecn2">ECN-2 低反差起始风格</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>曝光 <output id="exposureValue">0.00 EV</output></span>
+            <input id="exposure" type="range" min="-200" max="200" step="5" value="0" />
+          </label>
+          <label class="field">
+            <span>对比度 <output id="contrastValue">1.00</output></span>
+            <input id="contrast" type="range" min="70" max="150" step="1" value="100" />
+          </label>
+          <label class="field">
+            <span>中间调 <output id="gammaValue">1.00</output></span>
+            <input id="gamma" type="range" min="70" max="150" step="1" value="100" />
+          </label>
+          <label class="field">
+            <span>饱和度 <output id="saturationValue">1.00</output></span>
+            <input id="saturation" type="range" min="0" max="180" step="1" value="100" />
+          </label>
+          <label class="field">
+            <span>冷暖 <output id="warmthValue">0</output></span>
+            <input id="warmth" type="range" min="-100" max="100" step="1" value="0" />
+          </label>
+
+          <div class="button-grid compact">
+            <button id="saveRoll">保存为本卷参数</button>
+            <button id="loadRoll">载入本卷参数</button>
+          </div>
+        </section>
+
+        <footer>
+          第一版使用密度空间转正与分块处理。配置名称表示起始风格，并非实验室标定 ICC 配置。
+        </footer>
       </div>
-      <span class="badge">V1</span>
-    </header>
+    </div>
 
-    <section class="card">
-      <h2>1. 分析胶片基底</h2>
-      <p class="hint">选中负片所在图层。画面最好保留一圈未曝光的橙色胶片边框。</p>
-      <div class="button-grid">
-        <button id="analyzeAuto" class="primary">自动分析边框</button>
-        <button id="analyzeSelection">从当前选区采样</button>
-      </div>
-      <label class="field">
-        <span>边框采样宽度 <output id="borderValue">7%</output></span>
-        <input id="borderFraction" type="range" min="4" max="16" step="1" value="7" />
-      </label>
-      <div class="diagnostics">
-        <div><span>胶片基底</span><strong id="baseValue">尚未分析</strong></div>
-        <div><span>分析可信度</span><strong id="confidenceValue">—</strong></div>
-        <div><span>输入图层</span><strong id="sourceValue">—</strong></div>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>2. 转正设置</h2>
-      <label class="field select-field">
-        <span>胶片起始配置</span>
-        <select id="profile">
-          <option value="generic">通用 C-41（中性）</option>
-          <option value="portra">Kodak Portra 起始风格</option>
-          <option value="gold">Kodak Gold 起始风格</option>
-          <option value="fuji">Fujifilm C-41 起始风格</option>
-          <option value="ecn2">ECN-2 低反差起始风格</option>
-        </select>
-      </label>
-
-      <label class="field">
-        <span>曝光 <output id="exposureValue">0.00 EV</output></span>
-        <input id="exposure" type="range" min="-200" max="200" step="5" value="0" />
-      </label>
-      <label class="field">
-        <span>对比度 <output id="contrastValue">1.00</output></span>
-        <input id="contrast" type="range" min="70" max="150" step="1" value="100" />
-      </label>
-      <label class="field">
-        <span>中间调 <output id="gammaValue">1.00</output></span>
-        <input id="gamma" type="range" min="70" max="150" step="1" value="100" />
-      </label>
-      <label class="field">
-        <span>饱和度 <output id="saturationValue">1.00</output></span>
-        <input id="saturation" type="range" min="0" max="180" step="1" value="100" />
-      </label>
-      <label class="field">
-        <span>冷暖 <output id="warmthValue">0</output></span>
-        <input id="warmth" type="range" min="-100" max="100" step="1" value="0" />
-      </label>
-
-      <div class="button-grid compact">
-        <button id="saveRoll">保存为本卷参数</button>
-        <button id="loadRoll">载入本卷参数</button>
-      </div>
-    </section>
-
-    <section class="card action-card">
+    <section class="action-dock" aria-label="生成操作">
       <button id="convert" class="primary convert">生成正片图层</button>
-      <button id="reset">恢复默认</button>
-      <p id="status" class="status" aria-live="polite">准备就绪</p>
+      <div class="action-meta">
+        <button id="reset" class="reset-button">恢复默认</button>
+        <span id="readinessValue" class="readiness">请先完成第 1 步：分析胶片基底</span>
+      </div>
+      <p id="status" class="status" aria-live="polite">准备就绪。请先分析胶片基底。</p>
       <div class="progress-track" aria-hidden="true"><div id="progress" class="progress-bar"></div></div>
     </section>
-
-    <footer>
-      第一版使用密度空间转正与分块处理。配置名称表示起始风格，并非实验室标定 ICC 配置。
-    </footer>
   </main>
   <script src="main.js"></script>
 </body>
