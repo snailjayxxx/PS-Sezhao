@@ -4,10 +4,17 @@ const { app, imaging, core } = require("photoshop");
 const { entrypoints } = require("uxp");
 const engine = require("./engine.js");
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 const MAX_PREVIEW_EDGE = 720;
 const TARGET_TILE_BYTES = 24 * 1024 * 1024;
 const ROLL_KEY = "ps-sezhao-roll-v1";
+const CONTROL_IDS = ["borderFraction", "exposure", "contrast", "gamma", "saturation", "warmth"];
+const ACTION_IDS = ["analyzeAuto", "analyzeSelection", "convert", "reset", "saveRoll", "loadRoll"];
+const REQUIRED_UI_IDS = CONTROL_IDS.concat(ACTION_IDS, [
+  "profile", "borderValue", "exposureValue", "contrastValue", "gammaValue",
+  "saturationValue", "warmthValue", "baseValue", "confidenceValue", "sourceValue",
+  "status", "progress", "readinessValue"
+]);
 
 const state = {
   analysis: null,
@@ -15,7 +22,8 @@ const state = {
   sourceLayerId: null,
   sourceLayerName: null,
   busy: false,
-  initialized: false
+  initialized: false,
+  initTimer: null
 };
 
 function byId(id) { return document.getElementById(id); }
@@ -26,21 +34,60 @@ function numberValue(value) {
   return Number(value);
 }
 
+function messageFromError(error) {
+  if (!error) return "发生未知错误。";
+  const message = error.message ? String(error.message) : String(error);
+  return error.number ? message + "（错误代码 " + error.number + "）" : message;
+}
+
 function setStatus(message, kind) {
   const status = byId("status");
+  if (!status) return;
   status.textContent = message;
+  status.title = message;
   status.className = "status" + (kind ? " " + kind : "");
 }
 
+async function reportError(error, showDialog) {
+  const message = messageFromError(error);
+  console.error(error);
+  setProgress(0);
+  setStatus(message, "error");
+  if (showDialog) {
+    try { await app.showAlert(message); } catch (_) { /* Status text remains visible. */ }
+  }
+}
+
 function setProgress(value) {
-  byId("progress").style.width = Math.round(engine.clamp(value, 0, 1) * 100) + "%";
+  const progress = byId("progress");
+  if (!progress) return;
+  progress.style.width = Math.round(engine.clamp(value, 0, 1) * 100) + "%";
+}
+
+function updateReadiness() {
+  const readiness = byId("readinessValue");
+  if (!readiness) return;
+  if (state.busy) {
+    readiness.textContent = "正在处理，请勿切换文档或图层";
+    readiness.className = "readiness busy";
+  } else if (state.analysis) {
+    readiness.textContent = "已完成基底分析，可以生成正片";
+    readiness.className = "readiness ready";
+  } else {
+    readiness.textContent = "请先完成第 1 步：分析胶片基底";
+    readiness.className = "readiness";
+  }
 }
 
 function setBusy(busy) {
   state.busy = busy;
-  ["analyzeAuto", "analyzeSelection", "convert", "reset", "saveRoll", "loadRoll"].forEach(function (id) {
-    byId(id).disabled = busy;
+  ACTION_IDS.forEach(function (id) {
+    const element = byId(id);
+    if (element) element.disabled = busy;
   });
+  const convertButton = byId("convert");
+  if (convertButton) convertButton.textContent = busy ? "正在生成，请稍候…" : "生成正片图层";
+  updateReadiness();
 }
 
 function documentDimensions(doc) {
@@ -86,6 +133,7 @@ function applyControls(values) {
 }
 
 function refreshOutputs() {
+  if (!state.initialized) return;
   byId("borderValue").textContent = byId("borderFraction").value + "%";
   byId("exposureValue").textContent = (Number(byId("exposure").value) / 100).toFixed(2) + " EV";
   byId("contrastValue").textContent = (Number(byId("contrast").value) / 100).toFixed(2);
@@ -105,8 +153,9 @@ function resetControls() {
   byId("baseValue").textContent = "尚未分析";
   byId("confidenceValue").textContent = "—";
   byId("sourceValue").textContent = "—";
-  setStatus("已恢复默认");
+  setStatus("已恢复默认。请重新分析胶片基底。");
   setProgress(0);
+  updateReadiness();
 }
 
 function ensureSource() {
@@ -119,17 +168,25 @@ function ensureSource() {
 
 async function getPreview(source) {
   const size = documentDimensions(source.doc);
+  const requestedBounds = { left: 0, top: 0, right: size.width, bottom: size.height };
   const result = await imaging.getPixels({
     documentID: source.doc.id,
     layerID: source.layer.id,
-    sourceBounds: { left: 0, top: 0, right: size.width, bottom: size.height },
+    sourceBounds: requestedBounds,
     targetSize: previewTarget(size.width, size.height),
     colorSpace: "RGB",
     componentSize: 8,
     applyAlpha: false
   });
   const data = await result.imageData.getData({ chunky: true });
-  return { result: result, data: data, width: result.imageData.width, height: result.imageData.height, components: result.imageData.components };
+  return {
+    result: result,
+    data: data,
+    width: result.imageData.width,
+    height: result.imageData.height,
+    components: result.imageData.components,
+    requestedBounds: requestedBounds
+  };
 }
 
 async function analyze(useSelection) {
@@ -150,7 +207,7 @@ async function analyze(useSelection) {
     if (useSelection) {
       selectionResult = await imaging.getSelection({
         documentID: source.doc.id,
-        sourceBounds: preview.result.sourceBounds,
+        sourceBounds: preview.requestedBounds,
         targetSize: { width: preview.width, height: preview.height }
       });
       const selectionData = await selectionResult.imageData.getData({ chunky: true });
@@ -192,10 +249,11 @@ async function analyze(useSelection) {
     byId("sourceValue").textContent = source.layer.name;
     setProgress(1);
     setStatus("分析完成，可以生成正片图层。", "ok");
+    updateReadiness();
   } catch (error) {
-    console.error(error);
-    setProgress(0);
-    setStatus(error && error.message ? error.message : String(error), "error");
+    state.analysis = null;
+    updateReadiness();
+    await reportError(error, true);
   } finally {
     if (preview && preview.result && preview.result.imageData) preview.result.imageData.dispose();
     if (selectionResult && selectionResult.imageData) selectionResult.imageData.dispose();
@@ -204,7 +262,7 @@ async function analyze(useSelection) {
 }
 
 function validateAnalysisSource(source) {
-  if (!state.analysis) throw new Error("请先分析胶片基底。");
+  if (!state.analysis) throw new Error("请先点击“自动分析边框”，或用选区采样胶片基底，然后再生成正片。");
   if (source.doc.id !== state.sourceDocumentId || source.layer.id !== state.sourceLayerId) {
     throw new Error("当前文档或图层已改变，请重新分析胶片基底。");
   }
@@ -217,13 +275,21 @@ function tileHeightFor(width, components, componentSize) {
 
 async function convert() {
   if (state.busy) return;
+
+  let source;
+  try {
+    source = ensureSource();
+    validateAnalysisSource(source);
+  } catch (error) {
+    await reportError(error, true);
+    return;
+  }
+
   setBusy(true);
   setProgress(0.02);
   setStatus("准备生成正片图层…");
 
   try {
-    const source = ensureSource();
-    validateAnalysisSource(source);
     const sourceDocId = source.doc.id;
     const sourceLayerId = source.layer.id;
     const sourceName = source.layer.name;
@@ -232,12 +298,12 @@ async function convert() {
 
     await core.executeAsModal(async function (executionContext) {
       const doc = app.activeDocument;
-      const outputLayer = await doc.createLayer();
-      outputLayer.name = "正片 · " + sourceName + " · PS-Sezhao " + VERSION;
+      const outputLayer = await doc.createLayer({ name: "正片 · " + sourceName + " · PS-Sezhao " + VERSION });
 
       let top = 0;
       let suggestedTileHeight = 256;
       while (top < dimensions.height) {
+        if (executionContext.isCancelled) throw new Error("用户已取消生成正片。");
         const bottom = Math.min(dimensions.height, top + suggestedTileHeight);
         const pixelResult = await imaging.getPixels({
           documentID: sourceDocId,
@@ -255,56 +321,58 @@ async function convert() {
           continue;
         }
 
-        const componentSize = sourceImage.componentSize;
-        suggestedTileHeight = tileHeightFor(dimensions.width, sourceImage.components, componentSize);
-        const fullRange = componentSize === 16;
-        const sourceData = await sourceImage.getData({ chunky: true, fullRange: fullRange });
-        const processed = engine.processBuffer(
-          sourceData,
-          sourceImage.width,
-          sourceImage.height,
-          sourceImage.components,
-          componentSize,
-          state.analysis,
-          controls,
-          controls.profile,
-          fullRange
-        );
+        let outputImage;
+        try {
+          const componentSize = sourceImage.componentSize;
+          suggestedTileHeight = tileHeightFor(dimensions.width, sourceImage.components, componentSize);
+          const fullRange = componentSize === 16;
+          const sourceData = await sourceImage.getData({ chunky: true, fullRange: fullRange });
+          const processed = engine.processBuffer(
+            sourceData,
+            sourceImage.width,
+            sourceImage.height,
+            sourceImage.components,
+            componentSize,
+            state.analysis,
+            controls,
+            controls.profile,
+            fullRange
+          );
 
-        const outputImage = await imaging.createImageDataFromBuffer(processed, {
-          width: sourceImage.width,
-          height: sourceImage.height,
-          components: sourceImage.components,
-          chunky: true,
-          colorSpace: "RGB",
-          colorProfile: cleanColorProfile(sourceImage.colorProfile),
-          fullRange: fullRange
-        });
+          outputImage = await imaging.createImageDataFromBuffer(processed, {
+            width: sourceImage.width,
+            height: sourceImage.height,
+            components: sourceImage.components,
+            chunky: true,
+            colorSpace: "RGB",
+            colorProfile: cleanColorProfile(sourceImage.colorProfile),
+            fullRange: fullRange
+          });
 
-        await imaging.putPixels({
-          documentID: sourceDocId,
-          layerID: outputLayer.id,
-          imageData: outputImage,
-          replace: false,
-          targetBounds: { left: pixelResult.sourceBounds.left, top: pixelResult.sourceBounds.top },
-          commandName: "写入胶片转正像素"
-        });
+          await imaging.putPixels({
+            documentID: sourceDocId,
+            layerID: outputLayer.id,
+            imageData: outputImage,
+            replace: false,
+            targetBounds: { left: pixelResult.sourceBounds.left, top: pixelResult.sourceBounds.top },
+            commandName: "写入胶片转正像素"
+          });
+        } finally {
+          if (outputImage) outputImage.dispose();
+          sourceImage.dispose();
+        }
 
-        outputImage.dispose();
-        sourceImage.dispose();
         top = bottom;
         const progress = top / dimensions.height;
         setProgress(progress);
-        try { executionContext.reportProgress({ value: progress }); } catch (_) { /* Older hosts may omit progress UI. */ }
+        try { executionContext.reportProgress({ value: progress, commandName: "正在生成正片" }); } catch (_) { /* Older hosts may omit progress UI. */ }
       }
     }, { commandName: "胶片去色罩转正" });
 
     setProgress(1);
     setStatus("正片图层已生成，原负片图层未修改。", "ok");
   } catch (error) {
-    console.error(error);
-    setProgress(0);
-    setStatus(error && error.message ? error.message : String(error), "error");
+    await reportError(error, true);
   } finally {
     setBusy(false);
   }
@@ -317,7 +385,7 @@ function saveRoll() {
     localStorage.setItem(ROLL_KEY, JSON.stringify(payload));
     setStatus("本卷参数已保存到插件本地。", "ok");
   } catch (error) {
-    setStatus(error.message || String(error), "error");
+    reportError(error, false);
   }
 }
 
@@ -337,33 +405,62 @@ function loadRoll() {
     byId("confidenceValue").textContent = Math.round(state.analysis.confidence * 100) + "%（本卷）";
     byId("sourceValue").textContent = source.layer.name;
     setStatus("已将本卷参数应用到当前图层。", "ok");
+    updateReadiness();
   } catch (error) {
-    setStatus(error.message || String(error), "error");
+    reportError(error, false);
   }
 }
 
-function initializeUI() {
-  if (state.initialized) return;
-  state.initialized = true;
+function bindClick(id, handler) {
+  byId(id).addEventListener("click", handler);
+}
 
-  ["borderFraction", "exposure", "contrast", "gamma", "saturation", "warmth"].forEach(function (id) {
+function initializeUI() {
+  if (state.initialized) return true;
+  const missing = REQUIRED_UI_IDS.filter(function (id) { return !byId(id); });
+  if (missing.length) return false;
+
+  CONTROL_IDS.forEach(function (id) {
     byId(id).addEventListener("input", refreshOutputs);
   });
-  byId("analyzeAuto").addEventListener("click", function () { analyze(false); });
-  byId("analyzeSelection").addEventListener("click", function () { analyze(true); });
-  byId("convert").addEventListener("click", convert);
-  byId("reset").addEventListener("click", resetControls);
-  byId("saveRoll").addEventListener("click", saveRoll);
-  byId("loadRoll").addEventListener("click", loadRoll);
+  bindClick("analyzeAuto", function () { analyze(false); });
+  bindClick("analyzeSelection", function () { analyze(true); });
+  bindClick("convert", convert);
+  bindClick("reset", resetControls);
+  bindClick("saveRoll", saveRoll);
+  bindClick("loadRoll", loadRoll);
+
+  state.initialized = true;
   refreshOutputs();
+  updateReadiness();
+  setStatus("准备就绪。请先分析胶片基底。");
+  return true;
+}
+
+function scheduleInitialize() {
+  if (initializeUI()) {
+    if (state.initTimer) clearTimeout(state.initTimer);
+    state.initTimer = null;
+    return;
+  }
+  if (!state.initTimer) {
+    state.initTimer = setTimeout(function () {
+      state.initTimer = null;
+      scheduleInitialize();
+    }, 50);
+  }
 }
 
 entrypoints.setup({
   panels: {
     sezhaoPanel: {
-      show: function () { initializeUI(); }
+      show: function () { scheduleInitialize(); }
     }
   }
 });
 
-document.addEventListener("DOMContentLoaded", initializeUI);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", scheduleInitialize);
+} else {
+  scheduleInitialize();
+}
