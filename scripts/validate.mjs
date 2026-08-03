@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 const root = path.resolve(process.cwd());
 const plugin = path.join(root, "plugin");
@@ -21,5 +22,13 @@ if (!manifest.entrypoints?.some((item) => item.type === "panel" && item.id === "
 }
 
 const version = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
+const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 if (version !== manifest.version) throw new Error(`VERSION (${version}) does not match manifest (${manifest.version})`);
+if (version !== packageJson.version) throw new Error(`VERSION (${version}) does not match package.json (${packageJson.version})`);
+
+for (const script of ["main.js", "engine.js"]) {
+  const result = spawnSync(process.execPath, ["--check", path.join(plugin, script)], { encoding: "utf8" });
+  if (result.status !== 0) throw new Error(`${script} syntax check failed:\n${result.stderr || result.stdout}`);
+}
+
 console.log(`Validated PS-Sezhao ${version}`);
