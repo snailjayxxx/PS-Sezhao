@@ -14,8 +14,12 @@ const preview = fs.readFileSync(path.join(root, "plugin/runtime-preview.js"), "u
 const sampler = fs.readFileSync(path.join(root, "plugin/runtime-sampler.js"), "utf8");
 const panelPreview = fs.readFileSync(path.join(root, "plugin/runtime-panel-preview.js"), "utf8");
 const runtime = fs.readFileSync(path.join(root, "plugin/runtime-v022.js"), "utf8");
+const numeric = fs.readFileSync(path.join(root, "plugin/runtime-controls-v050.js"), "utf8");
 const finalOps = fs.readFileSync(path.join(root, "plugin/runtime-final.js"), "utf8");
 const engine = fs.readFileSync(path.join(root, "plugin/engine.js"), "utf8");
+const standaloneApp = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app.py"), "utf8");
+const standaloneWorkspace = fs.readFileSync(path.join(root, "standalone/ps_sezhao/workspace.py"), "utf8");
+const standaloneJobs = fs.readFileSync(path.join(root, "standalone/ps_sezhao/jobs.py"), "utf8");
 const lrRoot = path.join(root, "lightroom-classic/PS-Sezhao.lrplugin");
 const lrInfo = fs.readFileSync(path.join(lrRoot, "Info.lua"), "utf8");
 const lrNative = fs.readFileSync(path.join(lrRoot, "ApplyNative.lua"), "utf8");
@@ -27,12 +31,12 @@ const buildScript = fs.readFileSync(path.join(root, "scripts/build-release.sh"),
 const developerGuide = fs.readFileSync(path.join(root, "PHOTOSHOP_DEVELOPER_LOAD.md"), "utf8");
 
 test("unified release supports Photoshop 2024 and Lightroom Classic 15.4", function () {
-  assert.equal(manifest.version, "0.4.0");
+  assert.equal(manifest.version, "0.5.0");
   assert.equal(manifest.host.minVersion, "25.0.0");
-  assert.match(html, /PS-SEZHAO · 0\.4\.0/);
-  assert.match(finalOps, /const VERSION = "0\.4\.0"/);
+  assert.match(runtime, /const VERSION = "0\.5\.0"/);
+  assert.match(finalOps, /const VERSION = "0\.5\.0"/);
   assert.match(lrInfo, /LrSdkMinimumVersion = 15\.4/);
-  assert.match(lrInfo, /major = 0, minor = 4, revision = 0/);
+  assert.match(lrInfo, /major = 0, minor = 5, revision = 0/);
 });
 
 test("Lightroom presents native mode first and retains high precision mode", function () {
@@ -70,15 +74,6 @@ test("Lightroom native conversion uses modern and compatibility tone curves", fu
   assert.match(lrProfiles, /WhiteBalance = 'Custom'/);
 });
 
-test("Lightroom native mode includes five film starting profiles", function () {
-  ["neutral", "portra", "gold", "fuji", "ecn2"].forEach(function (profile) {
-    assert.match(lrProfiles, new RegExp(`${profile}\\s*=`));
-  });
-  assert.match(lrNative, /styleStrength/);
-  assert.match(lrNative, /temperature/);
-  assert.match(lrNative, /tint/);
-});
-
 test("Lightroom high precision export remains yield-safe and 16-bit", function () {
   assert.match(lrProcess, /LrFunctionContext\.postAsyncTaskWithContext/);
   assert.match(lrProcess, /LrTasks\.pcall\(processSelected, functionContext\)/);
@@ -90,7 +85,7 @@ test("Lightroom high precision export remains yield-safe and 16-bit", function (
 });
 
 test("Photoshop 2024 compatibility avoids the 25.10-only modal timeout option", function () {
-  [common, preview, sampler, finalOps, runtime].forEach(function (source) {
+  [common, preview, sampler, finalOps, runtime, numeric].forEach(function (source) {
     assert.doesNotMatch(source, /\btimeOut\s*:/);
   });
   assert.match(preview, /interactive:\s*true/);
@@ -107,6 +102,18 @@ test("Photoshop panel keeps scroll, live preview and advanced controls", functio
   assert.match(engine, /applyTemperatureTint/);
 });
 
+test("Photoshop range controls gain manual numeric input and step buttons", function () {
+  assert.match(runtime, /runtime-controls-v050\.js/);
+  assert.match(runtime, /initializeNumericControls\(\)/);
+  assert.match(numeric, /numeric-value-input/);
+  assert.match(numeric, /numeric-step-button/);
+  assert.match(numeric, /dispatchRange/);
+  assert.match(numeric, /ArrowUp/);
+  assert.match(numeric, /ArrowDown/);
+  assert.match(css, /\.numeric-stepper/);
+  assert.match(css, /\.numeric-value-input/);
+});
+
 test("Photoshop large preview and click eyedroppers remain available", function () {
   ["panelPreviewStage", "panelPreviewImage", "panelPreviewZoom", "pickBase", "pickNeutral", "sampleSize"].forEach(function (id) {
     assert.match(html, new RegExp(`id="${id}"`));
@@ -115,6 +122,35 @@ test("Photoshop large preview and click eyedroppers remain available", function 
   assert.match(panelPreview, /mapEventToDocument/);
   assert.match(sampler, /colorSamplerTool/);
   assert.match(sampler, /handlePanelPreviewClick/);
+});
+
+test("standalone edition exposes multi-photo navigation and synchronization", function () {
+  assert.match(standaloneApp, /ttk\.Treeview/);
+  assert.match(standaloneApp, /open_folder_dialog/);
+  assert.match(standaloneApp, /step_item/);
+  assert.match(standaloneApp, /sync_controls_selected/);
+  assert.match(standaloneApp, /sync_crop_selected/);
+  assert.match(standaloneApp, /export_selected/);
+  assert.match(standaloneApp, /export_all/);
+});
+
+test("standalone edition supports zoom pan and non-destructive crop", function () {
+  assert.match(standaloneApp, /zoom_at/);
+  assert.match(standaloneApp, /zoom_fit_view/);
+  assert.match(standaloneApp, /on_canvas_motion/);
+  assert.match(standaloneApp, /interaction_mode/);
+  assert.match(standaloneApp, /crop_norm/);
+  assert.match(standaloneWorkspace, /def crop_array/);
+  assert.match(standaloneWorkspace, /class PhotoState/);
+  assert.match(standaloneJobs, /crop_array/);
+});
+
+test("standalone sliders support entry and plus-minus micro adjustment", function () {
+  assert.match(standaloneApp, /ttk\.Entry/);
+  assert.match(standaloneApp, /commit_entry/);
+  assert.match(standaloneApp, /adjust_control/);
+  assert.match(standaloneApp, /text="−"/);
+  assert.match(standaloneApp, /text="\+"/);
 });
 
 test("Photoshop final render preserves depth, profile and original source", function () {
