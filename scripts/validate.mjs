@@ -13,6 +13,7 @@ const runtimeScripts = [
   "runtime-sampler.js",
   "runtime-preview.js",
   "runtime-final.js",
+  "runtime-controls-v050.js",
   "runtime-v022.js"
 ];
 const requiredPluginFiles = ["manifest.json", "index.html", "styles.css", ...runtimeScripts];
@@ -31,6 +32,8 @@ const requiredProjectFiles = [
   "standalone/ps_sezhao/io_utils.py",
   "standalone/ps_sezhao/jobs.py",
   "standalone/ps_sezhao/processing.py",
+  "standalone/ps_sezhao/workspace.py",
+  "standalone/tests/test_workspace.py",
   "PHOTOSHOP_DEVELOPER_LOAD.md",
   "scripts/build-release.sh"
 ];
@@ -62,8 +65,11 @@ if (version !== manifest.version) throw new Error(`VERSION (${version}) does not
 if (version !== packageJson.version) throw new Error(`VERSION (${version}) does not match package.json (${packageJson.version})`);
 
 const html = fs.readFileSync(path.join(plugin, "index.html"), "utf8");
-if (!html.includes(`PS-SEZHAO · ${version}`)) throw new Error("index.html version label is stale");
 if (!html.includes('src="runtime-v022.js"')) throw new Error("index.html must load runtime-v022.js");
+const runtimeEntry = fs.readFileSync(path.join(plugin, "runtime-v022.js"), "utf8");
+if (!runtimeEntry.includes(`const VERSION = "${version}"`)) throw new Error("Photoshop runtime version label is stale");
+if (!runtimeEntry.includes('require("./runtime-controls-v050.js")')) throw new Error("Photoshop numeric controls are not loaded");
+if (!/initializeNumericControls\(\)/.test(runtimeEntry)) throw new Error("Photoshop numeric controls are not initialized");
 
 const [major, minor, revision] = version.split(".").map(Number);
 const lrInfo = fs.readFileSync(path.join(lrPlugin, "Info.lua"), "utf8");
@@ -99,6 +105,12 @@ if (!/photo:applyDevelopSnapshot/.test(lrRestore)) throw new Error("Native resto
 
 const standaloneInit = fs.readFileSync(path.join(root, "standalone/ps_sezhao/__init__.py"), "utf8");
 if (!standaloneInit.includes(`__version__ = "${version}"`)) throw new Error("Standalone version is stale");
+const standaloneApp = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app.py"), "utf8");
+const standaloneJobs = fs.readFileSync(path.join(root, "standalone/ps_sezhao/jobs.py"), "utf8");
+for (const token of ["ttk.Treeview", "open_folder_dialog", "zoom_at", "crop_norm", "sync_controls_selected", "sync_crop_selected", "export_selected", "export_all", "commit_entry", "adjust_control"]) {
+  if (!standaloneApp.includes(token)) throw new Error(`Standalone v0.5.0 feature is missing: ${token}`);
+}
+if (!standaloneJobs.includes("crop_array")) throw new Error("Standalone/Lightroom batch jobs must apply non-destructive crop");
 
 for (const script of runtimeScripts) {
   const scriptPath = path.join(plugin, script);
@@ -110,10 +122,19 @@ for (const script of runtimeScripts) {
   if (result.status !== 0) throw new Error(`${script} syntax check failed:\n${result.stderr || result.stdout}`);
 }
 
+const numericRuntime = fs.readFileSync(path.join(plugin, "runtime-controls-v050.js"), "utf8");
+for (const token of ["numeric-value-input", "numeric-step-button", "dispatchRange", "ArrowUp", "ArrowDown"]) {
+  if (!numericRuntime.includes(token)) throw new Error(`Photoshop numeric interaction is missing: ${token}`);
+}
+const css = fs.readFileSync(path.join(plugin, "styles.css"), "utf8");
+if (!css.includes(".numeric-stepper") || !css.includes(".numeric-value-input")) {
+  throw new Error("Photoshop numeric control styles are missing");
+}
+
 const buildScript = fs.readFileSync(path.join(root, "scripts/build-release.sh"), "utf8");
 if (!buildScript.includes("PS-Sezhao-Photoshop-v${VERSION}.ccx")) throw new Error("Photoshop CCX is missing from common release build");
 if (!buildScript.includes("PS-Sezhao-Photoshop-Developer-v${VERSION}.zip")) throw new Error("Developer-load ZIP is missing from common release build");
 if (!buildScript.includes("unzip -Z1")) throw new Error("CCX root structure validation is missing");
 if (!buildScript.includes("manifest.host?.minVersion !== \"25.0.0\"")) throw new Error("CCX Photoshop 2024 validation is missing");
 
-console.log(`Validated unified PS-Sezhao ${version} with Lightroom native and 16-bit TIFF modes`);
+console.log(`Validated unified PS-Sezhao ${version} with numeric controls, multi-photo workspace, zoom and crop`);
