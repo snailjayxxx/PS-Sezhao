@@ -6,9 +6,10 @@ const {
   setOperation, documentDimensions, cleanColorProfile, currentControls,
   applyControls, updateReadiness, displayRGB, schedulePreview,
   ensureActiveCandidate, storedSource, rememberSource, findLayer,
-  deletePreviewInsideModal, tileHeightFor, VERSION, ROLL_KEY, FINAL_LAYER_PREFIX,
+  deletePreviewInsideModal, tileHeightFor, ROLL_KEY, FINAL_LAYER_PREFIX,
   DEFAULT_CONTROLS
 } = c;
+const VERSION = "0.2.2";
 
 async function convert() {
   if (state.operation || state.previewRendering) return;
@@ -125,7 +126,7 @@ async function loadRoll() {
     byId("confidenceValue").textContent = Math.round(state.analysis.confidence * 100) + "%（本卷）";
     byId("sourceValue").textContent = source.layer.name;
     updateReadiness();
-    setStatus("本卷参数已应用，正在同步预览。", "ok");
+    setStatus("本卷参数已应用，正在同步画布和大图预览。", "ok");
     schedulePreview(0);
   } catch (error) { await reportError(error, true); }
 }
