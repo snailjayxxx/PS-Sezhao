@@ -4,8 +4,7 @@ import { spawnSync } from "node:child_process";
 
 const root = path.resolve(process.cwd());
 const plugin = path.join(root, "plugin");
-const manifestPath = path.join(plugin, "manifest.json");
-const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+const manifest = JSON.parse(fs.readFileSync(path.join(plugin, "manifest.json"), "utf8"));
 const runtimeScripts = [
   "engine.js",
   "runtime-common.js",
@@ -28,18 +27,20 @@ const requiredProjectFiles = [
   "standalone/ps_sezhao/jobs.py",
   "standalone/ps_sezhao/processing.py",
   "PHOTOSHOP_DEVELOPER_LOAD.md",
-  "scripts/package-photoshop.ps1"
+  "scripts/build-release.sh"
 ];
 
 for (const file of requiredPluginFiles) {
   const filePath = path.join(plugin, file);
-  if (!fs.existsSync(filePath)) throw new Error(`Missing Photoshop plugin file: ${file}`);
-  if (fs.statSync(filePath).size === 0) throw new Error(`Empty Photoshop plugin file: ${file}`);
+  if (!fs.existsSync(filePath) || fs.statSync(filePath).size === 0) {
+    throw new Error(`Missing or empty Photoshop plugin file: ${file}`);
+  }
 }
 for (const file of requiredProjectFiles) {
   const filePath = path.join(root, file);
-  if (!fs.existsSync(filePath)) throw new Error(`Missing unified project file: ${file}`);
-  if (fs.statSync(filePath).size === 0) throw new Error(`Empty unified project file: ${file}`);
+  if (!fs.existsSync(filePath) || fs.statSync(filePath).size === 0) {
+    throw new Error(`Missing or empty unified project file: ${file}`);
+  }
 }
 
 if (manifest.manifestVersion !== 5) throw new Error("manifestVersion must be 5");
@@ -70,19 +71,16 @@ for (const script of runtimeScripts) {
   const scriptPath = path.join(plugin, script);
   const source = fs.readFileSync(scriptPath, "utf8");
   if (/\btimeOut\s*:/.test(source)) {
-    throw new Error(`${script} uses executeAsModal.timeOut, which requires Photoshop 25.10 and breaks early Photoshop 2024 releases`);
+    throw new Error(`${script} uses executeAsModal.timeOut, which breaks early Photoshop 2024 releases`);
   }
   const result = spawnSync(process.execPath, ["--check", scriptPath], { encoding: "utf8" });
   if (result.status !== 0) throw new Error(`${script} syntax check failed:\n${result.stderr || result.stdout}`);
 }
 
-const packageScript = fs.readFileSync(path.join(root, "scripts/package-photoshop.ps1"), "utf8");
-if (!/plugin\s+package/.test(packageScript)) throw new Error("Photoshop package script must call the Adobe UXP plugin package command");
-if (!packageScript.includes("UXP_CLI_JS")) throw new Error("Photoshop package script must support the official Adobe source-built CLI entry point");
-const workflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
-if (!workflow.includes("github.com/adobe-uxp/devtools-cli")) throw new Error("Release workflow must build the UXP CLI from Adobe's official repository");
-if (!workflow.includes("yarn install --frozen-lockfile")) throw new Error("Release workflow must use Adobe's documented Yarn installation path");
 const buildScript = fs.readFileSync(path.join(root, "scripts/build-release.sh"), "utf8");
-if (!buildScript.includes("PS-Sezhao-Photoshop-Developer")) throw new Error("Developer-load package is missing from build script");
+if (!buildScript.includes("PS-Sezhao-Photoshop-v${VERSION}.ccx")) throw new Error("Photoshop CCX is missing from common release build");
+if (!buildScript.includes("PS-Sezhao-Photoshop-Developer-v${VERSION}.zip")) throw new Error("Developer-load ZIP is missing from common release build");
+if (!buildScript.includes("unzip -Z1")) throw new Error("CCX root structure validation is missing");
+if (!buildScript.includes("manifest.host?.minVersion !== \"25.0.0\"")) throw new Error("CCX Photoshop 2024 validation is missing");
 
 console.log(`Validated unified PS-Sezhao ${version} for Photoshop 2024+`);
