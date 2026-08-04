@@ -73,11 +73,11 @@ local function finishProgress(progress)
 end
 
 local function processSelected(functionContext)
-    -- LrExportSession:renditions() 会在内部创建 rendition 任务，绝不能从菜单的主 UI
-    -- 调用栈直接进入。postAsyncTaskWithContext 已经创建后台任务；这里再主动让出一次
-    -- 调度，确保 Lightroom 完全离开菜单回调后再开始导出。
+    -- LrExportSession:renditions() 会在内部创建 rendition 任务，必须运行在可让出的
+    -- Lightroom 协作任务中。调用端使用 LrTasks.pcall，而不是普通 Lua pcall，
+    -- 否则 Lua 5.1 的保护调用边界会禁止 yield。
     if not LrTasks.canYield() then
-        error('PS-Sezhao 未能进入 Lightroom 后台任务，请重新启动 Lightroom Classic 后再试。')
+        error('PS-Sezhao 未能进入可让出的 Lightroom 后台任务。请确认安装的是 0.3.3 或更高版本。')
     end
     LrTasks.yield()
 
@@ -203,9 +203,9 @@ end
 LrFunctionContext.postAsyncTaskWithContext(
     'PS-Sezhao：转正所选负片',
     function(functionContext)
-        local ok, err = pcall(function()
-            processSelected(functionContext)
-        end)
+        -- 普通 Lua pcall 会让当前协程变成不可 yield；Lightroom 导出必须使用
+        -- SDK 提供的 LrTasks.pcall 才能安全等待 rendition 渲染。
+        local ok, err = LrTasks.pcall(processSelected, functionContext)
         if not ok then
             LrDialogs.message('PS-Sezhao 错误', tostring(err), 'critical')
         end
