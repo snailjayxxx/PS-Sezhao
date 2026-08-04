@@ -3,6 +3,7 @@
 PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目。同一个仓库同时发布：
 
 - **Photoshop 版**：UXP `.ccx` 插件，直接读取和写入图层。
+- **Photoshop 开发者加载版**：完整插件目录，用 UXP Developer Tool 加载，适合开发、调试以及 CCX 安装器不可用时测试。
 - **Lightroom Classic 版**：Lua `.lrplugin` 插件，渲染所选照片、打开调色窗口、生成 16 位 TIFF 并自动导回目录。
 - **独立桌面版**：不依赖 Adobe，适合未安装 Photoshop/Lightroom、使用其他修图软件或只需要胶片转正的用户。
 
@@ -10,11 +11,11 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 ## 当前版本
 
-统一版本：**v0.3.0**
+统一版本：**v0.3.1**
 
-目标宿主：
+目标环境：
 
-- Photoshop 27.8 或更高版本
+- Photoshop 2024（25.0）或更高版本
 - Lightroom Classic 15.4 / 15.4.1 或更高版本
 - macOS Apple Silicon
 - Windows x64
@@ -23,13 +24,16 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 | 使用场景 | 下载文件 |
 |---|---|
-| Photoshop | `PS-Sezhao-Photoshop-v0.3.0.ccx` |
-| Lightroom Classic on Apple Silicon Mac | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.3.0.zip` |
-| Lightroom Classic on Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.3.0.zip` |
-| 不使用 Adobe 的 Mac 用户 | `PS-Sezhao-Standalone-macOS-arm64-v0.3.0.zip` |
-| 不使用 Adobe 的 Windows 用户 | `PS-Sezhao-Standalone-Windows-x64-v0.3.0.zip` |
+| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.3.1.ccx` |
+| Photoshop 开发/调试或 CCX 安装器不可用 | `PS-Sezhao-Photoshop-Developer-v0.3.1.zip` |
+| Lightroom Classic on Apple Silicon Mac | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.3.1.zip` |
+| Lightroom Classic on Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.3.1.zip` |
+| 不使用 Adobe 的 Mac 用户 | `PS-Sezhao-Standalone-macOS-arm64-v0.3.1.zip` |
+| 不使用 Adobe 的 Windows 用户 | `PS-Sezhao-Standalone-Windows-x64-v0.3.1.zip` |
 
-本项目不提供破解 Adobe 软件、绕过授权或适配修改版宿主的方法。没有 Adobe 正版环境的用户直接使用独立桌面版，核心转正与校色功能不受影响。
+正式 `.ccx` 由 Adobe UXP CLI 生成，不再通过手工 ZIP 改扩展名。开发者加载版的使用步骤见 [PHOTOSHOP_DEVELOPER_LOAD.md](PHOTOSHOP_DEVELOPER_LOAD.md)。
+
+开发者模式只改变插件加载方式，不会激活 Photoshop、修改 Creative Cloud 或绕过 Adobe 授权。本项目不针对被第三方修改的 Photoshop 提供破解或授权规避支持；没有可用 Adobe 环境的用户可使用独立桌面版。
 
 ## 共同功能
 
@@ -43,6 +47,10 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 - 黑点、白点、阴影、高光
 - 大图预览和批量整卷处理
 - 16 位 TIFF 输出
+
+## Photoshop 2024 兼容性
+
+v0.3.1 将宿主最低版本由 27.8 降到 `25.0.0`，覆盖 Photoshop 2024 系列。插件同时移除了只在 Photoshop 25.10 及之后版本才可使用的 `executeAsModal.timeOut` 选项，避免早期 Photoshop 2024 版本加载后在分析、吸管或生成时发生兼容问题。
 
 ## 目录结构
 
@@ -65,7 +73,7 @@ scripts/                                 打包脚本
 
 ## 独立版输入限制
 
-v0.3.0 直接支持 TIFF、JPEG、PNG、BMP 和 WebP。相机 RAW 建议先由相机厂商软件、Darktable、RawTherapee 或其他合法 RAW 工具导出为 16 位 TIFF。后续版本会评估直接 RAW 解码。
+v0.3.1 直接支持 TIFF、JPEG、PNG、BMP 和 WebP。相机 RAW 建议先由相机厂商软件、Darktable、RawTherapee 或其他合法 RAW 工具导出为 16 位 TIFF。
 
 ## 开发检查
 
@@ -74,6 +82,12 @@ node scripts/validate.mjs
 node --test tests/*.test.js
 PYTHONPATH=standalone python -m unittest discover -s standalone/tests -v
 bash scripts/build-release.sh
+```
+
+正式 Photoshop CCX 由 Windows 构建任务调用：
+
+```powershell
+./scripts/package-photoshop.ps1
 ```
 
 ## 许可证
