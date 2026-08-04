@@ -10,10 +10,13 @@ local NativeProfiles = dofile(LrPathUtils.child(_PLUGIN.path, 'NativeProfiles.lu
 local function findLatestSnapshot(photo)
     local snapshots = photo:getDevelopSnapshots() or {}
     local latest = nil
+    local latestName = ''
     for _, snapshot in ipairs(snapshots) do
         local name = tostring(snapshot.name or '')
-        if name:sub(1, #NativeProfiles.SNAPSHOT_PREFIX) == NativeProfiles.SNAPSHOT_PREFIX then
+        if name:sub(1, #NativeProfiles.SNAPSHOT_PREFIX) == NativeProfiles.SNAPSHOT_PREFIX
+            and name > latestName then
             latest = snapshot
+            latestName = name
         end
     end
     return latest
