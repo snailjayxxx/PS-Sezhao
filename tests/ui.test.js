@@ -20,7 +20,6 @@ const lrInfo = fs.readFileSync(path.join(root, "lightroom-classic/PS-Sezhao.lrpl
 const lrProcess = fs.readFileSync(path.join(root, "lightroom-classic/PS-Sezhao.lrplugin/ProcessSelected.lua"), "utf8");
 const workflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
 const buildScript = fs.readFileSync(path.join(root, "scripts/build-release.sh"), "utf8");
-const packageScript = fs.readFileSync(path.join(root, "scripts/package-photoshop.ps1"), "utf8");
 const developerGuide = fs.readFileSync(path.join(root, "PHOTOSHOP_DEVELOPER_LOAD.md"), "utf8");
 
 test("unified release supports Photoshop 2024 and current Lightroom Classic", function () {
@@ -125,17 +124,14 @@ test("Lightroom workflow renders 16-bit TIFFs, starts local editor and imports o
   assert.match(lrProcess, /PS-Sezhao/);
 });
 
-test("release workflow builds official CCX, developer ZIP, Lightroom and standalone assets", function () {
-  assert.match(packageScript, /UXP_CLI_JS/);
-  assert.match(packageScript, /plugin\s+package/);
-  assert.match(packageScript, /PS-Sezhao-Photoshop-v\$version\.ccx/);
-  assert.match(workflow, /github\.com\/adobe-uxp\/devtools-cli/);
-  assert.match(workflow, /yarn install --frozen-lockfile/);
-  assert.match(workflow, /UXP_CLI_JS/);
-  assert.match(workflow, /build-photoshop/);
+test("release workflow builds verified CCX, developer ZIP, Lightroom and standalone assets", function () {
+  assert.match(buildScript, /PS-Sezhao-Photoshop-v\$\{VERSION\}\.ccx/);
+  assert.match(buildScript, /unzip -Z1/);
+  assert.match(buildScript, /manifest\.json/);
   assert.match(buildScript, /PS-Sezhao-Photoshop-Developer-v\$\{VERSION\}\.zip/);
   assert.match(developerGuide, /Add Plugin/);
   assert.match(developerGuide, /manifest\.json/);
+  assert.doesNotMatch(workflow, /build-photoshop:/);
   assert.match(workflow, /LightroomClassic-macOS-arm64/);
   assert.match(workflow, /LightroomClassic-Windows-x64/);
   assert.match(workflow, /Standalone-macOS-arm64/);
