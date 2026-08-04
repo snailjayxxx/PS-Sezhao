@@ -1,4 +1,4 @@
-name: Test, package and release
+name: Test, build and release all editions
 
 on:
   push:
@@ -9,34 +9,123 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  validate:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-
-      - name: Validate plugin
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install validation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r standalone/requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y lua5.4
+      - name: Validate Photoshop plug-in
         run: node scripts/validate.mjs
-
-      - name: Run engine tests
+      - name: Run Photoshop engine and UI tests
         run: node --test tests/*.test.js
+      - name: Run standalone engine tests
+        run: PYTHONPATH=standalone python -m unittest discover -s standalone/tests -v
+      - name: Validate Lightroom Lua syntax
+        run: luac -p lightroom-classic/PS-Sezhao.lrplugin/*.lua
 
-      - name: Build CCX and source archive
-        run: bash scripts/build-release.sh
-
-      - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+  build-common:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
         with:
-          name: PS-Sezhao-release
+          fetch-depth: 0
+      - name: Build Photoshop and source packages
+        run: bash scripts/build-release.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: common-release-assets
           path: dist/*
 
+  build-macos:
+    needs: validate
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r standalone/requirements-build.txt
+      - name: Build Apple Silicon standalone app
+        run: |
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          pyinstaller --noconfirm --clean --windowed \
+            --name PS-Sezhao \
+            --paths standalone \
+            standalone/main.py
+          mkdir -p release-assets lr-stage/PS-Sezhao.lrplugin/bin/macos-arm64
+          cp -R lightroom-classic/PS-Sezhao.lrplugin/. lr-stage/PS-Sezhao.lrplugin/
+          cp -R dist/PS-Sezhao.app lr-stage/PS-Sezhao.lrplugin/bin/macos-arm64/
+          ditto -c -k --sequesterRsrc --keepParent dist/PS-Sezhao.app \
+            "release-assets/PS-Sezhao-Standalone-macOS-arm64-v${VERSION}.zip"
+          ditto -c -k --sequesterRsrc --keepParent lr-stage/PS-Sezhao.lrplugin \
+            "release-assets/PS-Sezhao-LightroomClassic-macOS-arm64-v${VERSION}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-release-assets
+          path: release-assets/*
+
+  build-windows:
+    needs: validate
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r standalone/requirements-build.txt
+      - name: Build Windows standalone app and Lightroom package
+        shell: pwsh
+        run: |
+          $version = (Get-Content VERSION -Raw).Trim()
+          pyinstaller --noconfirm --clean --onefile --windowed `
+            --name PS-Sezhao `
+            --paths standalone `
+            standalone/main.py
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          New-Item -ItemType Directory -Force lr-stage/PS-Sezhao.lrplugin/bin/windows-x64 | Out-Null
+          Copy-Item lightroom-classic/PS-Sezhao.lrplugin/* lr-stage/PS-Sezhao.lrplugin/ -Recurse -Force
+          Copy-Item dist/PS-Sezhao.exe lr-stage/PS-Sezhao.lrplugin/bin/windows-x64/PS-Sezhao.exe -Force
+          Compress-Archive -Path dist/PS-Sezhao.exe -DestinationPath "release-assets/PS-Sezhao-Standalone-Windows-x64-v$version.zip" -Force
+          Compress-Archive -Path lr-stage/PS-Sezhao.lrplugin -DestinationPath "release-assets/PS-Sezhao-LightroomClassic-Windows-x64-v$version.zip" -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-assets
+          path: release-assets/*
+
+  release:
+    needs: [build-common, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Create checksums
+        run: |
+          cd release-assets
+          sha256sum * > CHECKSUMS.txt
+          ls -lh
       - name: Create GitHub Release once per VERSION
         env:
           GH_TOKEN: ${{ github.token }}
@@ -44,10 +133,10 @@ jobs:
           VERSION="$(tr -d '[:space:]' < VERSION)"
           TAG="v${VERSION}"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists; tests and artifact build completed."
+            echo "Release $TAG already exists; builds completed."
             exit 0
           fi
-          gh release create "$TAG" dist/* \
+          gh release create "$TAG" release-assets/* \
             --target "$GITHUB_SHA" \
             --title "PS-Sezhao $TAG" \
             --notes-file RELEASE_NOTES.md
