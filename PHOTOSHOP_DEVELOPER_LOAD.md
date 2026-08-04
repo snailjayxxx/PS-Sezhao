@@ -16,7 +16,7 @@
 从 GitHub Release 下载：
 
 ```text
-PS-Sezhao-Photoshop-Developer-v0.3.3.zip
+PS-Sezhao-Photoshop-Developer-v0.4.0.zip
 ```
 
 解压后应看到：
@@ -54,7 +54,7 @@ PS-Sezhao-Photoshop-Developer/
 插件顶部应显示：
 
 ```text
-PS-SEZHAO · 0.3.3
+PS-SEZHAO · 0.4.0
 ```
 
 ## 更新源码版本
