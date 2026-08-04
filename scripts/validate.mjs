@@ -9,9 +9,11 @@ const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 const runtimeScripts = [
   "engine.js",
   "runtime-common.js",
+  "runtime-panel-preview.js",
+  "runtime-sampler.js",
   "runtime-preview.js",
   "runtime-final.js",
-  "runtime-v021.js"
+  "runtime-v022.js"
 ];
 const requiredFiles = ["manifest.json", "index.html", "styles.css", ...runtimeScripts];
 
@@ -34,8 +36,8 @@ if (version !== manifest.version) throw new Error(`VERSION (${version}) does not
 if (version !== packageJson.version) throw new Error(`VERSION (${version}) does not match package.json (${packageJson.version})`);
 
 const html = fs.readFileSync(path.join(plugin, "index.html"), "utf8");
-if (!html.includes('src="runtime-v021.js"')) {
-  throw new Error("index.html must load runtime-v021.js");
+if (!html.includes('src="runtime-v022.js"')) {
+  throw new Error("index.html must load runtime-v022.js");
 }
 
 for (const script of runtimeScripts) {
