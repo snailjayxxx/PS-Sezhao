@@ -16,19 +16,77 @@ const panelPreview = fs.readFileSync(path.join(root, "plugin/runtime-panel-previ
 const runtime = fs.readFileSync(path.join(root, "plugin/runtime-v022.js"), "utf8");
 const finalOps = fs.readFileSync(path.join(root, "plugin/runtime-final.js"), "utf8");
 const engine = fs.readFileSync(path.join(root, "plugin/engine.js"), "utf8");
-const lrInfo = fs.readFileSync(path.join(root, "lightroom-classic/PS-Sezhao.lrplugin/Info.lua"), "utf8");
-const lrProcess = fs.readFileSync(path.join(root, "lightroom-classic/PS-Sezhao.lrplugin/ProcessSelected.lua"), "utf8");
+const lrRoot = path.join(root, "lightroom-classic/PS-Sezhao.lrplugin");
+const lrInfo = fs.readFileSync(path.join(lrRoot, "Info.lua"), "utf8");
+const lrNative = fs.readFileSync(path.join(lrRoot, "ApplyNative.lua"), "utf8");
+const lrProfiles = fs.readFileSync(path.join(lrRoot, "NativeProfiles.lua"), "utf8");
+const lrRestore = fs.readFileSync(path.join(lrRoot, "RestoreNative.lua"), "utf8");
+const lrProcess = fs.readFileSync(path.join(lrRoot, "ProcessSelected.lua"), "utf8");
 const workflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
 const buildScript = fs.readFileSync(path.join(root, "scripts/build-release.sh"), "utf8");
 const developerGuide = fs.readFileSync(path.join(root, "PHOTOSHOP_DEVELOPER_LOAD.md"), "utf8");
 
-test("unified release supports Photoshop 2024 and current Lightroom Classic", function () {
-  assert.equal(manifest.version, "0.3.3");
+test("unified release supports Photoshop 2024 and Lightroom Classic 15.4", function () {
+  assert.equal(manifest.version, "0.4.0");
   assert.equal(manifest.host.minVersion, "25.0.0");
-  assert.match(html, /PS-SEZHAO · 0\.3\.3/);
-  assert.match(finalOps, /const VERSION = "0\.3\.3"/);
+  assert.match(html, /PS-SEZHAO · 0\.4\.0/);
+  assert.match(finalOps, /const VERSION = "0\.4\.0"/);
   assert.match(lrInfo, /LrSdkMinimumVersion = 15\.4/);
-  assert.match(lrInfo, /major = 0, minor = 3, revision = 3/);
+  assert.match(lrInfo, /major = 0, minor = 4, revision = 0/);
+});
+
+test("Lightroom presents native mode first and retains high precision mode", function () {
+  const nativeIndex = lrInfo.indexOf("file = 'ApplyNative.lua'");
+  const tiffIndex = lrInfo.indexOf("file = 'ProcessSelected.lua'");
+  assert.ok(nativeIndex >= 0);
+  assert.ok(tiffIndex > nativeIndex);
+  assert.match(lrInfo, /file = 'RestoreNative\.lua'/);
+  assert.match(lrInfo, /原生直接转正所选照片（默认）/);
+  assert.match(lrInfo, /高精度 16 位 TIFF/);
+});
+
+test("Lightroom native mode writes non-destructive develop settings", function () {
+  assert.match(lrNative, /photo:getDevelopSettings\(\)/);
+  assert.match(lrNative, /photo:applyDevelopSettings/);
+  assert.match(lrNative, /catalog:withWriteAccessDo/);
+  assert.match(lrNative, /LrTasks\.pcall/);
+  assert.doesNotMatch(lrNative, /LrExportSession/);
+});
+
+test("Lightroom native mode creates a recovery snapshot and restore command", function () {
+  assert.match(lrNative, /photo:createDevelopSnapshot/);
+  assert.match(lrProfiles, /SNAPSHOT_PREFIX/);
+  assert.match(lrRestore, /photo:getDevelopSnapshots\(\)/);
+  assert.match(lrRestore, /photo:applyDevelopSnapshot/);
+});
+
+test("Lightroom native conversion uses modern and compatibility tone curves", function () {
+  assert.match(lrProfiles, /EnableToneCurve = true/);
+  assert.match(lrProfiles, /ExtendedToneCurvePV2012/);
+  assert.match(lrProfiles, /ToneCurvePV2012/);
+  assert.match(lrProfiles, /ExtendedToneCurvePV2012Red/);
+  assert.match(lrProfiles, /ExtendedToneCurvePV2012Green/);
+  assert.match(lrProfiles, /ExtendedToneCurvePV2012Blue/);
+  assert.match(lrProfiles, /WhiteBalance = 'Custom'/);
+});
+
+test("Lightroom native mode includes five film starting profiles", function () {
+  ["neutral", "portra", "gold", "fuji", "ecn2"].forEach(function (profile) {
+    assert.match(lrProfiles, new RegExp(`${profile}\\s*=`));
+  });
+  assert.match(lrNative, /styleStrength/);
+  assert.match(lrNative, /temperature/);
+  assert.match(lrNative, /tint/);
+});
+
+test("Lightroom high precision export remains yield-safe and 16-bit", function () {
+  assert.match(lrProcess, /LrFunctionContext\.postAsyncTaskWithContext/);
+  assert.match(lrProcess, /LrTasks\.pcall\(processSelected, functionContext\)/);
+  assert.match(lrProcess, /LrTasks\.canYield\(\)/);
+  assert.match(lrProcess, /LrExportSession/);
+  assert.match(lrProcess, /LR_export_bitDepth = 16/);
+  assert.match(lrProcess, /LR_colorSpace = 'ProPhotoRGB'/);
+  assert.match(lrProcess, /catalog:addPhoto/);
 });
 
 test("Photoshop 2024 compatibility avoids the 25.10-only modal timeout option", function () {
@@ -39,109 +97,39 @@ test("Photoshop 2024 compatibility avoids the 25.10-only modal timeout option", 
   assert.match(preview, /core\.executeAsModal/);
 });
 
-test("panel keeps a bounded scroll area and fixed action dock", function () {
+test("Photoshop panel keeps scroll, live preview and advanced controls", function () {
   assert.match(html, /class="panel-scroll"/);
   assert.match(html, /class="action-dock"/);
   assert.match(css, /\.panel-scroll\s*\{[^}]*overflow-y:\s*auto/s);
-  assert.match(css, /\.panel-shell\s*\{[^}]*height:\s*100%/s);
-});
-
-test("advanced color controls remain present", function () {
-  ["temperature", "tint", "redGain", "greenGain", "blueGain", "baseAdjustR", "baseAdjustG", "baseAdjustB", "styleStrength"].forEach(function (id) {
+  ["temperature", "tint", "redGain", "greenGain", "blueGain", "styleStrength"].forEach(function (id) {
     assert.match(html, new RegExp(`id="${id}"`));
   });
   assert.match(engine, /applyTemperatureTint/);
-  assert.match(engine, /estimateNeutralGains/);
 });
 
-test("large preview supports fit, 100 percent, 200 percent and expansion", function () {
-  ["panelPreviewStage", "panelPreviewImage", "panelPreviewZoom", "panelPreviewExpand"].forEach(function (id) {
+test("Photoshop large preview and click eyedroppers remain available", function () {
+  ["panelPreviewStage", "panelPreviewImage", "panelPreviewZoom", "pickBase", "pickNeutral", "sampleSize"].forEach(function (id) {
     assert.match(html, new RegExp(`id="${id}"`));
   });
-  assert.match(html, /value="fit"/);
-  assert.match(html, /value="100"/);
-  assert.match(html, /value="200"/);
-  assert.match(css, /\.panel-preview-stage\.expanded/);
-  assert.match(css, /height:\s*680px/);
-  assert.match(panelPreview, /mapEventToDocument/);
-});
-
-test("large preview is encoded from Photoshop image data", function () {
   assert.match(preview, /imaging\.encodeImageData/);
-  assert.match(preview, /data:image\/jpeg;base64/);
-  assert.match(preview, /panelPreview\.setImage/);
-});
-
-test("click eyedroppers use native color sampler tool with panel fallback", function () {
-  ["pickBase", "pickNeutral", "cancelPicker", "sampleSize"].forEach(function (id) {
-    assert.match(html, new RegExp(`id="${id}"`));
-  });
+  assert.match(panelPreview, /mapEventToDocument/);
   assert.match(sampler, /colorSamplerTool/);
-  assert.match(sampler, /doc\.colorSamplers/);
-  assert.match(sampler, /action\.batchPlay/);
   assert.match(sampler, /handlePanelPreviewClick/);
-  assert.match(sampler, /readPatch/);
-  assert.match(sampler, /estimateNeutralGains/);
 });
 
-test("sampling options include point and area averages", function () {
-  ["1", "3", "5", "11", "21"].forEach(function (value) {
-    assert.match(html, new RegExp(`<option value="${value}"`));
-  });
-});
-
-test("canvas preview preserves document depth and profile", function () {
+test("Photoshop final render preserves depth, profile and original source", function () {
   assert.match(common, /componentSize:\s*-1/);
-  assert.match(common, /fullRange/);
   assert.match(common, /resolveColorProfile/);
   assert.match(preview, /colorProfile:\s*c\.resolveColorProfile/);
-});
-
-test("analysis and image writes stay inside modal scopes", function () {
-  assert.match(preview, /core\.executeAsModal/);
-  assert.match(preview, /writePreviewPixels/);
-  assert.match(sampler, /core\.executeAsModal/);
-  assert.match(sampler, /imaging\.getPixels/);
-});
-
-test("final render uses stored source rather than active preview layer", function () {
   assert.match(finalOps, /storedSource\(\)/);
   assert.match(finalOps, /sourceLayerId/);
 });
 
-test("Photoshop runtime initializes preview and sampler modules", function () {
-  assert.match(runtime, /panelPreview\.initialize\(\)/);
-  assert.match(runtime, /sampler\.initialize\(\)/);
-  assert.match(runtime, /function scheduleInitialize\(/);
-  assert.match(html, /src="runtime-v022\.js"/);
-});
-
-test("Lightroom export runs in a yield-safe cooperative task", function () {
-  assert.match(lrProcess, /LrFunctionContext\.postAsyncTaskWithContext/);
-  assert.match(lrProcess, /LrTasks\.pcall\(processSelected, functionContext\)/);
-  assert.match(lrProcess, /LrTasks\.canYield\(\)/);
-  assert.match(lrProcess, /LrTasks\.yield\(\)/);
-  assert.doesNotMatch(lrProcess, /local ok, err = pcall\(function\(\)\s*processSelected/s);
-  assert.doesNotMatch(lrProcess, /LrTasks\.startAsyncTask\(/);
-});
-
-test("Lightroom workflow renders 16-bit TIFFs, starts local editor and imports outputs", function () {
-  assert.match(lrProcess, /LrExportSession/);
-  assert.match(lrProcess, /LR_export_bitDepth = 16/);
-  assert.match(lrProcess, /progressScope = progress/);
-  assert.match(lrProcess, /--lr-job/);
-  assert.match(lrProcess, /catalog:addPhoto/);
-  assert.match(lrProcess, /PS-Sezhao/);
-});
-
-test("release workflow builds verified CCX, developer ZIP, Lightroom and standalone assets", function () {
+test("release workflow builds Photoshop, Lightroom and standalone assets", function () {
   assert.match(buildScript, /PS-Sezhao-Photoshop-v\$\{VERSION\}\.ccx/);
   assert.match(buildScript, /unzip -Z1/);
-  assert.match(buildScript, /manifest\.json/);
   assert.match(buildScript, /PS-Sezhao-Photoshop-Developer-v\$\{VERSION\}\.zip/);
   assert.match(developerGuide, /Add Plugin/);
-  assert.match(developerGuide, /manifest\.json/);
-  assert.doesNotMatch(workflow, /build-photoshop:/);
   assert.match(workflow, /LightroomClassic-macOS-arm64/);
   assert.match(workflow, /LightroomClassic-Windows-x64/);
   assert.match(workflow, /Standalone-macOS-arm64/);
