@@ -6,7 +6,14 @@ const root = path.resolve(process.cwd());
 const plugin = path.join(root, "plugin");
 const manifestPath = path.join(plugin, "manifest.json");
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-const requiredFiles = ["manifest.json", "index.html", "styles.css", "main.js", "engine.js"];
+const runtimeScripts = [
+  "engine.js",
+  "runtime-common.js",
+  "runtime-preview.js",
+  "runtime-final.js",
+  "runtime-v021.js"
+];
+const requiredFiles = ["manifest.json", "index.html", "styles.css", ...runtimeScripts];
 
 for (const file of requiredFiles) {
   const filePath = path.join(plugin, file);
@@ -26,7 +33,12 @@ const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), 
 if (version !== manifest.version) throw new Error(`VERSION (${version}) does not match manifest (${manifest.version})`);
 if (version !== packageJson.version) throw new Error(`VERSION (${version}) does not match package.json (${packageJson.version})`);
 
-for (const script of ["main.js", "engine.js"]) {
+const html = fs.readFileSync(path.join(plugin, "index.html"), "utf8");
+if (!html.includes('src="runtime-v021.js"')) {
+  throw new Error("index.html must load runtime-v021.js");
+}
+
+for (const script of runtimeScripts) {
   const result = spawnSync(process.execPath, ["--check", path.join(plugin, script)], { encoding: "utf8" });
   if (result.status !== 0) throw new Error(`${script} syntax check failed:\n${result.stderr || result.stdout}`);
 }
