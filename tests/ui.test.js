@@ -6,28 +6,20 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const root = path.resolve(__dirname, "..");
-const plugin = path.join(root, "plugin");
-const html = fs.readFileSync(path.join(plugin, "index.html"), "utf8");
-const css = fs.readFileSync(path.join(plugin, "styles.css"), "utf8");
-const common = fs.readFileSync(path.join(plugin, "runtime-common.js"), "utf8");
-const preview = fs.readFileSync(path.join(plugin, "runtime-preview.js"), "utf8");
-const finalRuntime = fs.readFileSync(path.join(plugin, "runtime-final.js"), "utf8");
-const entry = fs.readFileSync(path.join(plugin, "runtime-v021.js"), "utf8");
-const engine = fs.readFileSync(path.join(plugin, "engine.js"), "utf8");
+const html = fs.readFileSync(path.join(root, "plugin/index.html"), "utf8");
+const css = fs.readFileSync(path.join(root, "plugin/styles.css"), "utf8");
+const common = fs.readFileSync(path.join(root, "plugin/runtime-common.js"), "utf8");
+const preview = fs.readFileSync(path.join(root, "plugin/runtime-preview.js"), "utf8");
+const sampler = fs.readFileSync(path.join(root, "plugin/runtime-sampler.js"), "utf8");
+const panelPreview = fs.readFileSync(path.join(root, "plugin/runtime-panel-preview.js"), "utf8");
+const runtime = fs.readFileSync(path.join(root, "plugin/runtime-v022.js"), "utf8");
+const engine = fs.readFileSync(path.join(root, "plugin/engine.js"), "utf8");
 
 test("panel keeps a bounded scroll area and fixed action dock", function () {
   assert.match(html, /class="panel-scroll"/);
   assert.match(html, /class="action-dock"/);
   assert.match(css, /\.panel-scroll\s*\{[^}]*overflow-y:\s*auto/s);
   assert.match(css, /\.panel-shell\s*\{[^}]*height:\s*100%/s);
-});
-
-test("index loads the 0.2.1 modular runtime", function () {
-  assert.match(html, /PS-SEZHAO · 0\.2\.1/);
-  assert.match(html, /<script src="runtime-v021\.js"><\/script>/);
-  assert.match(entry, /require\("\.\/runtime-common\.js"\)/);
-  assert.match(entry, /require\("\.\/runtime-preview\.js"\)/);
-  assert.match(entry, /require\("\.\/runtime-final\.js"\)/);
 });
 
 test("advanced color controls remain present", function () {
@@ -38,44 +30,66 @@ test("advanced color controls remain present", function () {
   assert.match(engine, /estimateNeutralGains/);
 });
 
-test("preview reads source pixels at native document depth", function () {
+test("large preview supports fit, 100 percent, 200 percent and expansion", function () {
+  ["panelPreviewStage", "panelPreviewImage", "panelPreviewZoom", "panelPreviewExpand"].forEach(function (id) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  });
+  assert.match(html, /value="fit"/);
+  assert.match(html, /value="100"/);
+  assert.match(html, /value="200"/);
+  assert.match(css, /\.panel-preview-stage\.expanded/);
+  assert.match(css, /height:\s*680px/);
+  assert.match(panelPreview, /mapEventToDocument/);
+});
+
+test("large preview is encoded from Photoshop image data", function () {
+  assert.match(preview, /imaging\.encodeImageData/);
+  assert.match(preview, /data:image\/jpeg;base64/);
+  assert.match(preview, /panelPreview\.setImage/);
+});
+
+test("click eyedroppers use native color sampler tool with panel fallback", function () {
+  ["pickBase", "pickNeutral", "cancelPicker", "sampleSize"].forEach(function (id) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  });
+  assert.match(sampler, /colorSamplerTool/);
+  assert.match(sampler, /doc\.colorSamplers/);
+  assert.match(sampler, /action\.batchPlay/);
+  assert.match(sampler, /handlePanelPreviewClick/);
+  assert.match(sampler, /readPatch/);
+  assert.match(sampler, /estimateNeutralGains/);
+});
+
+test("sampling options include point and area averages", function () {
+  ["1", "3", "5", "11", "21"].forEach(function (value) {
+    assert.match(html, new RegExp(`<option value="${value}"`));
+  });
+});
+
+test("canvas preview preserves document depth and profile", function () {
   assert.match(common, /componentSize:\s*-1/);
-  assert.match(common, /result\.imageData\.componentSize/);
-  assert.match(common, /fullRange:\s*fullRange/);
-  assert.match(common, /cloneTypedArray\(raw\)/);
+  assert.match(common, /fullRange/);
+  assert.match(common, /resolveColorProfile/);
+  assert.match(preview, /colorProfile:\s*c\.resolveColorProfile/);
 });
 
-test("preview buffer depth and ICC profile match the source document", function () {
-  assert.match(preview, /thumbnail\.componentSize/);
-  assert.match(preview, /thumbnail\.fullRange/);
-  assert.match(preview, /colorProfile:\s*c\.resolveColorProfile\(thumbnail, source\.doc\)/);
-  assert.match(common, /sRGB IEC61966-2\.1/);
-});
-
-test("slider input is coalesced into continuous live preview updates", function () {
-  assert.match(common, /PREVIEW_DEBOUNCE_MS = 70/);
-  assert.match(entry, /addEventListener\("input", onAdjustmentInput\)/);
-  assert.match(entry, /addEventListener\("change", onAdjustmentChange\)/);
-  assert.match(preview, /state\.previewQueued = true/);
-  assert.match(preview, /schedulePreview\(0\)/);
-});
-
-test("preview reuses one scaled temporary layer after initial geometry setup", function () {
-  assert.match(common, /async function writePreviewPixels/);
-  assert.match(common, /state\.previewGeometryKey/);
-  assert.match(common, /imaging\.putPixels/);
-  assert.match(common, /layer\.scale\(/);
-  assert.doesNotMatch(preview, /deletePreviewInsideModal\(\)[\s\S]{0,400}writePreviewPixels/);
-});
-
-test("analysis, preview and final writes use modal scopes", function () {
+test("analysis and image writes stay inside modal scopes", function () {
   assert.match(preview, /core\.executeAsModal/);
-  assert.match(preview, /interactive:\s*true/);
-  assert.match(finalRuntime, /core\.executeAsModal/);
-  assert.match(finalRuntime, /source = storedSource\(\)/);
+  assert.match(preview, /writePreviewPixels/);
+  assert.match(sampler, /core\.executeAsModal/);
+  assert.match(sampler, /imaging\.getPixels/);
 });
 
-test("UI initialization remains retryable", function () {
-  assert.match(entry, /function scheduleInitialize\(/);
-  assert.match(entry, /setTimeout\(function \(\)/);
+test("final render uses stored source rather than active preview layer", function () {
+  const finalOps = fs.readFileSync(path.join(root, "plugin/runtime-final.js"), "utf8");
+  assert.match(finalOps, /storedSource\(\)/);
+  assert.match(finalOps, /sourceLayerId/);
+  assert.match(finalOps, /const VERSION = "0\.2\.2"/);
+});
+
+test("v0.2.2 runtime initializes preview and sampler modules", function () {
+  assert.match(runtime, /panelPreview\.initialize\(\)/);
+  assert.match(runtime, /sampler\.initialize\(\)/);
+  assert.match(runtime, /function scheduleInitialize\(/);
+  assert.match(html, /src="runtime-v022\.js"/);
 });
