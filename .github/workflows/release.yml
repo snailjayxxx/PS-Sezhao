@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   validate:
@@ -34,7 +35,7 @@ jobs:
       - name: Run standalone engine tests
         run: PYTHONPATH=standalone python -m unittest discover -s standalone/tests -v
       - name: Validate Lightroom Lua syntax
-        run: luac -p lightroom-classic/PS-Sezhao.lrplugin/*.lua
+        run: luac5.4 -p lightroom-classic/PS-Sezhao.lrplugin/*.lua
 
   build-common:
     needs: validate
@@ -140,3 +141,44 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "PS-Sezhao $TAG" \
             --notes-file RELEASE_NOTES.md
+
+  report:
+    if: always()
+    needs: [validate, build-common, build-macos, build-windows, release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report or clear build failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATE_RESULT: ${{ needs.validate.result }}
+          COMMON_RESULT: ${{ needs.build-common.result }}
+          MACOS_RESULT: ${{ needs.build-macos.result }}
+          WINDOWS_RESULT: ${{ needs.build-windows.result }}
+          RELEASE_RESULT: ${{ needs.release.result }}
+        run: |
+          TITLE="PS-Sezhao v0.3.0 自动构建失败"
+          EXISTING="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')"
+          if [ "$RELEASE_RESULT" = "success" ]; then
+            if [ -n "$EXISTING" ]; then
+              gh issue close "$EXISTING" --repo "$GITHUB_REPOSITORY" --comment "v0.3.0 已成功构建并发布，本问题自动关闭。"
+            fi
+            exit 0
+          fi
+          BODY=$(cat <<EOF
+          自动构建未完成。
+
+          - Run ID: $GITHUB_RUN_ID
+          - Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          - validate: $VALIDATE_RESULT
+          - build-common: $COMMON_RESULT
+          - build-macos: $MACOS_RESULT
+          - build-windows: $WINDOWS_RESULT
+          - release: $RELEASE_RESULT
+          - commit: $GITHUB_SHA
+          EOF
+          )
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$GITHUB_REPOSITORY" --body "$BODY"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body "$BODY"
+          fi
