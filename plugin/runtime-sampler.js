@@ -66,7 +66,7 @@ async function selectTool(toolRef) {
       _target: [{ _ref: toolRef }],
       _options: { dialogOptions: "dontDisplay" }
     }], { synchronousExecution: false });
-  }, { commandName: "切换吸管工具", timeOut: 10 });
+  }, { commandName: "切换吸管工具" });
 }
 
 function setPickerButtons(mode) {
@@ -245,7 +245,7 @@ async function captureAt(position, mode, sampler) {
       if (mode === "base") await applyBaseSample(source, patch, position);
       else applyNeutralSample(patch);
       if (sampler && typeof sampler.remove === "function") sampler.remove();
-    }, { commandName: mode === "base" ? "吸管采样胶片基底" : "吸管采样中性色", timeOut: 10 });
+    }, { commandName: mode === "base" ? "吸管采样胶片基底" : "吸管采样中性色" });
 
     finishPicker(
       mode === "base"
