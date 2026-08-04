@@ -6,12 +6,30 @@ VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 DIST="$ROOT/dist"
 DEV_STAGE="$ROOT/.build/PS-Sezhao-Photoshop-Developer"
 LR_STAGE="$ROOT/.build/PS-Sezhao.lrplugin"
+CCX="$DIST/PS-Sezhao-Photoshop-v${VERSION}.ccx"
 
 rm -rf "$DIST" "$ROOT/.build"
 mkdir -p "$DIST" "$DEV_STAGE" "$LR_STAGE"
 cp -R "$ROOT/plugin/." "$DEV_STAGE/"
 cp -R "$ROOT/lightroom-classic/PS-Sezhao.lrplugin/." "$LR_STAGE/"
 cp "$ROOT/PHOTOSHOP_DEVELOPER_LOAD.md" "$DEV_STAGE/开发者加载说明.md"
+
+# CCX 使用 ZIP 容器，插件文件必须直接位于压缩包根目录。
+(
+  cd "$ROOT/plugin"
+  zip -q -r "$CCX" .
+)
+
+# 在发布前验证关键结构，避免多套一层目录导致 Creative Cloud 错误 -4。
+unzip -Z1 "$CCX" | grep -qx 'manifest.json'
+node -e '
+  const fs = require("fs");
+  const expected = fs.readFileSync(process.argv[1], "utf8").trim();
+  const manifest = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+  if (manifest.version !== expected) throw new Error(`CCX manifest version ${manifest.version} != ${expected}`);
+  if (manifest.host?.app !== "PS") throw new Error("CCX manifest does not target Photoshop");
+  if (manifest.host?.minVersion !== "25.0.0") throw new Error("CCX does not target Photoshop 2024+");
+' "$ROOT/VERSION" "$ROOT/plugin/manifest.json"
 
 (
   cd "$ROOT/.build"
@@ -23,5 +41,5 @@ cp "$ROOT/PHOTOSHOP_DEVELOPER_LOAD.md" "$DEV_STAGE/开发者加载说明.md"
   git archive --format=zip --output="$DIST/PS-Sezhao-v${VERSION}-source.zip" HEAD
 )
 
-printf 'Built developer and source release files in %s\n' "$DIST"
+printf 'Built and verified common release files in %s\n' "$DIST"
 ls -lh "$DIST"
