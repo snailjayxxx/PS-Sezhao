@@ -1,6 +1,6 @@
 {
   "name": "ps-sezhao",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "Unified Photoshop, Lightroom Classic and standalone color-negative conversion project.",
   "scripts": {
