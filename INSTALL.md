@@ -1,46 +1,43 @@
-# PS-Sezhao 安装与使用说明
+# PS-Sezhao v0.3.0 安装说明
 
-## 安装 v0.2.2
+## Photoshop 27.8+
 
-1. 安装 Photoshop 24.0 或更高版本。
-2. 从 Releases 下载 `PS-Sezhao-v0.2.2.ccx`。
-3. 完全退出 Photoshop。
-4. 双击 `.ccx` 并通过 Creative Cloud Desktop 安装。
-5. 若提示版本冲突，先卸载旧版再安装。
-6. 重新打开 Photoshop，确认插件顶部显示 `PS-SEZHAO · 0.2.2`。
+1. 下载 `PS-Sezhao-Photoshop-v0.3.0.ccx`。
+2. 完全退出 Photoshop。
+3. 双击 CCX，通过 Creative Cloud Desktop 安装。
+4. 重新打开 Photoshop，从 `插件 → 胶片去色罩` 启动。
 
-## 点击胶片基底
+## Lightroom Classic 15.4+
 
-1. 选中原始负片像素图层。
-2. 选择取样范围，推荐 `11 × 11`。
-3. 点击“吸管：点击胶片基底”。
-4. 直接点击 Photoshop 画布中未曝光、颜色均匀的橙色胶片边缘。
-5. 也可以直接点击插件内的大图预览。
-6. 插件会更新胶片基底、重新计算密度范围并刷新预览。
+### Apple Silicon Mac
 
-避免点击齿孔、黑色片夹、文字、灯板直射区域或画面内容。
+1. 下载并解压 `PS-Sezhao-LightroomClassic-macOS-arm64-v0.3.0.zip`。
+2. 打开 Lightroom Classic。
+3. 进入 `文件 → 增效工具管理器`。
+4. 点击“添加”，选择 `PS-Sezhao.lrplugin` 文件夹。
+5. 从 `图库 → 增效工具额外功能 → PS-Sezhao：转正所选负片` 启动。
 
-## 点击中性色
+### Windows x64
 
-1. 先完成胶片基底分析。
-2. 点击“吸管：点击中性色”。
-3. 点击白衬衫、灰卡、灰墙等应为中性的区域。
-4. 插件会自动调整红、绿、蓝输出增益。
+步骤相同，但下载 `PS-Sezhao-LightroomClassic-Windows-x64-v0.3.0.zip`。
 
-不要选择纯黑、已经过曝的纯白或本身带明显颜色的物体。
+Lightroom 插件包已经包含对应平台的本地处理器，不要求用户安装 Python。
 
-## 大图预览
+## 不使用 Adobe：独立桌面版
 
-- `适应窗口`：查看整体颜色和曝光。
-- `100%`：按预览像素一比一查看，可滚动。
-- `200%`：检查颗粒、灰尘和局部偏色，可滚动。
-- `放大预览区`：将预览高度从约 380 px 扩展到约 680 px。
-- 预览精度越高，滑块更新越慢；默认推荐 1800 px。
+### macOS Apple Silicon
 
-## 吸管未自动切换 Photoshop 工具
+1. 下载并解压 `PS-Sezhao-Standalone-macOS-arm64-v0.3.0.zip`。
+2. 将 `PS-Sezhao.app` 移到“应用程序”。
+3. 首次启动若被 Gatekeeper 阻止，请在 Finder 中右键应用并选择“打开”。
 
-部分 Photoshop 环境可能不允许插件自动切换 Color Sampler 工具。此时吸管模式仍然有效，直接点击插件内大图预览即可完成取样。
+### Windows x64
 
-## 最终输出
+1. 下载并解压 `PS-Sezhao-Standalone-Windows-x64-v0.3.0.zip`。
+2. 运行 `PS-Sezhao.exe`。
 
-大图和画布预览用于交互观察。点击“生成最终正片图层”后，插件会重新读取原始负片，按完整分辨率、文档位深和 ICC 配置生成最终图层。
+独立版不需要 Photoshop、Lightroom、Creative Cloud、Python 或 Node.js。
+
+## 关于非正版 Adobe 软件
+
+本项目不会提供绕过 Adobe 授权、修改 Creative Cloud、破解 CCX/LR 插件验证或针对第三方修改版宿主的适配。此类环境的插件接口经常不完整，也无法可靠测试。用户可以合法、完整地使用独立桌面版完成胶片转正，再把 TIFF/JPEG 导入任意图像软件。
