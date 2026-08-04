@@ -14,7 +14,7 @@ return {
         local available = LrFileUtils.exists(path)
         return {
             {
-                title = 'PS-Sezhao 0.3.3',
+                title = 'PS-Sezhao 0.4.0',
                 f:row {
                     spacing = f:control_spacing(),
                     f:static_text { title = '适配版本：' },
@@ -22,13 +22,18 @@ return {
                 },
                 f:row {
                     spacing = f:control_spacing(),
-                    f:static_text { title = '本地处理器：' },
-                    f:static_text { title = available and '可用' or '缺失，请重新安装对应平台安装包' },
+                    f:static_text { title = '原生直接转正：' },
+                    f:static_text { title = '可用，不需要本地处理器' },
+                },
+                f:row {
+                    spacing = f:control_spacing(),
+                    f:static_text { title = '高精度 TIFF：' },
+                    f:static_text { title = available and '本地处理器可用' or '处理器缺失，请重新安装对应平台安装包' },
                 },
                 f:static_text {
-                    title = '从“图库 → 增效工具额外功能”运行。照片只在本机处理。',
-                    width_in_chars = 60,
-                    height_in_lines = 2,
+                    title = '默认使用“原生直接转正”，结果直接写入 Lightroom 非破坏性调整。需要逐像素算法时选择“高精度 16 位 TIFF”。',
+                    width_in_chars = 65,
+                    height_in_lines = 3,
                 },
             },
         }
