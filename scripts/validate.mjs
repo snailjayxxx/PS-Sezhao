@@ -24,7 +24,8 @@ const requiredProjectFiles = [
   "standalone/ps_sezhao/app.py",
   "standalone/ps_sezhao/engine.py",
   "standalone/ps_sezhao/io_utils.py",
-  "standalone/ps_sezhao/jobs.py"
+  "standalone/ps_sezhao/jobs.py",
+  "standalone/ps_sezhao/processing.py"
 ];
 
 for (const file of requiredPluginFiles) {
