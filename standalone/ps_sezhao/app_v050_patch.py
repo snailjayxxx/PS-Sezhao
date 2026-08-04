@@ -1,17 +1,21 @@
 from __future__ import annotations
 
+import json
+import threading
 from typing import Any, Type
 
-from .workspace import FULL_CROP
+from tkinter import messagebox
+
+from .jobs import run_job
+from .workspace import FULL_CROP, clamp_crop
 
 
 def apply_patch(app_class: Type[Any]) -> None:
-    """Apply v0.5.0 interaction fixes without coupling the UI to the launcher.
+    """Apply v0.5.0 interaction and Lightroom multi-photo fixes.
 
-    The first v0.5.0 crop implementation updated the crop rectangle during the
-    mouse-press event. A click without movement therefore produced a zero-area
-    rectangle which was normalized back to the full frame. This patch keeps the
-    previous crop until the pointer actually moves.
+    The crop guard keeps an existing crop when the user clicks without dragging.
+    The Lightroom job override serializes each photo's own analysis, controls and
+    crop instead of applying only the currently visible photo's settings to all.
     """
 
     if getattr(app_class, "_v050_crop_patch_applied", False):
@@ -49,7 +53,46 @@ def apply_patch(app_class: Type[Any]) -> None:
         original_release(self, event)
         self.crop_dragged = False
 
+    def run_lr_job(self: Any) -> None:
+        if self.lr_job_data is None or self.lr_job_path is None:
+            return
+        self._store_current_state()
+        job_items = self.lr_job_data.get("items") or []
+        if not job_items:
+            messagebox.showinfo("Lightroom 任务为空", "当前 Lightroom 任务中没有照片。")
+            return
+
+        for index, job_item in enumerate(job_items):
+            if index >= len(self.items):
+                break
+            state = self.items[index]
+            if state.analysis:
+                job_item["analysis"] = dict(state.analysis)
+            if state.controls:
+                job_item["controls"] = dict(state.controls)
+            job_item["crop"] = list(clamp_crop(state.crop))
+
+        self.lr_job_data.setdefault("settings", {})["multi_photo"] = True
+        self.lr_job_path.write_text(
+            json.dumps(self.lr_job_data, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        self.status.set("正在按每张照片的独立参数生成 Lightroom 正片…")
+
+        def progress(done: int, total: int, name: str) -> None:
+            self.root.after(0, lambda: self.status.set(f"Lightroom 批量处理 {done}/{total}：{name}"))
+
+        def worker() -> None:
+            try:
+                run_job(self.lr_job_path, progress)
+                self.root.after(0, self._finish_lr_job)
+            except Exception as error:
+                self.root.after(0, lambda: messagebox.showerror("Lightroom 处理失败", str(error)))
+
+        threading.Thread(target=worker, daemon=True).start()
+
     app_class.on_canvas_press = on_canvas_press
     app_class.on_canvas_motion = on_canvas_motion
     app_class.on_canvas_release = on_canvas_release
+    app_class._run_lr_job = run_lr_job
     app_class._v050_crop_patch_applied = True
