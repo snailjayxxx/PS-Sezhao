@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 
 const root = path.resolve(process.cwd());
 const plugin = path.join(root, "plugin");
+const lrPlugin = path.join(root, "lightroom-classic/PS-Sezhao.lrplugin");
 const manifest = JSON.parse(fs.readFileSync(path.join(plugin, "manifest.json"), "utf8"));
 const runtimeScripts = [
   "engine.js",
@@ -17,6 +18,9 @@ const runtimeScripts = [
 const requiredPluginFiles = ["manifest.json", "index.html", "styles.css", ...runtimeScripts];
 const requiredProjectFiles = [
   "lightroom-classic/PS-Sezhao.lrplugin/Info.lua",
+  "lightroom-classic/PS-Sezhao.lrplugin/ApplyNative.lua",
+  "lightroom-classic/PS-Sezhao.lrplugin/NativeProfiles.lua",
+  "lightroom-classic/PS-Sezhao.lrplugin/RestoreNative.lua",
   "lightroom-classic/PS-Sezhao.lrplugin/ProcessSelected.lua",
   "lightroom-classic/PS-Sezhao.lrplugin/PluginInfoProvider.lua",
   "standalone/main.py",
@@ -61,23 +65,35 @@ if (!html.includes(`PS-SEZHAO · ${version}`)) throw new Error("index.html versi
 if (!html.includes('src="runtime-v022.js"')) throw new Error("index.html must load runtime-v022.js");
 
 const [major, minor, revision] = version.split(".").map(Number);
-const lrInfo = fs.readFileSync(path.join(root, "lightroom-classic/PS-Sezhao.lrplugin/Info.lua"), "utf8");
+const lrInfo = fs.readFileSync(path.join(lrPlugin, "Info.lua"), "utf8");
 const lrVersionPattern = new RegExp(`major\\s*=\\s*${major},\\s*minor\\s*=\\s*${minor},\\s*revision\\s*=\\s*${revision}`);
 if (!lrVersionPattern.test(lrInfo)) throw new Error("Lightroom plugin version is stale");
+if (!lrInfo.includes("file = 'ApplyNative.lua'")) throw new Error("Lightroom native mode must be the first release menu entry");
+if (!lrInfo.includes("file = 'ProcessSelected.lua'")) throw new Error("Lightroom high-precision TIFF mode is missing");
+if (!lrInfo.includes("file = 'RestoreNative.lua'")) throw new Error("Lightroom native restore entry is missing");
 
-const lrProcess = fs.readFileSync(path.join(root, "lightroom-classic/PS-Sezhao.lrplugin/ProcessSelected.lua"), "utf8");
+const lrProcess = fs.readFileSync(path.join(lrPlugin, "ProcessSelected.lua"), "utf8");
 if (!/LrFunctionContext\.postAsyncTaskWithContext/.test(lrProcess)) {
   throw new Error("Lightroom export must start through postAsyncTaskWithContext");
 }
 if (!/LrTasks\.pcall\(processSelected, functionContext\)/.test(lrProcess)) {
   throw new Error("Lightroom export must use the yield-safe LrTasks.pcall wrapper");
 }
-if (/local ok, err = pcall\(function\(\)\s*processSelected/s.test(lrProcess)) {
-  throw new Error("Plain Lua pcall around processSelected disables coroutine yielding");
+if (!/LrExportSession/.test(lrProcess) || !/LR_export_bitDepth = 16/.test(lrProcess)) {
+  throw new Error("Lightroom high-precision mode must retain 16-bit TIFF export");
 }
-if (!/LrTasks\.canYield\(\)/.test(lrProcess) || !/LrTasks\.yield\(\)/.test(lrProcess)) {
-  throw new Error("Lightroom export must verify and exercise a yieldable cooperative task");
-}
+
+const lrNative = fs.readFileSync(path.join(lrPlugin, "ApplyNative.lua"), "utf8");
+const lrProfiles = fs.readFileSync(path.join(lrPlugin, "NativeProfiles.lua"), "utf8");
+const lrRestore = fs.readFileSync(path.join(lrPlugin, "RestoreNative.lua"), "utf8");
+if (!/photo:getDevelopSettings\(\)/.test(lrNative)) throw new Error("Native mode must read current Lightroom develop settings");
+if (!/photo:applyDevelopSettings/.test(lrNative)) throw new Error("Native mode must directly apply Lightroom develop settings");
+if (!/photo:createDevelopSnapshot/.test(lrNative)) throw new Error("Native mode must create an optional recovery snapshot");
+if (!/catalog:withWriteAccessDo/.test(lrNative)) throw new Error("Native develop edits must use a catalog write gate");
+if (!/LrTasks\.pcall/.test(lrNative)) throw new Error("Native mode must use yield-safe protected calls");
+if (!/ExtendedToneCurvePV2012/.test(lrProfiles)) throw new Error("Native mode must define a modern Lightroom inversion curve");
+if (!/EnableToneCurve = true/.test(lrProfiles)) throw new Error("Native mode must explicitly enable the tone curve");
+if (!/photo:applyDevelopSnapshot/.test(lrRestore)) throw new Error("Native restore must apply the saved develop snapshot");
 
 const standaloneInit = fs.readFileSync(path.join(root, "standalone/ps_sezhao/__init__.py"), "utf8");
 if (!standaloneInit.includes(`__version__ = "${version}"`)) throw new Error("Standalone version is stale");
@@ -98,4 +114,4 @@ if (!buildScript.includes("PS-Sezhao-Photoshop-Developer-v${VERSION}.zip")) thro
 if (!buildScript.includes("unzip -Z1")) throw new Error("CCX root structure validation is missing");
 if (!buildScript.includes("manifest.host?.minVersion !== \"25.0.0\"")) throw new Error("CCX Photoshop 2024 validation is missing");
 
-console.log(`Validated unified PS-Sezhao ${version} for Photoshop 2024+ and yield-safe Lightroom export`);
+console.log(`Validated unified PS-Sezhao ${version} with Lightroom native and 16-bit TIFF modes`);
