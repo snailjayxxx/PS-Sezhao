@@ -3,15 +3,15 @@
 PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目。同一个仓库同时发布：
 
 - **Photoshop 版**：UXP `.ccx` 插件，直接读取和写入图层。
-- **Photoshop 开发者加载版**：完整插件目录，用 UXP Developer Tool 加载，适合开发、调试以及 CCX 安装器不可用时测试。
+- **Photoshop 开发者加载版**：完整插件目录，用 UXP Developer Tool 加载。
 - **Lightroom Classic 版**：Lua `.lrplugin` 插件，渲染所选照片、打开调色窗口、生成 16 位 TIFF 并自动导回目录。
-- **独立桌面版**：不依赖 Adobe，适合未安装 Photoshop/Lightroom、使用其他修图软件或只需要胶片转正的用户。
+- **独立桌面版**：不依赖 Adobe，适合只需要胶片转正或无法使用 Adobe 宿主的用户。
 
 照片只在本机处理，不上传服务器。
 
 ## 当前版本
 
-统一版本：**v0.3.2**
+统一版本：**v0.3.3**
 
 目标环境：
 
@@ -24,16 +24,14 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 | 使用场景 | 下载文件 |
 |---|---|
-| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.3.2.ccx` |
-| Photoshop 开发/调试或 CCX 安装器不可用 | `PS-Sezhao-Photoshop-Developer-v0.3.2.zip` |
-| Lightroom Classic on Apple Silicon Mac | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.3.2.zip` |
-| Lightroom Classic on Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.3.2.zip` |
-| 不使用 Adobe 的 Mac 用户 | `PS-Sezhao-Standalone-macOS-arm64-v0.3.2.zip` |
-| 不使用 Adobe 的 Windows 用户 | `PS-Sezhao-Standalone-Windows-x64-v0.3.2.zip` |
+| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.3.3.ccx` |
+| Photoshop 开发/调试或 CCX 安装器不可用 | `PS-Sezhao-Photoshop-Developer-v0.3.3.zip` |
+| Lightroom Classic on Apple Silicon Mac | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.3.3.zip` |
+| Lightroom Classic on Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.3.3.zip` |
+| 不使用 Adobe 的 Mac 用户 | `PS-Sezhao-Standalone-macOS-arm64-v0.3.3.zip` |
+| 不使用 Adobe 的 Windows 用户 | `PS-Sezhao-Standalone-Windows-x64-v0.3.3.zip` |
 
 CCX 发布前会自动验证：`manifest.json` 位于压缩包根目录、版本号一致、宿主为 Photoshop、最低版本为 25.0.0。开发者加载版的使用步骤见 [PHOTOSHOP_DEVELOPER_LOAD.md](PHOTOSHOP_DEVELOPER_LOAD.md)。
-
-开发者模式只改变插件加载方式，不会激活 Photoshop、修改 Creative Cloud 或绕过 Adobe 授权。没有可用 Adobe 环境的用户可直接使用独立桌面版。
 
 ## 共同功能
 
@@ -50,17 +48,28 @@ CCX 发布前会自动验证：`manifest.json` 位于压缩包根目录、版本
 
 ## Photoshop 2024 兼容性
 
-v0.3.1 起将宿主最低版本降到 `25.0.0`，覆盖 Photoshop 2024 系列。插件同时移除了只在 Photoshop 25.10 及之后版本才可使用的 `executeAsModal.timeOut` 选项，避免早期 Photoshop 2024 小版本在分析、吸管或生成时发生兼容问题。
+v0.3.1 起将宿主最低版本降到 `25.0.0`，覆盖 Photoshop 2024 系列。插件同时移除了只在 Photoshop 25.10 及之后版本才可使用的 `executeAsModal.timeOut` 选项。
 
-## Lightroom Classic v0.3.2 修复
+## Lightroom Classic v0.3.3 修复
 
-v0.3.2 修复了点击“PS-Sezhao：转正所选负片”后出现的：
+v0.3.2 已改用 `LrFunctionContext.postAsyncTaskWithContext`，但错误处理仍使用普通 Lua `pcall`。在 Lightroom 使用的 Lua 5.1 协程模型中，普通 `pcall` 会让内部调用无法 `yield`，所以实际运行时仍会出现：
 
 ```text
-AgExportSession:addRenditionsForPhotos: must not call on main UI task
+PS-Sezhao 未能进入 Lightroom 后台任务
 ```
 
-导出会话现在通过 `LrFunctionContext.postAsyncTaskWithContext` 在 Lightroom 后台任务中启动，并在创建 renditions 前主动让出一次 UI 调度。流水线同时增加回归测试，禁止重新退回主 UI 任务调用。
+v0.3.3 将外层保护调用改为 Lightroom SDK 提供的：
+
+```lua
+LrTasks.pcall(processSelected, functionContext)
+```
+
+这样导出会话可以安全执行 `LrTasks.yield()`、等待 rendition 渲染，并避免重新落回主 UI 任务。自动测试同时检查：
+
+- 必须通过 `postAsyncTaskWithContext` 启动；
+- 必须使用 `LrTasks.pcall`；
+- 禁止用普通 `pcall` 包裹 `processSelected`；
+- 导出仍为 16 位 ProPhoto RGB TIFF。
 
 ## Lightroom Classic 工作流
 
@@ -73,7 +82,7 @@ AgExportSession:addRenditionsForPhotos: must not call on main UI task
 
 ## 独立版输入限制
 
-v0.3.2 直接支持 TIFF、JPEG、PNG、BMP 和 WebP。相机 RAW 建议先由相机厂商软件、Darktable、RawTherapee 或其他合法 RAW 工具导出为 16 位 TIFF。
+v0.3.3 直接支持 TIFF、JPEG、PNG、BMP 和 WebP。相机 RAW 建议先导出为 16 位 TIFF。
 
 ## 开发检查
 
