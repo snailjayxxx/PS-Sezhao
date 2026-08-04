@@ -8,12 +8,26 @@ const assert = require("node:assert/strict");
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "plugin/index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "plugin/styles.css"), "utf8");
+const manifest = JSON.parse(fs.readFileSync(path.join(root, "plugin/manifest.json"), "utf8"));
 const common = fs.readFileSync(path.join(root, "plugin/runtime-common.js"), "utf8");
 const preview = fs.readFileSync(path.join(root, "plugin/runtime-preview.js"), "utf8");
 const sampler = fs.readFileSync(path.join(root, "plugin/runtime-sampler.js"), "utf8");
 const panelPreview = fs.readFileSync(path.join(root, "plugin/runtime-panel-preview.js"), "utf8");
 const runtime = fs.readFileSync(path.join(root, "plugin/runtime-v022.js"), "utf8");
+const finalOps = fs.readFileSync(path.join(root, "plugin/runtime-final.js"), "utf8");
 const engine = fs.readFileSync(path.join(root, "plugin/engine.js"), "utf8");
+const lrInfo = fs.readFileSync(path.join(root, "lightroom-classic/PS-Sezhao.lrplugin/Info.lua"), "utf8");
+const lrProcess = fs.readFileSync(path.join(root, "lightroom-classic/PS-Sezhao.lrplugin/ProcessSelected.lua"), "utf8");
+const workflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
+
+test("unified release targets current Photoshop and Lightroom Classic generations", function () {
+  assert.equal(manifest.version, "0.3.0");
+  assert.equal(manifest.host.minVersion, "27.8.0");
+  assert.match(html, /PS-SEZHAO · 0\.3\.0/);
+  assert.match(finalOps, /const VERSION = "0\.3\.0"/);
+  assert.match(lrInfo, /LrSdkMinimumVersion = 15\.4/);
+  assert.match(lrInfo, /major = 0, minor = 3, revision = 0/);
+});
 
 test("panel keeps a bounded scroll area and fixed action dock", function () {
   assert.match(html, /class="panel-scroll"/);
@@ -81,15 +95,30 @@ test("analysis and image writes stay inside modal scopes", function () {
 });
 
 test("final render uses stored source rather than active preview layer", function () {
-  const finalOps = fs.readFileSync(path.join(root, "plugin/runtime-final.js"), "utf8");
   assert.match(finalOps, /storedSource\(\)/);
   assert.match(finalOps, /sourceLayerId/);
-  assert.match(finalOps, /const VERSION = "0\.2\.2"/);
 });
 
-test("v0.2.2 runtime initializes preview and sampler modules", function () {
+test("Photoshop runtime initializes preview and sampler modules", function () {
   assert.match(runtime, /panelPreview\.initialize\(\)/);
   assert.match(runtime, /sampler\.initialize\(\)/);
   assert.match(runtime, /function scheduleInitialize\(/);
   assert.match(html, /src="runtime-v022\.js"/);
+});
+
+test("Lightroom workflow renders 16-bit TIFFs, starts local editor and imports outputs", function () {
+  assert.match(lrProcess, /LrExportSession/);
+  assert.match(lrProcess, /LR_export_bitDepth = 16/);
+  assert.match(lrProcess, /--lr-job/);
+  assert.match(lrProcess, /catalog:addPhoto/);
+  assert.match(lrProcess, /PS-Sezhao/);
+});
+
+test("release workflow builds Photoshop, Lightroom and standalone assets on both platforms", function () {
+  assert.match(workflow, /PS-Sezhao-Photoshop/);
+  assert.match(workflow, /LightroomClassic-macOS-arm64/);
+  assert.match(workflow, /LightroomClassic-Windows-x64/);
+  assert.match(workflow, /Standalone-macOS-arm64/);
+  assert.match(workflow, /Standalone-Windows-x64/);
+  assert.match(workflow, /pyinstaller/);
 });
