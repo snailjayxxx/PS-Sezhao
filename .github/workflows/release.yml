@@ -61,6 +61,7 @@ jobs:
           node-version: '18.20.8'
       - name: Build Adobe UXP CLI from official repository
         continue-on-error: true
+        timeout-minutes: 5
         shell: pwsh
         run: |
           npm install --global yarn@1.22.22
@@ -151,6 +152,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           path: release-assets
@@ -160,20 +163,25 @@ jobs:
           cd release-assets
           sha256sum * > CHECKSUMS.txt
           ls -lh
-      - name: Create GitHub Release once per VERSION
+      - name: Create or refresh GitHub Release for VERSION
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           TAG="v${VERSION}"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists; builds completed."
-            exit 0
+            git tag -f "$TAG" "$GITHUB_SHA"
+            git push origin "refs/tags/$TAG" --force
+            gh release upload "$TAG" release-assets/* --clobber
+            gh release edit "$TAG" \
+              --title "PS-Sezhao $TAG" \
+              --notes-file RELEASE_NOTES.md
+          else
+            gh release create "$TAG" release-assets/* \
+              --target "$GITHUB_SHA" \
+              --title "PS-Sezhao $TAG" \
+              --notes-file RELEASE_NOTES.md
           fi
-          gh release create "$TAG" release-assets/* \
-            --target "$GITHUB_SHA" \
-            --title "PS-Sezhao $TAG" \
-            --notes-file RELEASE_NOTES.md
 
   report:
     if: always()
