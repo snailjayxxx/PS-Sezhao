@@ -77,7 +77,11 @@ for (const script of runtimeScripts) {
 }
 
 const packageScript = fs.readFileSync(path.join(root, "scripts/package-photoshop.ps1"), "utf8");
-if (!/uxp\s+plugin\s+package/.test(packageScript)) throw new Error("Photoshop package script must use Adobe UXP CLI");
+if (!/plugin\s+package/.test(packageScript)) throw new Error("Photoshop package script must call the Adobe UXP plugin package command");
+if (!packageScript.includes("UXP_CLI_JS")) throw new Error("Photoshop package script must support the official Adobe source-built CLI entry point");
+const workflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
+if (!workflow.includes("github.com/adobe-uxp/devtools-cli")) throw new Error("Release workflow must build the UXP CLI from Adobe's official repository");
+if (!workflow.includes("yarn install --frozen-lockfile")) throw new Error("Release workflow must use Adobe's documented Yarn installation path");
 const buildScript = fs.readFileSync(path.join(root, "scripts/build-release.sh"), "utf8");
 if (!buildScript.includes("PS-Sezhao-Photoshop-Developer")) throw new Error("Developer-load package is missing from build script");
 
