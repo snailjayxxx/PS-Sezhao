@@ -19,7 +19,11 @@ def load_image(path: str | Path) -> tuple[np.ndarray, dict[str, Any]]:
     metadata: dict[str, Any] = {"path": str(source), "icc_profile": None, "source_dtype": None}
 
     if suffix in TIFF_EXTENSIONS:
-        array = tifffile.imread(source)
+        with tifffile.TiffFile(source) as tif:
+            array = tif.asarray()
+            icc_tag = tif.pages[0].tags.get(34675) if tif.pages else None
+            if icc_tag is not None:
+                metadata["icc_profile"] = bytes(icc_tag.value)
         if array.ndim == 2:
             array = np.repeat(array[..., None], 3, axis=2)
         if array.ndim != 3:
@@ -63,7 +67,17 @@ def save_image(
             data = np.round(rgb * 65535.0).astype(np.uint16)
         else:
             data = np.round(rgb * 255.0).astype(np.uint8)
-        tifffile.imwrite(destination, data, photometric="rgb", metadata=None)
+        extra_tags = None
+        if icc_profile:
+            extra_tags = [(34675, "B", len(icc_profile), bytes(icc_profile), False)]
+        tifffile.imwrite(
+            destination,
+            data,
+            photometric="rgb",
+            metadata=None,
+            compression="zlib",
+            extratags=extra_tags,
+        )
         return destination
 
     data8 = np.round(rgb * 255.0).astype(np.uint8)
