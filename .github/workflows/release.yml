@@ -62,6 +62,7 @@ jobs:
       - name: Install Adobe UXP packaging CLI
         shell: pwsh
         run: |
+          npm install --global tar@6
           npm install --global @adobe/uxp-devtools-cli@1.2.0
           uxp help
       - name: Build official Photoshop CCX
