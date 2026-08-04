@@ -11,10 +11,10 @@
 
 ## Photoshop CCX
 
-- 构建流程会优先从 Adobe 官方 `adobe-uxp/devtools-cli` 仓库安装 CLI，并调用 `uxp plugin package`。
-- Adobe CLI 在无人值守构建环境中不可用时，会使用 CCX 规范允许的 ZIP 容器回退；插件文件直接位于包根目录。
-- 无论使用哪条打包路径，都会解包复核 `manifest.json` 的位置、版本号和 Photoshop 宿主声明。
-- 发行文件统一命名为 `PS-Sezhao-Photoshop-v0.3.1.ccx`。
+- 发布流水线直接创建符合 CCX ZIP 容器结构的安装包，插件文件位于压缩包根目录。
+- 打包完成后会自动解包检查 `manifest.json` 的位置、版本号、Photoshop 宿主声明和 25.0.0 最低版本。
+- 避免多套一层文件夹导致 Creative Cloud 安装错误。
+- 发行文件命名为 `PS-Sezhao-Photoshop-v0.3.1.ccx`。
 
 ## Photoshop 开发者加载包
 
@@ -52,7 +52,7 @@ GitHub Actions 会自动完成：
 
 - Photoshop 2024 兼容性与 JavaScript 语法检查
 - Photoshop 图像引擎和界面回归测试
-- Adobe 官方 CLI 优先的 CCX 打包与结构复核
+- CCX 根目录结构与清单复核
 - Photoshop Developer ZIP 打包
 - Python 图像引擎测试
 - Lightroom Lua 语法检查
