@@ -2,7 +2,7 @@
 
 ## Photoshop 2024（25.0）或更高版本
 
-### 推荐：正式 CCX 安装
+### 推荐：CCX 安装
 
 1. 下载 `PS-Sezhao-Photoshop-v0.3.1.ccx`。
 2. 完全退出 Photoshop。
@@ -10,7 +10,7 @@
 4. 重新打开 Photoshop，从 `插件 → 胶片去色罩` 启动。
 5. 确认插件顶部显示 `PS-SEZHAO · 0.3.1`。
 
-v0.3.1 的 CCX 由 Adobe UXP CLI 正式生成，不再使用手工 ZIP 改扩展名的方式。
+发布流水线会自动确认 CCX 的 `manifest.json` 位于包根目录，并核对版本、宿主和最低 Photoshop 版本，避免多套一层目录造成安装错误。
 
 ### 备用：UXP Developer Tool 加载
 
