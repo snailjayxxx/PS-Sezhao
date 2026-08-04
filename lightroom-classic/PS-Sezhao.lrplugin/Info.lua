@@ -3,12 +3,20 @@ return {
     LrSdkMinimumVersion = 15.4,
     LrToolkitIdentifier = 'com.snailjoss.pssezhao.lightroom',
     LrPluginName = 'PS-Sezhao 胶片去色罩',
-    VERSION = { major = 0, minor = 3, revision = 3, build = 0 },
+    VERSION = { major = 0, minor = 4, revision = 0, build = 0 },
 
     LrLibraryMenuItems = {
         {
-            title = 'PS-Sezhao：转正所选负片',
+            title = 'PS-Sezhao：原生直接转正所选照片（默认）',
+            file = 'ApplyNative.lua',
+        },
+        {
+            title = 'PS-Sezhao：高精度 16 位 TIFF',
             file = 'ProcessSelected.lua',
+        },
+        {
+            title = 'PS-Sezhao：恢复原生转正前状态',
+            file = 'RestoreNative.lua',
         },
     },
 
