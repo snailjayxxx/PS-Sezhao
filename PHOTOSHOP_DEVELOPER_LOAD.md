@@ -16,7 +16,7 @@
 从 GitHub Release 下载：
 
 ```text
-PS-Sezhao-Photoshop-Developer-v0.3.2.zip
+PS-Sezhao-Photoshop-Developer-v0.3.3.zip
 ```
 
 解压后应看到：
@@ -54,7 +54,7 @@ PS-Sezhao-Photoshop-Developer/
 插件顶部应显示：
 
 ```text
-PS-SEZHAO · 0.3.2
+PS-SEZHAO · 0.3.3
 ```
 
 ## 更新源码版本
@@ -86,7 +86,7 @@ PS-SEZHAO · 0.3.2
 
 ### `.ccx` 能安装，但开发者包不能加载
 
-在 UXP Developer Tool 中查看 `Logs` 或 `Debug`，记录具体报错。开发者模式会显示比 Creative Cloud 安装器更详细的清单和运行错误。
+在 UXP Developer Tool 中查看 `Logs` 或 `Debug`，记录具体报错。
 
 ### 开发者模式能否代替 Photoshop 授权
 
