@@ -8,16 +8,26 @@ $buildDir = Join-Path $root '.build/uxp-package'
 $verifyDir = Join-Path $root '.build/uxp-verify'
 $target = Join-Path $releaseDir "PS-Sezhao-Photoshop-v$version.ccx"
 
-if (-not (Get-Command uxp -ErrorAction SilentlyContinue)) {
-    throw 'Adobe UXP CLI is not installed or is not available on PATH.'
-}
-
 Remove-Item $buildDir -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item $verifyDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $buildDir | Out-Null
 New-Item -ItemType Directory -Force $releaseDir | Out-Null
 
-& uxp plugin package --manifest $manifest --apps PS --outputPath $buildDir
+$cliScript = $env:UXP_CLI_JS
+if ($cliScript) {
+    if (-not (Test-Path $cliScript)) {
+        throw "Adobe UXP CLI entry file does not exist: $cliScript"
+    }
+    Write-Host "Packaging with Adobe UXP CLI source: $cliScript"
+    & node $cliScript plugin package --manifest $manifest --apps PS --outputPath $buildDir
+} else {
+    if (-not (Get-Command uxp -ErrorAction SilentlyContinue)) {
+        throw 'Adobe UXP CLI is not available. Set UXP_CLI_JS or install the uxp command.'
+    }
+    Write-Host 'Packaging with the installed Adobe uxp command.'
+    & uxp plugin package --manifest $manifest --apps PS --outputPath $buildDir
+}
+
 if ($LASTEXITCODE -ne 0) {
     throw "UXP CLI packaging failed with exit code $LASTEXITCODE."
 }
