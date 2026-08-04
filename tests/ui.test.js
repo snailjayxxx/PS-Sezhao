@@ -19,6 +19,7 @@ const engine = fs.readFileSync(path.join(root, "plugin/engine.js"), "utf8");
 const lrInfo = fs.readFileSync(path.join(root, "lightroom-classic/PS-Sezhao.lrplugin/Info.lua"), "utf8");
 const lrProcess = fs.readFileSync(path.join(root, "lightroom-classic/PS-Sezhao.lrplugin/ProcessSelected.lua"), "utf8");
 const workflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
+const buildScript = fs.readFileSync(path.join(root, "scripts/build-release.sh"), "utf8");
 
 test("unified release targets current Photoshop and Lightroom Classic generations", function () {
   assert.equal(manifest.version, "0.3.0");
@@ -115,7 +116,7 @@ test("Lightroom workflow renders 16-bit TIFFs, starts local editor and imports o
 });
 
 test("release workflow builds Photoshop, Lightroom and standalone assets on both platforms", function () {
-  assert.match(workflow, /PS-Sezhao-Photoshop/);
+  assert.match(buildScript, /PS-Sezhao-Photoshop/);
   assert.match(workflow, /LightroomClassic-macOS-arm64/);
   assert.match(workflow, /LightroomClassic-Windows-x64/);
   assert.match(workflow, /Standalone-macOS-arm64/);
