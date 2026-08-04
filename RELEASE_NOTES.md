@@ -1,97 +1,86 @@
-# PS-Sezhao v0.4.0
+# PS-Sezhao v0.5.0
 
-这是 Lightroom Classic 工作流的重要功能版本：新增直接修改 Lightroom 当前照片的“原生转正”模式，同时保留原有高精度 16 位 TIFF 模式。
+这是交互和独立桌面工作流的重要升级版本：Photoshop 与独立版加入数字输入和加减微调；独立版与 Lightroom 高精度窗口升级为多图、缩放、平移、非破坏裁切和批量输出工作区。
 
-## Lightroom 原生直接转正（默认）
+## 参数数字输入与微调
 
-新增菜单：
+Photoshop 和独立桌面版的主要参数现在同时提供滑块、数字输入框、减号和加号按钮。
 
-```text
-PS-Sezhao：原生直接转正所选照片（默认）
-```
+- 直接输入数值，按 Enter 或移开焦点后生效；
+- 超出范围时自动限制；
+- `− / +` 按参数最小步长微调；
+- 输入框支持上下方向键微调；
+- 修改后继续触发实时预览。
 
-该模式使用 Lightroom Classic 的 Develop Settings 接口，把调整直接写入所选照片，不生成新文件，也不改写原始图像。
+覆盖曝光、对比度、中间调、饱和度、色温、色调、RGB 增益、黑白点、阴影、高光、风格强度和胶片基底微调。
 
-原生模式会应用：
+## 独立版多图工作区
 
-- 完整反相点曲线；
-- 兼容曲线和现代 `ExtendedToneCurvePV2012`；
-- 红、绿、蓝独立通道曲线；
-- 曝光、对比度、高光、阴影、白色、黑色；
-- 色温、色调、自然饱和度、饱和度；
-- 通用 C-41、Portra、Gold、Fujifilm、ECN-2 起始风格；
-- 风格强度和附加校正参数；
-- 所选照片批量应用。
+新增：
 
-应用后可以直接进入 Lightroom 的“修改照片”模块继续调整。
+- 一次添加多张图片；
+- 添加文件夹和可选的子文件夹扫描；
+- 左侧多选图片列表；
+- 上一张、下一张和直接点击切换；
+- 每张图片独立保存分析、调色和裁切；
+- 参数同步到选中图片；
+- 裁切同步到选中图片；
+- 保存当前、导出选中、导出全部。
 
-## 恢复快照
+批量输出不再强制所有图片使用当前照片的参数；每张图片会使用自己的分析结果、控制参数和裁切区域。
 
-原生模式默认会在每张照片上创建带时间的应用前快照：
+## 缩放和平移
 
-```text
-PS-Sezhao 原生转正前 YYYY-MM-DD HH:MM:SS
-```
+大图预览新增：
 
-新增菜单：
+- 鼠标滚轮围绕指针位置缩放；
+- 放大、缩小、适应窗口、100%、200%；
+- 平移模式拖动画面；
+- 只渲染当前可见区域，减少高倍放大时的预览内存。
 
-```text
-PS-Sezhao：恢复原生转正前状态
-```
+## 非破坏性裁切
 
-该命令会恢复所选照片最近一次 PS-Sezhao 应用前快照。
+- 裁切模式拖出矩形区域；
+- 裁切外区域遮罩和边框显示；
+- 重置裁切；
+- 裁切同步到选中图片；
+- 裁切坐标按比例保存，可用于不同分辨率但相同构图的整卷照片；
+- 原始图片不会修改，只有导出结果会裁切。
 
-## 高精度 16 位 TIFF 继续保留
+同时修复了裁切模式中“只点击但没有拖动”可能重置已有裁切的问题。
 
-原有流程改名为：
+## Lightroom Classic
 
-```text
-PS-Sezhao：高精度 16 位 TIFF
-```
+- 原生直接转正、高精度 16 位 TIFF 和恢复快照三个入口继续保留；
+- Lightroom 高精度窗口使用新的多图工作区；
+- 每张 Lightroom 照片可以分别调整和裁切；
+- 任务 JSON 支持每张照片独立的 analysis、controls 和 crop；
+- 输出继续为 16 位 TIFF 并自动导回 Lightroom。
 
-它继续执行：
+## Photoshop 2024+
 
-- Lightroom 渲染 16 位 ProPhoto RGB TIFF；
-- 本地逐像素胶片基底和光密度转正；
-- 独立大预览窗口和点击吸管；
-- 新 16 位 TIFF 输出并自动导回 Lightroom。
-
-原生模式适合直接编辑、快速批量和不生成新文件；高精度模式适合严重偏色、胶片基底采样和要求逐像素一致性的照片。
-
-## Lightroom 安全性与兼容性
-
-- 原生模式使用 `photo:getDevelopSettings()` 读取当前调整；
-- 使用 `photo:applyDevelopSettings()` 写入非破坏性参数；
-- 所有写入位于 `catalog:withWriteAccessDo()`；
-- 使用 `LrTasks.pcall` 保持协作任务可让出；
-- 默认跳过已经应用过反相曲线的照片，避免重复反相；
-- 视频会自动跳过。
-
-## Photoshop 与独立版
-
-- Photoshop 最低版本继续为 Photoshop 2024（25.0.0）；
-- Photoshop 功能和逐像素算法保持不变；
-- macOS Apple Silicon、Windows x64 独立版同步升级至 0.4.0。
+- 最低版本继续为 Photoshop 2024（25.0.0）；
+- 原有点击吸管、画布实时预览、大图预览和完整分辨率输出保持不变；
+- 新增 `runtime-controls-v050.js`，在不重写原有参数逻辑的情况下为全部滑块增加数字输入和微调按钮。
 
 ## 发行文件
 
-- `PS-Sezhao-Photoshop-v0.4.0.ccx`
-- `PS-Sezhao-Photoshop-Developer-v0.4.0.zip`
-- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.4.0.zip`
-- `PS-Sezhao-LightroomClassic-Windows-x64-v0.4.0.zip`
-- `PS-Sezhao-Standalone-macOS-arm64-v0.4.0.zip`
-- `PS-Sezhao-Standalone-Windows-x64-v0.4.0.zip`
+- `PS-Sezhao-Photoshop-v0.5.0.ccx`
+- `PS-Sezhao-Photoshop-Developer-v0.5.0.zip`
+- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.0.zip`
+- `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.0.zip`
+- `PS-Sezhao-Standalone-macOS-arm64-v0.5.0.zip`
+- `PS-Sezhao-Standalone-Windows-x64-v0.5.0.zip`
 
 ## 自动检查
 
-GitHub Actions 会自动完成：
+GitHub Actions 会执行：
 
-- Lightroom 原生 Develop Settings 结构测试；
-- 反相和 RGB 通道曲线检查；
-- 快照创建和恢复入口检查；
-- Lightroom 高精度导出协程与 16 位 TIFF 检查；
-- Lightroom Lua 语法检查；
-- Photoshop JavaScript、图像引擎和界面测试；
-- 独立图像引擎测试；
-- macOS Apple Silicon 与 Windows x64 构建；
-- 所有发行文件的 SHA-256 校验。
+- Photoshop JavaScript 语法、数字输入和微调结构检查；
+- Photoshop 图像引擎和界面测试；
+- Lightroom 原生模式、快照恢复和高精度 16 位 TIFF 检查；
+- Lightroom Lua 语法测试；
+- 独立版多图工作区、裁切坐标和文件夹发现测试；
+- 独立图像引擎与分块处理测试；
+- macOS Apple Silicon 和 Windows x64 构建；
+- CCX 结构与所有 Release 文件 SHA-256 校验。
