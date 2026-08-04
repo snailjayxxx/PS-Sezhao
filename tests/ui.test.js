@@ -23,12 +23,12 @@ const buildScript = fs.readFileSync(path.join(root, "scripts/build-release.sh"),
 const developerGuide = fs.readFileSync(path.join(root, "PHOTOSHOP_DEVELOPER_LOAD.md"), "utf8");
 
 test("unified release supports Photoshop 2024 and current Lightroom Classic", function () {
-  assert.equal(manifest.version, "0.3.1");
+  assert.equal(manifest.version, "0.3.2");
   assert.equal(manifest.host.minVersion, "25.0.0");
-  assert.match(html, /PS-SEZHAO · 0\.3\.1/);
-  assert.match(finalOps, /const VERSION = "0\.3\.1"/);
+  assert.match(html, /PS-SEZHAO · 0\.3\.2/);
+  assert.match(finalOps, /const VERSION = "0\.3\.2"/);
   assert.match(lrInfo, /LrSdkMinimumVersion = 15\.4/);
-  assert.match(lrInfo, /major = 0, minor = 3, revision = 1/);
+  assert.match(lrInfo, /major = 0, minor = 3, revision = 2/);
 });
 
 test("Photoshop 2024 compatibility avoids the 25.10-only modal timeout option", function () {
@@ -116,9 +116,17 @@ test("Photoshop runtime initializes preview and sampler modules", function () {
   assert.match(html, /src="runtime-v022\.js"/);
 });
 
+test("Lightroom export runs outside the main UI task", function () {
+  assert.match(lrProcess, /LrFunctionContext\.postAsyncTaskWithContext/);
+  assert.match(lrProcess, /LrTasks\.canYield\(\)/);
+  assert.match(lrProcess, /LrTasks\.yield\(\)/);
+  assert.doesNotMatch(lrProcess, /LrTasks\.startAsyncTask\(/);
+});
+
 test("Lightroom workflow renders 16-bit TIFFs, starts local editor and imports outputs", function () {
   assert.match(lrProcess, /LrExportSession/);
   assert.match(lrProcess, /LR_export_bitDepth = 16/);
+  assert.match(lrProcess, /progressScope = progress/);
   assert.match(lrProcess, /--lr-job/);
   assert.match(lrProcess, /catalog:addPhoto/);
   assert.match(lrProcess, /PS-Sezhao/);
