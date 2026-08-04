@@ -73,11 +73,8 @@ local function finishProgress(progress)
 end
 
 local function processSelected(functionContext)
-    -- LrExportSession:renditions() 会在内部创建 rendition 任务，必须运行在可让出的
-    -- Lightroom 协作任务中。调用端使用 LrTasks.pcall，而不是普通 Lua pcall，
-    -- 否则 Lua 5.1 的保护调用边界会禁止 yield。
     if not LrTasks.canYield() then
-        error('PS-Sezhao 未能进入可让出的 Lightroom 后台任务。请确认安装的是 0.3.3 或更高版本。')
+        error('PS-Sezhao 高精度模式未能进入可让出的 Lightroom 后台任务。请确认安装的是 0.4.0 或更高版本。')
     end
     LrTasks.yield()
 
@@ -105,7 +102,7 @@ local function processSelected(functionContext)
     local renderDir = LrPathUtils.child(tempRoot, 'rendered')
     LrFileUtils.createAllDirectories(renderDir)
 
-    local progress = LrProgressScope { title = 'PS-Sezhao：渲染所选负片' }
+    local progress = LrProgressScope { title = 'PS-Sezhao：高精度 16 位 TIFF' }
     progress:setCancelable(true)
 
     local exportSettings = {
@@ -164,7 +161,7 @@ local function processSelected(functionContext)
     local jobPath = LrPathUtils.child(tempRoot, 'job.json')
     local resultManifest = LrPathUtils.child(tempRoot, 'outputs.txt')
     writeJob(jobPath, items, resultManifest)
-    progress:setCaption('正在打开 PS-Sezhao 调整窗口…')
+    progress:setCaption('正在打开 PS-Sezhao 高精度调整窗口…')
 
     local command = quote(executable) .. ' --lr-job ' .. quote(jobPath)
     local exitCode = LrTasks.execute(command)
@@ -194,20 +191,18 @@ local function processSelected(functionContext)
 
     finishProgress(progress)
     LrDialogs.message(
-        'PS-Sezhao 完成',
+        'PS-Sezhao 高精度模式完成',
         '已生成并导入 ' .. imported .. ' 张 16 位 TIFF。\n输出位于原图目录下的 PS-Sezhao 文件夹。',
         'info'
     )
 end
 
 LrFunctionContext.postAsyncTaskWithContext(
-    'PS-Sezhao：转正所选负片',
+    'PS-Sezhao：高精度 16 位 TIFF',
     function(functionContext)
-        -- 普通 Lua pcall 会让当前协程变成不可 yield；Lightroom 导出必须使用
-        -- SDK 提供的 LrTasks.pcall 才能安全等待 rendition 渲染。
         local ok, err = LrTasks.pcall(processSelected, functionContext)
         if not ok then
-            LrDialogs.message('PS-Sezhao 错误', tostring(err), 'critical')
+            LrDialogs.message('PS-Sezhao 高精度模式错误', tostring(err), 'critical')
         end
     end
 )
