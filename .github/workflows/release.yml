@@ -44,12 +44,33 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Build Photoshop and source packages
+      - name: Build developer and source packages
         run: bash scripts/build-release.sh
       - uses: actions/upload-artifact@v4
         with:
           name: common-release-assets
           path: dist/*
+
+  build-photoshop:
+    needs: validate
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '16.20.2'
+      - name: Install Adobe UXP packaging CLI
+        shell: pwsh
+        run: |
+          npm install --global @adobe/uxp-devtools-cli@1.2.0
+          uxp help
+      - name: Build official Photoshop CCX
+        shell: pwsh
+        run: ./scripts/package-photoshop.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: photoshop-release-assets
+          path: release-assets/*
 
   build-macos:
     needs: validate
@@ -114,7 +135,7 @@ jobs:
           path: release-assets/*
 
   release:
-    needs: [build-common, build-macos, build-windows]
+    needs: [build-common, build-photoshop, build-macos, build-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -144,23 +165,26 @@ jobs:
 
   report:
     if: always()
-    needs: [validate, build-common, build-macos, build-windows, release]
+    needs: [validate, build-common, build-photoshop, build-macos, build-windows, release]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Report or clear build failure issue
         env:
           GH_TOKEN: ${{ github.token }}
           VALIDATE_RESULT: ${{ needs.validate.result }}
           COMMON_RESULT: ${{ needs.build-common.result }}
+          PHOTOSHOP_RESULT: ${{ needs.build-photoshop.result }}
           MACOS_RESULT: ${{ needs.build-macos.result }}
           WINDOWS_RESULT: ${{ needs.build-windows.result }}
           RELEASE_RESULT: ${{ needs.release.result }}
         run: |
-          TITLE="PS-Sezhao v0.3.0 自动构建失败"
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          TITLE="PS-Sezhao v${VERSION} 自动构建失败"
           EXISTING="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')"
           if [ "$RELEASE_RESULT" = "success" ]; then
             if [ -n "$EXISTING" ]; then
-              gh issue close "$EXISTING" --repo "$GITHUB_REPOSITORY" --comment "v0.3.0 已成功构建并发布，本问题自动关闭。"
+              gh issue close "$EXISTING" --repo "$GITHUB_REPOSITORY" --comment "v${VERSION} 已成功构建并发布，本问题自动关闭。"
             fi
             exit 0
           fi
@@ -171,6 +195,7 @@ jobs:
           - Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
           - validate: $VALIDATE_RESULT
           - build-common: $COMMON_RESULT
+          - build-photoshop: $PHOTOSHOP_RESULT
           - build-macos: $MACOS_RESULT
           - build-windows: $WINDOWS_RESULT
           - release: $RELEASE_RESULT
