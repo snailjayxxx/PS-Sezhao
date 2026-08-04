@@ -14,7 +14,7 @@ return {
         local available = LrFileUtils.exists(path)
         return {
             {
-                title = 'PS-Sezhao 0.3.0',
+                title = 'PS-Sezhao 0.3.2',
                 f:row {
                     spacing = f:control_spacing(),
                     f:static_text { title = '适配版本：' },
