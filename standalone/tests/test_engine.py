@@ -4,6 +4,7 @@ import unittest
 import numpy as np
 
 from ps_sezhao.engine import Controls, analyze_image, estimate_base_from_border, neutral_gains, process_image, sample_median_rgb
+from ps_sezhao.processing import process_image_tiled
 
 
 class EngineTests(unittest.TestCase):
@@ -41,6 +42,14 @@ class EngineTests(unittest.TestCase):
         cool = process_image(image, analysis, Controls(temperature=-2.0))
         self.assertGreater(float(warm[..., 0].mean()), float(cool[..., 0].mean()))
         self.assertLess(float(warm[..., 2].mean()), float(cool[..., 2].mean()))
+
+    def test_tiled_processing_matches_full(self) -> None:
+        image = self.make_negative()
+        analysis = analyze_image(image, 0.1)
+        controls = Controls(profile="gold", temperature=0.4)
+        full = process_image(image, analysis, controls)
+        tiled = process_image_tiled(image, analysis, controls, tile_rows=37)
+        self.assertTrue(np.allclose(full, tiled, atol=1e-6))
 
     def test_patch_sampler(self) -> None:
         image = self.make_negative()
