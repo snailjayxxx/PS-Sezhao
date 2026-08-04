@@ -12,18 +12,36 @@
       <div class="content-stack">
         <header class="hero">
           <div>
-            <div class="eyebrow">PS-SEZHAO · 0.2.1</div>
+            <div class="eyebrow">PS-SEZHAO · 0.2.2</div>
             <h1>胶片去色罩</h1>
-            <p>彩色负片转正、精细校色与画布连续预览。</p>
+            <p>点击式吸管、大图预览与连续画布调色。</p>
           </div>
           <span class="badge">V2</span>
         </header>
 
         <section class="card">
-          <h2>1. 分析胶片基底</h2>
-          <p class="hint">选中原始负片像素图层。优先保留一圈未曝光的橙色边框。</p>
+          <h2>1. 胶片基底与点击吸管</h2>
+          <p class="hint">可自动分析边框，也可启动吸管后直接点击 Photoshop 画布或下方大图预览。</p>
           <div class="button-row">
-            <button id="analyzeAuto" class="primary">自动分析边框</button>
+            <button id="pickBase" class="primary">吸管：点击胶片基底</button>
+            <button id="pickNeutral">吸管：点击中性色</button>
+          </div>
+          <div class="button-row compact">
+            <button id="cancelPicker" disabled>取消吸管</button>
+            <label class="inline-select">取样范围
+              <select id="sampleSize">
+                <option value="1">单点</option>
+                <option value="3">3 × 3</option>
+                <option value="5">5 × 5</option>
+                <option value="11" selected>11 × 11</option>
+                <option value="21">21 × 21</option>
+              </select>
+            </label>
+          </div>
+          <p id="pickerStatus" class="microcopy">推荐 11 × 11，可降低胶片颗粒和扫描噪点对取样的影响。</p>
+          <div class="divider"></div>
+          <div class="button-row">
+            <button id="analyzeAuto">自动分析边框</button>
             <button id="analyzeSelection">从选区采样色罩</button>
           </div>
           <label class="field">
@@ -37,29 +55,52 @@
           </div>
         </section>
 
+        <section class="card image-preview-card">
+          <div class="section-heading-row">
+            <h2>2. 大图预览</h2>
+            <button id="panelPreviewExpand" class="mini-button">放大预览区</button>
+          </div>
+          <div class="preview-toolbar">
+            <label class="inline-select">显示比例
+              <select id="panelPreviewZoom">
+                <option value="fit" selected>适应窗口</option>
+                <option value="100">100%</option>
+                <option value="200">200%</option>
+              </select>
+            </label>
+          </div>
+          <div id="panelPreviewStage" class="panel-preview-stage zoom-fit">
+            <div id="panelPreviewPlaceholder" class="panel-preview-placeholder">分析胶片后显示大图预览</div>
+            <img id="panelPreviewImage" alt="胶片转正大图预览" />
+          </div>
+          <p id="panelPreviewMessage" class="panel-preview-message">尚未生成预览。</p>
+          <p class="microcopy">启动吸管后，可直接点击此大图取样；也可点击 Photoshop 画布。100% 和 200% 模式可滚动查看细节。</p>
+        </section>
+
         <section class="card preview-card">
-          <h2>2. 画布连续预览</h2>
+          <h2>3. Photoshop 画布连续预览</h2>
           <div class="switch-row">
-            <label class="check-label"><input id="autoPreview" type="checkbox" checked /> 拖动滑块时自动同步画布</label>
+            <label class="check-label"><input id="autoPreview" type="checkbox" checked /> 拖动滑块时自动同步画布与大图</label>
           </div>
           <label class="field select-field">
             <span>预览精度</span>
             <select id="previewEdge">
-              <option value="800">快速 · 长边 800 px</option>
-              <option value="1200" selected>标准 · 长边 1200 px</option>
-              <option value="1800">精细 · 长边 1800 px</option>
+              <option value="1200">快速 · 长边 1200 px</option>
+              <option value="1800" selected>标准 · 长边 1800 px</option>
+              <option value="2400">清晰 · 长边 2400 px</option>
+              <option value="3200">高精细 · 长边 3200 px</option>
             </select>
           </label>
           <div class="button-row compact">
             <button id="refreshPreview">立即刷新预览</button>
-            <button id="togglePreview">隐藏预览</button>
-            <button id="removePreview">移除预览</button>
+            <button id="togglePreview">隐藏画布预览</button>
+            <button id="removePreview">移除画布预览</button>
           </div>
-          <p class="microcopy">预览按当前文档的 8/16/32 位深和 ICC 配置生成；拖动滑块约 70 ms 后同步到 Photoshop 画布。</p>
+          <p class="microcopy">插件内大图使用 JPEG 预览；最终图层仍按原始位深、ICC、完整分辨率重新计算。</p>
         </section>
 
         <section class="card">
-          <h2>3. 基础转正</h2>
+          <h2>4. 基础转正</h2>
           <label class="field select-field">
             <span>胶片起始配置</span>
             <select id="profile">
@@ -78,9 +119,9 @@
         </section>
 
         <section class="card color-card">
-          <h2>4. 白平衡与色彩</h2>
+          <h2>5. 白平衡与色彩</h2>
           <div class="button-row single-action"><button id="neutralizeSelection" class="secondary-wide">从当前选区校正中性色</button></div>
-          <p class="microcopy">先框选白衬衫、灰卡或应为中性的区域，再点击上方按钮。</p>
+          <p class="microcopy">点击式中性色吸管更方便；选区方式继续保留，适合较大灰卡区域。</p>
           <label class="field"><span>色温 <output id="temperatureValue">0</output></span><input id="temperature" type="range" min="-300" max="300" step="1" value="0" /></label>
           <label class="field"><span>色调（绿 ↔ 洋红） <output id="tintValue">0</output></span><input id="tint" type="range" min="-200" max="200" step="1" value="0" /></label>
           <div class="channel-title">RGB 输出增益</div>
@@ -90,7 +131,7 @@
         </section>
 
         <section class="card">
-          <h2>5. 明暗细节</h2>
+          <h2>6. 明暗细节</h2>
           <label class="field"><span>黑点 <output id="blackPointValue">0</output></span><input id="blackPoint" type="range" min="-100" max="100" step="1" value="0" /></label>
           <label class="field"><span>白点 <output id="whitePointValue">0</output></span><input id="whitePoint" type="range" min="-100" max="100" step="1" value="0" /></label>
           <label class="field"><span>阴影 <output id="shadowsValue">0</output></span><input id="shadows" type="range" min="-100" max="100" step="1" value="0" /></label>
@@ -98,8 +139,8 @@
         </section>
 
         <section class="card">
-          <h2>6. 胶片基底微调</h2>
-          <p class="microcopy">用于修正自动采样与实际胶片基底之间的通道误差。数值显示最终使用的 8 位等效基底。</p>
+          <h2>7. 胶片基底微调</h2>
+          <p class="microcopy">吸管采样后仍可细调三通道。数值显示最终使用的 8 位等效基底。</p>
           <label class="field channel red"><span>基底 R <output id="baseAdjustRValue">—</output></span><input id="baseAdjustR" type="range" min="-64" max="64" step="1" value="0" /></label>
           <label class="field channel green"><span>基底 G <output id="baseAdjustGValue">—</output></span><input id="baseAdjustG" type="range" min="-64" max="64" step="1" value="0" /></label>
           <label class="field channel blue"><span>基底 B <output id="baseAdjustBValue">—</output></span><input id="baseAdjustB" type="range" min="-64" max="64" step="1" value="0" /></label>
@@ -109,7 +150,7 @@
           </div>
         </section>
 
-        <footer>画布预览使用文档原始位深和色彩配置；最终输出仍以完整分辨率分块处理。</footer>
+        <footer>大图预览用于交互观察；最终输出仍使用原始负片图层、完整分辨率和文档位深。</footer>
       </div>
     </div>
 
@@ -119,10 +160,10 @@
         <button id="reset" class="reset-button">恢复调整默认值</button>
         <span id="readinessValue" class="readiness">请先分析胶片基底</span>
       </div>
-      <p id="status" class="status" aria-live="polite">准备就绪。请先分析胶片基底。</p>
+      <p id="status" class="status" aria-live="polite">准备就绪。可自动分析，或启动色罩吸管后直接点击图像。</p>
       <div class="progress-track" aria-hidden="true"><div id="progress" class="progress-bar"></div></div>
     </section>
   </main>
-  <script src="runtime-v021.js"></script>
+  <script src="runtime-v022.js"></script>
 </body>
 </html>
