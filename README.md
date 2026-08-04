@@ -31,9 +31,9 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 | 不使用 Adobe 的 Mac 用户 | `PS-Sezhao-Standalone-macOS-arm64-v0.3.1.zip` |
 | 不使用 Adobe 的 Windows 用户 | `PS-Sezhao-Standalone-Windows-x64-v0.3.1.zip` |
 
-正式 `.ccx` 由 Adobe UXP CLI 生成，不再通过手工 ZIP 改扩展名。开发者加载版的使用步骤见 [PHOTOSHOP_DEVELOPER_LOAD.md](PHOTOSHOP_DEVELOPER_LOAD.md)。
+CCX 发布前会自动验证：`manifest.json` 位于压缩包根目录、版本号一致、宿主为 Photoshop、最低版本为 25.0.0。开发者加载版的使用步骤见 [PHOTOSHOP_DEVELOPER_LOAD.md](PHOTOSHOP_DEVELOPER_LOAD.md)。
 
-开发者模式只改变插件加载方式，不会激活 Photoshop、修改 Creative Cloud 或绕过 Adobe 授权。本项目不针对被第三方修改的 Photoshop 提供破解或授权规避支持；没有可用 Adobe 环境的用户可使用独立桌面版。
+开发者模式只改变插件加载方式，不会激活 Photoshop、修改 Creative Cloud 或绕过 Adobe 授权。没有可用 Adobe 环境的用户可直接使用独立桌面版。
 
 ## 共同功能
 
@@ -50,17 +50,7 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 ## Photoshop 2024 兼容性
 
-v0.3.1 将宿主最低版本由 27.8 降到 `25.0.0`，覆盖 Photoshop 2024 系列。插件同时移除了只在 Photoshop 25.10 及之后版本才可使用的 `executeAsModal.timeOut` 选项，避免早期 Photoshop 2024 版本加载后在分析、吸管或生成时发生兼容问题。
-
-## 目录结构
-
-```text
-plugin/                                  Photoshop UXP 插件
-lightroom-classic/PS-Sezhao.lrplugin/    Lightroom Classic Lua 插件
-standalone/                              跨平台本地处理器与桌面界面
-scripts/                                 打包脚本
-.github/workflows/                        PS、LR、独立版统一发布流程
-```
+v0.3.1 将宿主最低版本降到 `25.0.0`，覆盖 Photoshop 2024 系列。插件同时移除了只在 Photoshop 25.10 及之后版本才可使用的 `executeAsModal.timeOut` 选项，避免早期 Photoshop 2024 小版本在分析、吸管或生成时发生兼容问题。
 
 ## Lightroom Classic 工作流
 
@@ -82,12 +72,6 @@ node scripts/validate.mjs
 node --test tests/*.test.js
 PYTHONPATH=standalone python -m unittest discover -s standalone/tests -v
 bash scripts/build-release.sh
-```
-
-正式 Photoshop CCX 由 Windows 构建任务调用：
-
-```powershell
-./scripts/package-photoshop.ps1
 ```
 
 ## 许可证
