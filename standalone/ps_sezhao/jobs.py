@@ -20,8 +20,8 @@ def run_job(job_path: str | Path, progress: ProgressCallback | None = None) -> l
         raise ValueError("任务中没有可处理的图像。")
 
     settings = job.get("settings") or {}
-    controls = Controls.from_dict(settings.get("controls"))
-    saved_analysis = settings.get("analysis")
+    default_controls = Controls.from_dict(settings.get("controls"))
+    default_analysis = settings.get("analysis")
     default_crop = clamp_crop(settings.get("crop"))
     output_paths: list[str] = []
 
@@ -31,7 +31,10 @@ def run_job(job_path: str | Path, progress: ProgressCallback | None = None) -> l
         if progress:
             progress(index - 1, len(items), input_path.name)
         image, metadata = load_image(input_path)
-        analysis = Analysis.from_dict(saved_analysis) if saved_analysis else analyze_image(image)
+        item_analysis = item.get("analysis", default_analysis)
+        item_controls = item.get("controls")
+        analysis = Analysis.from_dict(item_analysis) if item_analysis else analyze_image(image)
+        controls = Controls.from_dict(item_controls) if item_controls else default_controls
         crop = clamp_crop(item.get("crop", default_crop))
         source = crop_array(image, crop)
         result = process_image_tiled(source, analysis, controls)
