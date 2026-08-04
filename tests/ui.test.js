@@ -126,9 +126,12 @@ test("Lightroom workflow renders 16-bit TIFFs, starts local editor and imports o
 });
 
 test("release workflow builds official CCX, developer ZIP, Lightroom and standalone assets", function () {
-  assert.match(packageScript, /uxp\s+plugin\s+package/);
+  assert.match(packageScript, /UXP_CLI_JS/);
+  assert.match(packageScript, /plugin\s+package/);
   assert.match(packageScript, /PS-Sezhao-Photoshop-v\$version\.ccx/);
-  assert.match(workflow, /@adobe\/uxp-devtools-cli@1\.2\.0/);
+  assert.match(workflow, /github\.com\/adobe-uxp\/devtools-cli/);
+  assert.match(workflow, /yarn install --frozen-lockfile/);
+  assert.match(workflow, /UXP_CLI_JS/);
   assert.match(workflow, /build-photoshop/);
   assert.match(buildScript, /PS-Sezhao-Photoshop-Developer-v\$\{VERSION\}\.zip/);
   assert.match(developerGuide, /Add Plugin/);
