@@ -23,6 +23,7 @@ const requiredProjectFiles = [
   "lightroom-classic/PS-Sezhao.lrplugin/RestoreNative.lua",
   "lightroom-classic/PS-Sezhao.lrplugin/ProcessSelected.lua",
   "lightroom-classic/PS-Sezhao.lrplugin/PluginInfoProvider.lua",
+  "lightroom-classic/tests/native_profiles_test.lua",
   "standalone/main.py",
   "standalone/ps_sezhao/__init__.py",
   "standalone/ps_sezhao/app.py",
@@ -68,8 +69,9 @@ const [major, minor, revision] = version.split(".").map(Number);
 const lrInfo = fs.readFileSync(path.join(lrPlugin, "Info.lua"), "utf8");
 const lrVersionPattern = new RegExp(`major\\s*=\\s*${major},\\s*minor\\s*=\\s*${minor},\\s*revision\\s*=\\s*${revision}`);
 if (!lrVersionPattern.test(lrInfo)) throw new Error("Lightroom plugin version is stale");
-if (!lrInfo.includes("file = 'ApplyNative.lua'")) throw new Error("Lightroom native mode must be the first release menu entry");
-if (!lrInfo.includes("file = 'ProcessSelected.lua'")) throw new Error("Lightroom high-precision TIFF mode is missing");
+const nativeMenuIndex = lrInfo.indexOf("file = 'ApplyNative.lua'");
+const tiffMenuIndex = lrInfo.indexOf("file = 'ProcessSelected.lua'");
+if (nativeMenuIndex < 0 || tiffMenuIndex <= nativeMenuIndex) throw new Error("Lightroom native mode must be the first release menu entry");
 if (!lrInfo.includes("file = 'RestoreNative.lua'")) throw new Error("Lightroom native restore entry is missing");
 
 const lrProcess = fs.readFileSync(path.join(lrPlugin, "ProcessSelected.lua"), "utf8");
