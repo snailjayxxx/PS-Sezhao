@@ -6,12 +6,14 @@ const preview = require("./runtime-preview.js");
 const finalOps = require("./runtime-final.js");
 const panelPreview = require("./runtime-panel-preview.js");
 const sampler = require("./runtime-sampler.js");
+const numericControls = require("./runtime-controls-v050.js");
 const {
   state, byId, ADJUSTMENT_IDS, REQUIRED_UI_IDS, DEFAULT_CONTROLS,
   applyControls, refreshOutputs, updateReadiness, setStatus,
   schedulePreview, resetControls
 } = c;
 
+const VERSION = "0.5.0";
 const V022_UI_IDS = [
   "pickBase", "pickNeutral", "cancelPicker", "sampleSize",
   "panelPreviewStage", "panelPreviewImage", "panelPreviewPlaceholder",
@@ -26,6 +28,12 @@ function onAdjustmentInput() {
 function onAdjustmentChange() {
   refreshOutputs();
   schedulePreview(0);
+}
+function updateVersionLabels() {
+  const eyebrow = document.querySelector(".eyebrow");
+  const badge = document.querySelector(".badge");
+  if (eyebrow) eyebrow.textContent = "PS-SEZHAO · " + VERSION;
+  if (badge) badge.textContent = "V5";
 }
 function initializeUI() {
   if (state.initialized) return true;
@@ -64,12 +72,14 @@ function initializeUI() {
   bindClick("saveRoll", finalOps.saveRoll);
   bindClick("loadRoll", finalOps.loadRoll);
 
+  updateVersionLabels();
+  numericControls.initializeNumericControls();
   panelPreview.initialize();
   sampler.initialize();
   applyControls(DEFAULT_CONTROLS);
   refreshOutputs();
   updateReadiness();
-  setStatus("准备就绪。可自动分析，或启动色罩吸管后直接点击图像。", "");
+  setStatus("准备就绪。滑块下方数值可直接输入，也可使用 − / + 微调。", "");
   return true;
 }
 function scheduleInitialize() {
