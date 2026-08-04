@@ -14,7 +14,7 @@ return {
         local available = LrFileUtils.exists(path)
         return {
             {
-                title = 'PS-Sezhao 0.4.0',
+                title = 'PS-Sezhao 0.5.0',
                 f:row {
                     spacing = f:control_spacing(),
                     f:static_text { title = '适配版本：' },
@@ -31,7 +31,7 @@ return {
                     f:static_text { title = available and '本地处理器可用' or '处理器缺失，请重新安装对应平台安装包' },
                 },
                 f:static_text {
-                    title = '默认使用“原生直接转正”，结果直接写入 Lightroom 非破坏性调整。需要逐像素算法时选择“高精度 16 位 TIFF”。',
+                    title = '默认使用“原生直接转正”。高精度窗口已支持多图列表、缩放平移、非破坏裁切和数字微调。',
                     width_in_chars = 65,
                     height_in_lines = 3,
                 },
