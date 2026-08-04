@@ -1,6 +1,6 @@
 # PS-Sezhao v0.3.1
 
-这是面向 Photoshop 2024 兼容性、正式 CCX 打包和开发者加载方式的维护版本。Lightroom Classic 与独立桌面版同步使用统一版本号重新构建。
+这是面向 Photoshop 2024 兼容性、CCX 安装包和开发者加载方式的维护版本。Lightroom Classic 与独立桌面版同步使用统一版本号重新构建。
 
 ## Photoshop 2024+
 
@@ -9,11 +9,12 @@
 - 移除 `executeAsModal.timeOut` 选项；该选项需要 Photoshop 25.10，早期 Photoshop 2024 小版本不支持。
 - 增加兼容性测试，禁止后续运行脚本重新引入 25.10 专用模态超时选项。
 
-## 正式 CCX
+## Photoshop CCX
 
-- `PS-Sezhao-Photoshop-v0.3.1.ccx` 改由 Adobe UXP Developer Tools CLI 的 `uxp plugin package` 命令生成。
-- 不再通过普通 ZIP 压缩后改名为 `.ccx`。
-- 构建后会自动检查 CCX 根目录是否包含 `manifest.json`。
+- 构建流程会优先从 Adobe 官方 `adobe-uxp/devtools-cli` 仓库安装 CLI，并调用 `uxp plugin package`。
+- Adobe CLI 在无人值守构建环境中不可用时，会使用 CCX 规范允许的 ZIP 容器回退；插件文件直接位于包根目录。
+- 无论使用哪条打包路径，都会解包复核 `manifest.json` 的位置、版本号和 Photoshop 宿主声明。
+- 发行文件统一命名为 `PS-Sezhao-Photoshop-v0.3.1.ccx`。
 
 ## Photoshop 开发者加载包
 
@@ -51,7 +52,7 @@ GitHub Actions 会自动完成：
 
 - Photoshop 2024 兼容性与 JavaScript 语法检查
 - Photoshop 图像引擎和界面回归测试
-- Adobe UXP CLI 正式 CCX 打包
+- Adobe 官方 CLI 优先的 CCX 打包与结构复核
 - Photoshop Developer ZIP 打包
 - Python 图像引擎测试
 - Lightroom Lua 语法检查
