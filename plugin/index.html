@@ -12,9 +12,9 @@
       <div class="content-stack">
         <header class="hero">
           <div>
-            <div class="eyebrow">PS-SEZHAO · 0.2.0</div>
+            <div class="eyebrow">PS-SEZHAO · 0.2.1</div>
             <h1>胶片去色罩</h1>
-            <p>彩色负片转正、精细校色与画布实时预览。</p>
+            <p>彩色负片转正、精细校色与画布连续预览。</p>
           </div>
           <span class="badge">V2</span>
         </header>
@@ -38,9 +38,9 @@
         </section>
 
         <section class="card preview-card">
-          <h2>2. 画布实时预览</h2>
+          <h2>2. 画布连续预览</h2>
           <div class="switch-row">
-            <label class="check-label"><input id="autoPreview" type="checkbox" checked /> 参数变化后自动更新</label>
+            <label class="check-label"><input id="autoPreview" type="checkbox" checked /> 拖动滑块时自动同步画布</label>
           </div>
           <label class="field select-field">
             <span>预览精度</span>
@@ -55,7 +55,7 @@
             <button id="togglePreview">隐藏预览</button>
             <button id="removePreview">移除预览</button>
           </div>
-          <p class="microcopy">预览使用低分辨率临时图层；最终按钮仍以原始位深和完整分辨率生成。</p>
+          <p class="microcopy">预览按当前文档的 8/16/32 位深和 ICC 配置生成；拖动滑块约 70 ms 后同步到 Photoshop 画布。</p>
         </section>
 
         <section class="card">
@@ -109,7 +109,7 @@
           </div>
         </section>
 
-        <footer>实时预览为临时低分辨率图层。最终输出仍使用完整分辨率、原文档位深与分块处理。</footer>
+        <footer>画布预览使用文档原始位深和色彩配置；最终输出仍以完整分辨率分块处理。</footer>
       </div>
     </div>
 
@@ -123,6 +123,6 @@
       <div class="progress-track" aria-hidden="true"><div id="progress" class="progress-bar"></div></div>
     </section>
   </main>
-  <script src="main.js"></script>
+  <script src="runtime-v021.js"></script>
 </body>
 </html>
