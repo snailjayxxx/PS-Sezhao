@@ -1,45 +1,59 @@
-# PS-Sezhao v0.3.0
+# PS-Sezhao v0.3.1
 
-这是首次同时发布 Photoshop、Lightroom Classic 和独立桌面版的统一版本。
+这是面向 Photoshop 2024 兼容性、正式 CCX 打包和开发者加载方式的维护版本。Lightroom Classic 与独立桌面版同步使用统一版本号重新构建。
 
-## Photoshop
+## Photoshop 2024+
 
-- 保留 v0.2.2 的点击式吸管、大图预览、连续画布预览和完整分辨率输出。
-- 版本号统一升级至 0.3.0。
-- 最低宿主版本调整为当前 Photoshop 27.8。
-- Release 文件更名为 `PS-Sezhao-Photoshop-v0.3.0.ccx`，方便与 LR 版区分。
+- 将最低宿主版本从 Photoshop 27.8 降至 Photoshop 2024（25.0.0）。
+- 保留点击式胶片基底吸管、点击式中性色吸管、大图预览、连续画布预览和完整分辨率输出。
+- 移除 `executeAsModal.timeOut` 选项；该选项需要 Photoshop 25.10，早期 Photoshop 2024 小版本不支持。
+- 增加兼容性测试，禁止后续运行脚本重新引入 25.10 专用模态超时选项。
+
+## 正式 CCX
+
+- `PS-Sezhao-Photoshop-v0.3.1.ccx` 改由 Adobe UXP Developer Tools CLI 的 `uxp plugin package` 命令生成。
+- 不再通过普通 ZIP 压缩后改名为 `.ccx`。
+- 构建后会自动检查 CCX 根目录是否包含 `manifest.json`。
+
+## Photoshop 开发者加载包
+
+新增：
+
+```text
+PS-Sezhao-Photoshop-Developer-v0.3.1.zip
+```
+
+该文件包含完整 UXP 插件目录，可通过 Adobe UXP Developer Tool：
+
+```text
+Add Plugin → 选择 manifest.json → Load
+```
+
+开发者加载版用于开发、调试以及 CCX 安装器不可用时的源码加载测试。它只改变插件加载方式，不会激活 Photoshop、修改 Creative Cloud 或绕过 Adobe 授权。
 
 ## Lightroom Classic
 
-- 新增 Lightroom Classic 15.4+ Lua 插件。
-- 从图库菜单处理当前所选照片。
-- 由 Lightroom 先渲染 16 位 ProPhoto RGB TIFF，避免直接解析 RAW 造成结果不一致。
-- 打开与独立版共用的本地大预览窗口。
-- 支持整卷批量应用同一胶片基底和校色参数。
-- 输出到原图目录下的 `PS-Sezhao` 文件夹，并自动导回目录。
-- 分别提供 macOS Apple Silicon 和 Windows x64 安装包。
+- 版本同步升级至 0.3.1。
+- 继续支持 Lightroom Classic 15.4+。
+- 继续提供 macOS Apple Silicon 和 Windows x64 插件包。
+- 继续使用内置本地处理器生成 16 位 TIFF 并自动导回目录。
 
 ## 独立桌面版
 
-- 新增不依赖 Adobe 的 macOS Apple Silicon 和 Windows x64 桌面程序。
-- 支持 TIFF、JPEG、PNG、BMP、WebP。
-- 支持自动边框分析、胶片基底吸管、中性色吸管和实时大图预览。
-- 支持 16 位 TIFF 保存和多张照片批量处理。
-- 高像素扫描图采用分块处理，降低临时数组的内存峰值。
-- 保留输入 TIFF 的 ICC 配置，并写入输出 TIFF。
-- 同一可执行程序也作为 Lightroom Classic 插件的本地处理引擎。
+- 版本同步升级至 0.3.1。
+- 继续提供 macOS Apple Silicon 和 Windows x64 版本。
+- 不需要 Photoshop、Lightroom、Creative Cloud、Python 或 Node.js。
+- 继续支持自动边框分析、点击吸管、实时预览、批量处理和 16 位 TIFF 输出。
 
 ## 自动发布
 
-GitHub Actions 现在会自动完成：
+GitHub Actions 会自动完成：
 
-- Photoshop UXP 测试与 CCX 打包
+- Photoshop 2024 兼容性与 JavaScript 语法检查
+- Photoshop 图像引擎和界面回归测试
+- Adobe UXP CLI 正式 CCX 打包
+- Photoshop Developer ZIP 打包
 - Python 图像引擎测试
 - Lightroom Lua 语法检查
-- macOS Apple Silicon 桌面版与 LR 包构建
-- Windows x64 桌面版与 LR 包构建
+- macOS Apple Silicon 与 Windows x64 的桌面版和 LR 插件构建
 - 所有发行文件的 SHA-256 校验
-
-## 说明
-
-本项目不适配破解或修改版 Adobe 软件。没有 Adobe 正版环境的用户应使用独立桌面版。
