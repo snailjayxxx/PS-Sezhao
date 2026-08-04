@@ -64,6 +64,21 @@ const [major, minor, revision] = version.split(".").map(Number);
 const lrInfo = fs.readFileSync(path.join(root, "lightroom-classic/PS-Sezhao.lrplugin/Info.lua"), "utf8");
 const lrVersionPattern = new RegExp(`major\\s*=\\s*${major},\\s*minor\\s*=\\s*${minor},\\s*revision\\s*=\\s*${revision}`);
 if (!lrVersionPattern.test(lrInfo)) throw new Error("Lightroom plugin version is stale");
+
+const lrProcess = fs.readFileSync(path.join(root, "lightroom-classic/PS-Sezhao.lrplugin/ProcessSelected.lua"), "utf8");
+if (!/LrFunctionContext\.postAsyncTaskWithContext/.test(lrProcess)) {
+  throw new Error("Lightroom export must start through postAsyncTaskWithContext");
+}
+if (!/LrTasks\.pcall\(processSelected, functionContext\)/.test(lrProcess)) {
+  throw new Error("Lightroom export must use the yield-safe LrTasks.pcall wrapper");
+}
+if (/local ok, err = pcall\(function\(\)\s*processSelected/s.test(lrProcess)) {
+  throw new Error("Plain Lua pcall around processSelected disables coroutine yielding");
+}
+if (!/LrTasks\.canYield\(\)/.test(lrProcess) || !/LrTasks\.yield\(\)/.test(lrProcess)) {
+  throw new Error("Lightroom export must verify and exercise a yieldable cooperative task");
+}
+
 const standaloneInit = fs.readFileSync(path.join(root, "standalone/ps_sezhao/__init__.py"), "utf8");
 if (!standaloneInit.includes(`__version__ = "${version}"`)) throw new Error("Standalone version is stale");
 
@@ -83,4 +98,4 @@ if (!buildScript.includes("PS-Sezhao-Photoshop-Developer-v${VERSION}.zip")) thro
 if (!buildScript.includes("unzip -Z1")) throw new Error("CCX root structure validation is missing");
 if (!buildScript.includes("manifest.host?.minVersion !== \"25.0.0\"")) throw new Error("CCX Photoshop 2024 validation is missing");
 
-console.log(`Validated unified PS-Sezhao ${version} for Photoshop 2024+`);
+console.log(`Validated unified PS-Sezhao ${version} for Photoshop 2024+ and yield-safe Lightroom export`);
