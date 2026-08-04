@@ -2,6 +2,7 @@ local LrApplication = import 'LrApplication'
 local LrDialogs = import 'LrDialogs'
 local LrExportSession = import 'LrExportSession'
 local LrFileUtils = import 'LrFileUtils'
+local LrFunctionContext = import 'LrFunctionContext'
 local LrPathUtils = import 'LrPathUtils'
 local LrProgressScope = import 'LrProgressScope'
 local LrTasks = import 'LrTasks'
@@ -65,7 +66,21 @@ local function safeStem(path)
     return leaf:gsub('%.[^%.]+$', ''):gsub('[^%w%._%-]', '_')
 end
 
-local function processSelected()
+local function finishProgress(progress)
+    if progress then
+        pcall(function() progress:done() end)
+    end
+end
+
+local function processSelected(functionContext)
+    -- LrExportSession:renditions() 会在内部创建 rendition 任务，绝不能从菜单的主 UI
+    -- 调用栈直接进入。postAsyncTaskWithContext 已经创建后台任务；这里再主动让出一次
+    -- 调度，确保 Lightroom 完全离开菜单回调后再开始导出。
+    if not LrTasks.canYield() then
+        error('PS-Sezhao 未能进入 Lightroom 后台任务，请重新启动 Lightroom Classic 后再试。')
+    end
+    LrTasks.yield()
+
     local catalog = LrApplication.activeCatalog()
     local photos = catalog:getTargetPhotos()
     if not photos or #photos == 0 then
@@ -115,11 +130,17 @@ local function processSelected()
 
     local items = {}
     local completed = 0
-    for _, rendition in exportSession:renditions { stopIfCanceled = true } do
+    local renditionOptions = {
+        stopIfCanceled = true,
+        progressScope = progress,
+        renderProgressPortion = 0.55,
+    }
+
+    for _, rendition in exportSession:renditions(renditionOptions) do
         if progress:isCanceled() then break end
         local success, renderedPath = rendition:waitForRender()
         if not success then
-            progress:done()
+            finishProgress(progress)
             LrDialogs.message('PS-Sezhao 渲染失败', tostring(renderedPath), 'critical')
             return
         end
@@ -136,7 +157,7 @@ local function processSelected()
     end
 
     if #items == 0 then
-        progress:done()
+        finishProgress(progress)
         return
     end
 
@@ -148,14 +169,14 @@ local function processSelected()
     local command = quote(executable) .. ' --lr-job ' .. quote(jobPath)
     local exitCode = LrTasks.execute(command)
     if exitCode ~= 0 then
-        progress:done()
+        finishProgress(progress)
         LrDialogs.message('PS-Sezhao 处理失败', '本地处理器退出代码：' .. tostring(exitCode), 'critical')
         return
     end
 
     local outputPaths = readLines(resultManifest)
     if #outputPaths == 0 then
-        progress:done()
+        finishProgress(progress)
         LrDialogs.message('PS-Sezhao', '没有检测到输出文件，可能在调整窗口中取消了任务。', 'warning')
         return
     end
@@ -171,7 +192,7 @@ local function processSelected()
         end
     end)
 
-    progress:done()
+    finishProgress(progress)
     LrDialogs.message(
         'PS-Sezhao 完成',
         '已生成并导入 ' .. imported .. ' 张 16 位 TIFF。\n输出位于原图目录下的 PS-Sezhao 文件夹。',
@@ -179,9 +200,14 @@ local function processSelected()
     )
 end
 
-LrTasks.startAsyncTask(function()
-    local ok, err = pcall(processSelected)
-    if not ok then
-        LrDialogs.message('PS-Sezhao 错误', tostring(err), 'critical')
+LrFunctionContext.postAsyncTaskWithContext(
+    'PS-Sezhao：转正所选负片',
+    function(functionContext)
+        local ok, err = pcall(function()
+            processSelected(functionContext)
+        end)
+        if not ok then
+            LrDialogs.message('PS-Sezhao 错误', tostring(err), 'critical')
+        end
     end
-end)
+)
