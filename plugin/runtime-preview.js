@@ -46,7 +46,7 @@ async function analyze(useSelection) {
       );
       await deletePreviewInsideModal();
       bundle = { thumbnail: thumbnail, analysis: analysis };
-    }, { commandName: useSelection ? "从选区分析胶片基底" : "自动分析胶片基底", timeOut: 10 });
+    }, { commandName: useSelection ? "从选区分析胶片基底" : "自动分析胶片基底" });
 
     state.analysis = bundle.analysis;
     state.previewCache = bundle.thumbnail;
@@ -129,7 +129,7 @@ async function renderPreview(force) {
         outputImage.dispose();
       }
       if (typeof app.updateUI === "function") await app.updateUI();
-    }, { commandName: "同步胶片滑块预览", interactive: true, timeOut: 10 });
+    }, { commandName: "同步胶片滑块预览", interactive: true });
 
     if (panelPayload) panelPreview.setImage(panelPayload.dataUrl, panelPayload.meta);
     else panelPreview.setError("Photoshop 画布已更新，但插件内大图编码失败。可继续使用画布预览。");
@@ -159,7 +159,7 @@ async function togglePreview() {
       layer.visible = state.previewVisible;
       byId("togglePreview").textContent = state.previewVisible ? "隐藏画布预览" : "显示画布预览";
       if (typeof app.updateUI === "function") await app.updateUI();
-    }, { commandName: "切换胶片实时预览", interactive: true, timeOut: 10 });
+    }, { commandName: "切换胶片实时预览", interactive: true });
     setStatus(state.previewVisible ? "已显示 Photoshop 画布预览。" : "已隐藏画布预览，可查看原始负片。", "ok");
   } catch (error) { await reportError(error, true); }
 }
@@ -170,7 +170,7 @@ async function removePreview(showStatus) {
     return;
   }
   try {
-    await core.executeAsModal(deletePreviewInsideModal, { commandName: "移除胶片实时预览", timeOut: 10 });
+    await core.executeAsModal(deletePreviewInsideModal, { commandName: "移除胶片实时预览" });
     if (showStatus) setStatus("Photoshop 画布预览图层已移除；插件内大图预览仍保留。", "ok");
   } catch (error) { await reportError(error, showStatus); }
 }
@@ -200,7 +200,7 @@ async function neutralizeSelection() {
           selectionMax: selection.maxValue
         }
       );
-    }, { commandName: "从选区校正中性色", timeOut: 10 });
+    }, { commandName: "从选区校正中性色" });
     byId("redGain").value = String(Math.round(gain.redGain * 100));
     byId("greenGain").value = String(Math.round(gain.greenGain * 100));
     byId("blueGain").value = String(Math.round(gain.blueGain * 100));
