@@ -1,6 +1,7 @@
 "use strict";
 
 const c = require("./runtime-common.js");
+const panelPreview = require("./runtime-panel-preview.js");
 const {
   app, imaging, core, engine, state, byId, setStatus, reportError, setProgress,
   updateReadiness, setOperation, displayRGB, currentControls, refreshOutputs,
@@ -13,10 +14,11 @@ async function analyze(useSelection) {
   if (state.operation || state.previewRendering) return;
   setOperation("analyze");
   setProgress(0.05);
+  panelPreview.setLoading("正在分析胶片并准备大图预览…");
   setStatus(useSelection ? "正在读取选区并分析胶片基底…" : "正在分析胶片边框…");
   try {
     const source = ensureActiveCandidate();
-    const edge = Math.max(800, Number(byId("previewEdge").value) || 1200);
+    const edge = Math.max(1200, Number(byId("previewEdge").value) || 1800);
     let bundle;
     await core.executeAsModal(async function (executionContext) {
       executionContext.reportProgress({ value: 0.12, commandName: "读取负片缩略图" });
@@ -55,12 +57,13 @@ async function analyze(useSelection) {
     refreshOutputs();
     setProgress(1);
     setOperation(null);
-    setStatus("分析完成，正在建立可拖动实时预览。", "ok");
+    setStatus("分析完成，正在建立画布与大图预览。", "ok");
     schedulePreview(0);
   } catch (error) {
     state.analysis = null;
     state.previewCache = null;
     setOperation(null);
+    panelPreview.setError("分析失败，尚未生成大图预览。");
     await reportError(error, true);
   }
 }
@@ -78,10 +81,12 @@ async function renderPreview(force) {
   state.previewRendering = true;
   state.previewQueued = false;
   updateReadiness();
+  panelPreview.setLoading("正在同步画布和大图预览…");
   try {
     const source = storedSource();
-    const edge = Number(byId("previewEdge").value) || 1200;
+    const edge = Number(byId("previewEdge").value) || 1800;
     const controls = currentControls();
+    let panelPayload = null;
     await core.executeAsModal(async function () {
       let thumbnail = state.previewCache;
       if (!cacheMatches(source, edge)) {
@@ -105,14 +110,33 @@ async function renderPreview(force) {
         const layer = await writePreviewPixels(source.doc, outputImage, thumbnail);
         state.previewLayerId = layer.id;
         layer.visible = true;
+        try {
+          const encoded = await imaging.encodeImageData({ imageData: outputImage, base64: true });
+          const dimensions = c.documentDimensions(source.doc);
+          panelPayload = {
+            dataUrl: "data:image/jpeg;base64," + encoded,
+            meta: {
+              width: thumbnail.width,
+              height: thumbnail.height,
+              documentWidth: dimensions.width,
+              documentHeight: dimensions.height
+            }
+          };
+        } catch (encodeError) {
+          console.warn("Unable to encode panel preview", encodeError);
+        }
       } finally {
         outputImage.dispose();
       }
       if (typeof app.updateUI === "function") await app.updateUI();
     }, { commandName: "同步胶片滑块预览", interactive: true, timeOut: 10 });
+
+    if (panelPayload) panelPreview.setImage(panelPayload.dataUrl, panelPayload.meta);
+    else panelPreview.setError("Photoshop 画布已更新，但插件内大图编码失败。可继续使用画布预览。");
     setProgress(1);
-    setStatus("预览已同步；继续拖动滑块可直接查看结果。", "ok");
+    setStatus("画布和大图预览已同步；继续拖动滑块即可查看结果。", "ok");
   } catch (error) {
+    panelPreview.setError("大图预览同步失败：" + (error && error.message ? error.message : String(error)));
     await reportError(error, force);
   } finally {
     state.previewRendering = false;
@@ -133,21 +157,21 @@ async function togglePreview() {
       if (!layer) throw new Error("实时预览图层已不存在，请重新刷新预览。");
       state.previewVisible = !layer.visible;
       layer.visible = state.previewVisible;
-      byId("togglePreview").textContent = state.previewVisible ? "隐藏预览" : "显示预览";
+      byId("togglePreview").textContent = state.previewVisible ? "隐藏画布预览" : "显示画布预览";
       if (typeof app.updateUI === "function") await app.updateUI();
     }, { commandName: "切换胶片实时预览", interactive: true, timeOut: 10 });
-    setStatus(state.previewVisible ? "已显示实时预览。" : "已隐藏实时预览，可查看原始负片。", "ok");
+    setStatus(state.previewVisible ? "已显示 Photoshop 画布预览。" : "已隐藏画布预览，可查看原始负片。", "ok");
   } catch (error) { await reportError(error, true); }
 }
 
 async function removePreview(showStatus) {
   if (!state.previewLayerId) {
-    if (showStatus) setStatus("当前没有实时预览图层。");
+    if (showStatus) setStatus("当前没有 Photoshop 画布预览图层。");
     return;
   }
   try {
     await core.executeAsModal(deletePreviewInsideModal, { commandName: "移除胶片实时预览", timeOut: 10 });
-    if (showStatus) setStatus("实时预览图层已移除。", "ok");
+    if (showStatus) setStatus("Photoshop 画布预览图层已移除；插件内大图预览仍保留。", "ok");
   } catch (error) { await reportError(error, showStatus); }
 }
 
@@ -158,7 +182,7 @@ async function neutralizeSelection() {
   setStatus("正在从当前选区计算中性色校正…");
   try {
     const source = storedSource();
-    const edge = Number(byId("previewEdge").value) || 1200;
+    const edge = Number(byId("previewEdge").value) || 1800;
     const controls = currentControls();
     let gain;
     await core.executeAsModal(async function () {
