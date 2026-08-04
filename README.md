@@ -11,7 +11,7 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 ## 当前版本
 
-统一版本：**v0.3.1**
+统一版本：**v0.3.2**
 
 目标环境：
 
@@ -24,12 +24,12 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 | 使用场景 | 下载文件 |
 |---|---|
-| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.3.1.ccx` |
-| Photoshop 开发/调试或 CCX 安装器不可用 | `PS-Sezhao-Photoshop-Developer-v0.3.1.zip` |
-| Lightroom Classic on Apple Silicon Mac | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.3.1.zip` |
-| Lightroom Classic on Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.3.1.zip` |
-| 不使用 Adobe 的 Mac 用户 | `PS-Sezhao-Standalone-macOS-arm64-v0.3.1.zip` |
-| 不使用 Adobe 的 Windows 用户 | `PS-Sezhao-Standalone-Windows-x64-v0.3.1.zip` |
+| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.3.2.ccx` |
+| Photoshop 开发/调试或 CCX 安装器不可用 | `PS-Sezhao-Photoshop-Developer-v0.3.2.zip` |
+| Lightroom Classic on Apple Silicon Mac | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.3.2.zip` |
+| Lightroom Classic on Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.3.2.zip` |
+| 不使用 Adobe 的 Mac 用户 | `PS-Sezhao-Standalone-macOS-arm64-v0.3.2.zip` |
+| 不使用 Adobe 的 Windows 用户 | `PS-Sezhao-Standalone-Windows-x64-v0.3.2.zip` |
 
 CCX 发布前会自动验证：`manifest.json` 位于压缩包根目录、版本号一致、宿主为 Photoshop、最低版本为 25.0.0。开发者加载版的使用步骤见 [PHOTOSHOP_DEVELOPER_LOAD.md](PHOTOSHOP_DEVELOPER_LOAD.md)。
 
@@ -50,7 +50,17 @@ CCX 发布前会自动验证：`manifest.json` 位于压缩包根目录、版本
 
 ## Photoshop 2024 兼容性
 
-v0.3.1 将宿主最低版本降到 `25.0.0`，覆盖 Photoshop 2024 系列。插件同时移除了只在 Photoshop 25.10 及之后版本才可使用的 `executeAsModal.timeOut` 选项，避免早期 Photoshop 2024 小版本在分析、吸管或生成时发生兼容问题。
+v0.3.1 起将宿主最低版本降到 `25.0.0`，覆盖 Photoshop 2024 系列。插件同时移除了只在 Photoshop 25.10 及之后版本才可使用的 `executeAsModal.timeOut` 选项，避免早期 Photoshop 2024 小版本在分析、吸管或生成时发生兼容问题。
+
+## Lightroom Classic v0.3.2 修复
+
+v0.3.2 修复了点击“PS-Sezhao：转正所选负片”后出现的：
+
+```text
+AgExportSession:addRenditionsForPhotos: must not call on main UI task
+```
+
+导出会话现在通过 `LrFunctionContext.postAsyncTaskWithContext` 在 Lightroom 后台任务中启动，并在创建 renditions 前主动让出一次 UI 调度。流水线同时增加回归测试，禁止重新退回主 UI 任务调用。
 
 ## Lightroom Classic 工作流
 
@@ -63,7 +73,7 @@ v0.3.1 将宿主最低版本降到 `25.0.0`，覆盖 Photoshop 2024 系列。插
 
 ## 独立版输入限制
 
-v0.3.1 直接支持 TIFF、JPEG、PNG、BMP 和 WebP。相机 RAW 建议先由相机厂商软件、Darktable、RawTherapee 或其他合法 RAW 工具导出为 16 位 TIFF。
+v0.3.2 直接支持 TIFF、JPEG、PNG、BMP 和 WebP。相机 RAW 建议先由相机厂商软件、Darktable、RawTherapee 或其他合法 RAW 工具导出为 16 位 TIFF。
 
 ## 开发检查
 
