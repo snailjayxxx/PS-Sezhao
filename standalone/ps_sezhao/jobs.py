@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
-from .engine import Analysis, Controls, analyze_image, process_image
+from .engine import Analysis, Controls, analyze_image
 from .io_utils import load_image, save_image
+from .processing import process_image_tiled
 
 ProgressCallback = Callable[[int, int, str], None]
 
@@ -29,7 +30,7 @@ def run_job(job_path: str | Path, progress: ProgressCallback | None = None) -> l
             progress(index - 1, len(items), input_path.name)
         image, metadata = load_image(input_path)
         analysis = Analysis.from_dict(saved_analysis) if saved_analysis else analyze_image(image)
-        result = process_image(image, analysis, controls)
+        result = process_image_tiled(image, analysis, controls)
         save_image(
             output_path,
             result,
