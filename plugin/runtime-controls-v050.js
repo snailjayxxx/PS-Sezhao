@@ -55,7 +55,7 @@ function dispatchRange(range) {
 }
 
 function enhanceRange(range) {
-  if (!range || range.dataset.numericEnhanced === "true") return;
+  if (!range || range.getAttribute("data-numeric-enhanced") === "true") return;
   const spec = specFor(range);
   const minimum = Number(range.min || 0) / spec.factor;
   const maximum = Number(range.max || 100) / spec.factor;
@@ -71,7 +71,8 @@ function enhanceRange(range) {
 
   const input = document.createElement("input");
   input.className = "numeric-value-input";
-  input.type = "number";
+  input.type = "text";
+  input.setAttribute("inputmode", "decimal");
   input.min = String(minimum);
   input.max = String(maximum);
   input.step = String(spec.step);
@@ -86,8 +87,9 @@ function enhanceRange(range) {
   wrapper.appendChild(minus);
   wrapper.appendChild(input);
   wrapper.appendChild(plus);
-  range.insertAdjacentElement("afterend", wrapper);
-  range.dataset.numericEnhanced = "true";
+  if (!range.parentNode) return;
+  range.parentNode.insertBefore(wrapper, range.nextSibling);
+  range.setAttribute("data-numeric-enhanced", "true");
 
   function syncFromRange() {
     input.value = formatValue(rawToDisplay(range, spec), spec.decimals);
