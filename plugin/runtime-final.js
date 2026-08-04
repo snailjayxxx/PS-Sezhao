@@ -9,7 +9,7 @@ const {
   deletePreviewInsideModal, tileHeightFor, ROLL_KEY, FINAL_LAYER_PREFIX,
   DEFAULT_CONTROLS
 } = c;
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 
 async function convert() {
   if (state.operation || state.previewRendering) return;
@@ -87,7 +87,7 @@ async function convert() {
         executionContext.reportProgress({ value: progress, commandName: "正在生成完整分辨率正片" });
       }
       await deletePreviewInsideModal();
-    }, { commandName: "生成最终胶片正片", timeOut: 10 });
+    }, { commandName: "生成最终胶片正片" });
 
     setProgress(1);
     setStatus("最终正片图层已生成，原始负片图层未修改。", "ok");
