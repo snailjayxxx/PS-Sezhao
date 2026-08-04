@@ -190,23 +190,44 @@ async function applyBaseSample(source, patch, position) {
   schedulePreview(0);
 }
 
+function neutralGainFromMedian(patch, controls) {
+  const raw = medianRGB(patch);
+  const profile = engine.PROFILES[controls.profile] || engine.PROFILES.generic;
+  const transformed = engine.transformRGB(raw, state.analysis, controls, profile);
+  const target = engine.clamp(
+    0.2126 * transformed[0] + 0.7152 * transformed[1] + 0.0722 * transformed[2],
+    0.05,
+    0.95
+  );
+  return {
+    redGain: engine.clamp(controls.redGain * target / Math.max(transformed[0], 0.01), 0.25, 3),
+    greenGain: engine.clamp(controls.greenGain * target / Math.max(transformed[1], 0.01), 0.25, 3),
+    blueGain: engine.clamp(controls.blueGain * target / Math.max(transformed[2], 0.01), 0.25, 3)
+  };
+}
+
 function applyNeutralSample(patch) {
   const pixelCount = patch.width * patch.height;
-  const selection = new Uint8Array(pixelCount);
-  selection.fill(255);
   const controls = currentControls();
-  const gain = engine.estimateNeutralGains(
-    patch.data,
-    selection,
-    patch.width,
-    patch.height,
-    patch.components,
-    1,
-    state.analysis,
-    controls,
-    controls.profile,
-    { maxValue: patch.maxValue, selectionMax: 255 }
-  );
+  let gain;
+  if (pixelCount >= 12) {
+    const selection = new Uint8Array(pixelCount);
+    selection.fill(255);
+    gain = engine.estimateNeutralGains(
+      patch.data,
+      selection,
+      patch.width,
+      patch.height,
+      patch.components,
+      1,
+      state.analysis,
+      controls,
+      controls.profile,
+      { maxValue: patch.maxValue, selectionMax: 255 }
+    );
+  } else {
+    gain = neutralGainFromMedian(patch, controls);
+  }
   byId("redGain").value = String(Math.round(gain.redGain * 100));
   byId("greenGain").value = String(Math.round(gain.greenGain * 100));
   byId("blueGain").value = String(Math.round(gain.blueGain * 100));
