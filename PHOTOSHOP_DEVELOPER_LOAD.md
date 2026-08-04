@@ -16,7 +16,7 @@
 从 GitHub Release 下载：
 
 ```text
-PS-Sezhao-Photoshop-Developer-v0.4.0.zip
+PS-Sezhao-Photoshop-Developer-v0.5.0.zip
 ```
 
 解压后应看到：
@@ -32,6 +32,7 @@ PS-Sezhao-Photoshop-Developer/
 ├── runtime-preview.js
 ├── runtime-sampler.js
 ├── runtime-final.js
+├── runtime-controls-v050.js
 ├── runtime-v022.js
 └── 开发者加载说明.md
 ```
@@ -54,8 +55,10 @@ PS-Sezhao-Photoshop-Developer/
 插件顶部应显示：
 
 ```text
-PS-SEZHAO · 0.4.0
+PS-SEZHAO · 0.5.0
 ```
+
+v0.5.0 中每个滑块下方会显示 `− / 数字输入框 / +`。数字可直接输入，按 Enter 生效；加减按钮按该参数的最小步长微调。
 
 ## 更新源码版本
 
