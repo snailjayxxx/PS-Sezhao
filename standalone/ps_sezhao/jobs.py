@@ -7,6 +7,7 @@ from typing import Any, Callable
 from .engine import Analysis, Controls, analyze_image
 from .io_utils import load_image, save_image
 from .processing import process_image_tiled
+from .workspace import clamp_crop, crop_array
 
 ProgressCallback = Callable[[int, int, str], None]
 
@@ -21,6 +22,7 @@ def run_job(job_path: str | Path, progress: ProgressCallback | None = None) -> l
     settings = job.get("settings") or {}
     controls = Controls.from_dict(settings.get("controls"))
     saved_analysis = settings.get("analysis")
+    default_crop = clamp_crop(settings.get("crop"))
     output_paths: list[str] = []
 
     for index, item in enumerate(items, start=1):
@@ -30,7 +32,9 @@ def run_job(job_path: str | Path, progress: ProgressCallback | None = None) -> l
             progress(index - 1, len(items), input_path.name)
         image, metadata = load_image(input_path)
         analysis = Analysis.from_dict(saved_analysis) if saved_analysis else analyze_image(image)
-        result = process_image_tiled(image, analysis, controls)
+        crop = clamp_crop(item.get("crop", default_crop))
+        source = crop_array(image, crop)
+        result = process_image_tiled(source, analysis, controls)
         save_image(
             output_path,
             result,
