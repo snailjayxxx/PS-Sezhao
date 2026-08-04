@@ -1,8 +1,8 @@
 {
   "name": "ps-sezhao",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "private": true,
-  "description": "Photoshop UXP plugin for color-negative conversion with click eyedroppers, large preview and live canvas correction.",
+  "description": "Unified Photoshop, Lightroom Classic and standalone color-negative conversion project.",
   "scripts": {
     "validate": "node scripts/validate.mjs",
     "test": "node --test tests/*.test.js",
@@ -10,7 +10,7 @@
     "package:release": "bash scripts/build-release.sh"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "license": "MIT"
 }
