@@ -1,65 +1,84 @@
-# PS-Sezhao v0.5.3
+# PS-Sezhao v0.5.4
 
-本版本根据 Windows 独立版的实际使用反馈，扩大胶片基底手动调整范围，并修复左右侧栏无法通过鼠标滚轮上下滚动的问题。
+本版本加入撤销/重做，将胶片基底改为直接编辑最终 R/G/B，并明确中性灰吸管所修改的参数。
 
-## 胶片基底调节范围扩大
+## 撤销和重做
 
-胶片基底 R / G / B 的8位等效偏移由：
-
-```text
--64 ～ +64
-```
-
-扩大为：
+独立版、Lightroom 高精度窗口和 Photoshop 面板新增：
 
 ```text
--255 ～ +255
+↶ 撤销
+↷ 重做
 ```
 
-适用范围：
+快捷键支持：
 
-- Windows x64 独立版；
-- macOS Apple Silicon 独立版；
-- Lightroom Classic 高精度16位TIFF窗口；
-- Photoshop 2024+ 插件。
+```text
+Ctrl/Cmd + Z
+Ctrl/Cmd + Y
+Ctrl/Cmd + Shift + Z
+```
 
-滑块、数字输入框、`− / +`按钮和上下方向键都使用新范围。独立处理引擎与 Photoshop 像素引擎同时放宽内部限制，不会出现界面数值变大但实际效果仍被旧限制截断的问题。
+独立版按每张照片分别保存最多60项历史，可恢复：
 
-胶片基底吸管仍然只读取原始负片像素；扩大范围只影响吸管或自动分析之后的手动偏移。
+- 曝光、对比度、中间调和饱和度；
+- 色温、色调和 RGB 输出增益；
+- 胶片基底直接值；
+- 自动分析和两种吸管结果；
+- 裁切范围；
+- 参数或裁切同步。
 
-## 侧栏滚轮修复
+Photoshop 面板保存插件参数和胶片分析历史。Lightroom 原生直接转正继续依靠 Lightroom 自身历史记录和插件恢复快照。
 
-独立版与 Lightroom 高精度窗口现在支持：
+## 胶片基底改为直接数值
 
-- 鼠标位于右侧参数栏时，滚轮上下滚动参数；
-- 鼠标位于左侧图片列表时，滚轮上下滚动图片；
-- Windows 鼠标滚轮；
-- Windows 精密触控板；
-- macOS 鼠标和触控板；
-- Linux/X11 的 Button-4 / Button-5 事件。
+旧版本显示的是：
 
-滚轮事件只作用于指针所在侧栏，并阻止事件继续传递，因此不会在滚动参数栏时误改滑块或下拉选项。
+```text
+识别值 + 手动偏移
+```
 
-中间图片预览区继续保留滚轮缩放，不改成侧栏滚动。放大后的画面仍通过平移模式拖动查看。
+v0.5.4 改为：
 
-## 继续保留的 v0.5.2 功能
+```text
+原图识别 R/G/B：212 / 143 / 82
+最终使用：212 / 143 / 82
+```
 
-- 吸管只读取原始输入像素；
-- 裁切后只显示保留画面；
-- 再次点击裁切恢复全图和已有裁切框；
-- 裁切范围内自动分析边框；
-- 相机RAW直读和16位线性ProPhoto解码；
-- 多图、每图独立参数、同步和批量导出；
-- Lightroom原生直接转正与高精度16位TIFF；
+用户直接修改最终使用值，不再换算偏移量。吸管或自动分析后，三个输入框自动填入识别值；“恢复为识别值”可以回到原始分析结果。
+
+Photoshop 使用 0～255 的8位直接值。独立版保留扩展上限以兼容极端素材，常规胶片仍主要使用 0～255。
+
+## 中性灰吸管和可编辑参数
+
+中性灰吸管修改的是：
+
+- 红色输出增益；
+- 绿色输出增益；
+- 蓝色输出增益。
+
+算法先用当前胶片基底和调色参数计算点击区域的转正结果，再调整三个输出增益，使该区域趋向 `R = G = B`。它不会重新改变胶片基底，也不会直接改变色温或色调。
+
+v0.5.4 新增明确的“中性灰校正（RGB 输出增益）”区域，三个值可以直接输入或用 `− / +` 微调；`1.000` 表示不额外校正，并提供恢复按钮。
+
+## 继续保留
+
+- 原图胶片基底吸管；
+- 左右侧栏滚轮；
+- 多图、每图独立参数和批量导出；
+- 裁切完成后只显示保留范围；
+- 裁切范围内自动分析；
+- 相机 RAW 直读和16位线性 ProPhoto 解码；
+- Lightroom 原生直接转正和高精度16位TIFF；
 - Photoshop 2024+。
 
 ## 发行文件
 
-- `PS-Sezhao-Photoshop-v0.5.3.ccx`
-- `PS-Sezhao-Photoshop-Developer-v0.5.3.zip`
-- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.3.zip`
-- `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.3.zip`
-- `PS-Sezhao-Standalone-macOS-arm64-v0.5.3.zip`
-- `PS-Sezhao-Standalone-Windows-x64-v0.5.3.zip`
+- `PS-Sezhao-Photoshop-v0.5.4.ccx`
+- `PS-Sezhao-Photoshop-Developer-v0.5.4.zip`
+- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.4.zip`
+- `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.4.zip`
+- `PS-Sezhao-Standalone-macOS-arm64-v0.5.4.zip`
+- `PS-Sezhao-Standalone-Windows-x64-v0.5.4.zip`
 
-自动测试新增宽范围基底参数、Windows/macOS/X11滚轮方向、左右侧栏滚动目标和Photoshop宽范围引擎检查；跨平台安装包继续由GitHub Actions实际构建。
+自动测试覆盖历史栈、重做分支清理、连续滑块合并、直接胶片基底映射、中性灰增益显示、Photoshop键盘快捷键以及原有RAW、Lightroom和跨平台打包流程。
