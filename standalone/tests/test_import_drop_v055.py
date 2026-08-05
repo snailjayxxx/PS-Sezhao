@@ -16,6 +16,9 @@ class FakeApp:
     def _build_ui(self) -> None:
         pass
 
+    def open_paths(self, _paths, *, replace: bool = False) -> None:
+        self.last_replace = replace
+
     def _detected_base(self):
         return "detected"
 
@@ -76,7 +79,7 @@ class ImportDropV055Tests(unittest.TestCase):
         self.assertEqual({path.suffix.lower() for path in found}, {".tif", ".nef"})
 
     def test_supported_suffixes_include_regular_and_raw_files(self) -> None:
-        for extension in (".tif", ".jpg", ".dng", ".cr3", ".nef", ".arw", ".raf"):
+        for extension in (".tif", ".jpg", ".dng", ".cr3", ".nef", ".nrw", ".arw", ".raf"):
             self.assertIn(extension, SUPPORTED_SUFFIXES)
 
     def test_drag_drop_root_installer_is_safe(self) -> None:
