@@ -34,8 +34,8 @@ def canonical_path(path: Path) -> str:
         return str(path.absolute()).casefold()
 
 
-def discover_supported_paths(path: Path) -> list[Path]:
-    """Return supported files for one file or recursively scanned folder."""
+def discover_supported_paths(path: Path, *, recursive: bool = True) -> list[Path]:
+    """Return supported files for one file or scanned folder."""
 
     try:
         if path.is_file():
@@ -43,9 +43,10 @@ def discover_supported_paths(path: Path) -> list[Path]:
         if not path.is_dir():
             return []
 
+        iterator = path.rglob("*") if recursive else path.glob("*")
         files = [
             candidate
-            for candidate in path.rglob("*")
+            for candidate in iterator
             if candidate.is_file() and candidate.suffix.lower() in SUPPORTED_SUFFIXES
         ]
         return sorted(files, key=lambda candidate: str(candidate).casefold())
@@ -53,13 +54,17 @@ def discover_supported_paths(path: Path) -> list[Path]:
         return []
 
 
-def collect_supported_paths(paths: Iterable[Path]) -> list[Path]:
+def collect_supported_paths(
+    paths: Iterable[Path],
+    *,
+    recursive: bool = True,
+) -> list[Path]:
     """Expand files and folders, removing duplicates while preserving order."""
 
     collected: list[Path] = []
     seen: set[str] = set()
     for path in paths:
-        for candidate in discover_supported_paths(Path(path)):
+        for candidate in discover_supported_paths(Path(path), recursive=recursive):
             key = canonical_path(candidate)
             if key in seen:
                 continue
