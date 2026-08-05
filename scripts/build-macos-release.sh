@@ -47,13 +47,15 @@ sign_and_notarize_app() {
 
 rm -rf "$RELEASE_DIR" lr-stage portable-stage dmg-stage
 mkdir -p "$RELEASE_DIR" lr-stage/PS-Sezhao.lrplugin/bin/macos-arm64
-mkdir -p portable-stage/PS-Sezhao/project portable-stage/PS-Sezhao/lut dmg-stage
+mkdir -p portable-stage/PS-Sezhao/project portable-stage/PS-Sezhao/lut portable-stage/PS-Sezhao/logs dmg-stage
 
 if require_signing_secrets; then
   echo "Apple signing credentials detected; signing and notarizing the app."
   sign_and_notarize_app
 else
-  echo "::warning::Apple signing secrets are not configured. The macOS build will remain unsigned and Gatekeeper will require manual confirmation."
+  echo "::warning::Apple signing secrets are not configured. Applying an ad-hoc signature; Gatekeeper will still require manual confirmation."
+  codesign --force --deep --sign - "$APP_PATH"
+  codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 fi
 
 cp -R lightroom-classic/PS-Sezhao.lrplugin/. lr-stage/PS-Sezhao.lrplugin/
@@ -61,6 +63,9 @@ cp -R "$APP_PATH" lr-stage/PS-Sezhao.lrplugin/bin/macos-arm64/
 cp -R "$APP_PATH" portable-stage/PS-Sezhao/
 cp standalone/installer/INSTALL.zh-CN.html portable-stage/PS-Sezhao/安装说明.html
 printf '%s\n' 'PS-Sezhao portable data root.' > portable-stage/PS-Sezhao/.ps-sezhao-portable
+printf '%s\n' 'Project archives and backups are stored here.' > portable-stage/PS-Sezhao/project/README.txt
+printf '%s\n' 'Place standard .cube LUT files here.' > portable-stage/PS-Sezhao/lut/README.txt
+printf '%s\n' 'Startup diagnostics are stored here.' > portable-stage/PS-Sezhao/logs/README.txt
 
 ditto -c -k --sequesterRsrc --keepParent portable-stage/PS-Sezhao \
   "$RELEASE_DIR/PS-Sezhao-Standalone-macOS-arm64-v${VERSION}.zip"
@@ -72,8 +77,10 @@ ln -s /Applications dmg-stage/Applications
 cp standalone/installer/INSTALL.zh-CN.html dmg-stage/安装说明.html
 cat > dmg-stage/拖动安装.txt <<'EOF'
 请将 PS-Sezhao.app 拖到右侧的 Applications 文件夹。
-安装后可直接从 Finder 的“应用程序”打开。
-胶卷项目数据库保存在用户的 Application Support 目录，不会写入应用程序包。
+安装后从 Finder 的“应用程序”打开。
+首次成功启动时，程序会自动在以下位置创建 project、lut 和 logs：
+~/Library/Application Support/PS-Sezhao/
+数据库 workspace.sqlite3 仍保留在该目录根部。
 EOF
 
 hdiutil create -quiet -format UDZO -fs HFS+ \
