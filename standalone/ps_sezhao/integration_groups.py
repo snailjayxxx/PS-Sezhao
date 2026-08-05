@@ -5,6 +5,20 @@ from types import ModuleType
 from typing import Any, Type
 
 
+LEGACY_COMPATIBILITY_COMPONENTS = (
+    "apply_v050_patch",
+    "apply_raw_patch",
+    "apply_source_crop_patch",
+    "apply_scroll_patch",
+    "apply_v054_patch",
+    "apply_v054_sync_patch",
+    "apply_v055_import_drop_patch",
+    "apply_v057_rotate_output_patch",
+    "apply_v060_style_library_patch",
+    "apply_v061_resizable_layout_patch",
+)
+
+
 @dataclass(frozen=True)
 class IntegrationContext:
     app_module: ModuleType
