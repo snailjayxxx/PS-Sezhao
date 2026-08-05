@@ -50,6 +50,7 @@ def integration_steps() -> tuple[IntegrationStep, ...]:
     from .services.proxy_pipeline import apply_proxy_pipeline
     from .services.runtime_service import install_runtime_bindings
     from .services.sync_pipeline import apply_sync_pipeline
+    from .services.sync_transaction import apply_sync_transaction_guard
 
     app_class = app_module.SezhaoApp
 
@@ -79,6 +80,7 @@ def integration_steps() -> tuple[IntegrationStep, ...]:
         IntegrationStep("services.geometry_history", lambda: apply_geometry_history_guard(app_class)),
         IntegrationStep("services.output_queue", lambda: apply_output_pipeline(app_class)),
         IntegrationStep("services.module_sync", lambda: apply_sync_pipeline(app_class)),
+        IntegrationStep("services.module_sync_transaction", lambda: apply_sync_transaction_guard(app_class)),
         IntegrationStep("services.lightroom_jobs", lambda: apply_lightroom_job_pipeline(app_class)),
         IntegrationStep("storage.project_session", lambda: apply_project_session(app_class)),
         IntegrationStep("runtime.drag_drop_root", lambda: install_drag_drop_root(app_module)),
