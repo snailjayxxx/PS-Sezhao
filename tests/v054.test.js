@@ -8,7 +8,7 @@ const assert = require("node:assert/strict");
 const root = path.resolve(__dirname, "..");
 const runtime = fs.readFileSync(path.join(root, "plugin/runtime-v022.js"), "utf8");
 const history = fs.readFileSync(path.join(root, "plugin/runtime-history-v054.js"), "utf8");
-const standaloneMain = fs.readFileSync(path.join(root, "standalone/main.py"), "utf8");
+const groups = fs.readFileSync(path.join(root, "standalone/ps_sezhao/integration_groups.py"), "utf8");
 const standalonePatch = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app_v054_history_direct_patch.py"), "utf8");
 const historyState = fs.readFileSync(path.join(root, "standalone/ps_sezhao/history_state.py"), "utf8");
 
@@ -40,8 +40,8 @@ test("neutral picker is documented as editable RGB output gains", function () {
   assert.match(standalonePatch, /reset_neutral_gains/);
 });
 
-test("standalone and Lightroom high precision share per-photo undo redo", function () {
-  assert.match(standaloneMain, /apply_v054_patch\(app_module\.SezhaoApp\)/);
+test("standalone grouped UI retains per-photo undo and redo", function () {
+  assert.match(groups, /apply_v054_patch\(app_class\)/);
   assert.match(standalonePatch, /HistoryStack\(limit=60\)/);
   assert.match(standalonePatch, /Ctrl\/Cmd\+Z/);
   assert.match(standalonePatch, /def undo_edit/);
