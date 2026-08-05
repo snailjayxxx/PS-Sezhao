@@ -31,11 +31,17 @@ def run_gui_smoke(app_module: Any, *, require_dnd: bool = False) -> int:
             getattr(application, "perspective_button", None),
             getattr(application, "output_settings_button", None),
             getattr(application, "contact_sheet_button", None),
+            getattr(application, "roll_new_button", None),
+            getattr(application, "roll_open_button", None),
+            getattr(application, "roll_settings_button", None),
+            getattr(application, "output_presets_button", None),
         )
         if any(widget is None or not bool(widget.winfo_exists()) for widget in required_widgets):
             raise RuntimeError("GUI smoke test could not create all core widgets")
         if getattr(application, "_output_service", None) is None:
             raise RuntimeError("GUI smoke test could not initialize the output queue")
+        if getattr(application, "roll_project_store", None) is None:
+            raise RuntimeError("GUI smoke test could not initialize roll project storage")
         if not hasattr(application, "straighten_angle") or not hasattr(application, "geometry_status"):
             raise RuntimeError("GUI smoke test could not create geometry controls")
         for attribute in (
@@ -45,9 +51,11 @@ def run_gui_smoke(app_module: Any, *, require_dnd: bool = False) -> int:
             "output_collision_label",
             "output_film_stock",
             "contact_columns",
+            "active_roll_title",
+            "active_roll_summary",
         ):
             if not hasattr(application, attribute):
-                raise RuntimeError(f"GUI smoke test could not create output setting: {attribute}")
+                raise RuntimeError(f"GUI smoke test could not create output/project setting: {attribute}")
 
         dnd_enabled = bool(getattr(root, "_ps_sezhao_dnd_available", False))
         dnd_error = getattr(root, "_ps_sezhao_dnd_error", None)
