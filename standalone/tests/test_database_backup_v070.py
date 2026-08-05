@@ -57,10 +57,15 @@ class DatabaseBackupV070Tests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate_project_database(invalid)
 
-    def test_archive_platform_guard_runs_after_archive_ui(self) -> None:
+    def test_archive_platform_guard_is_inside_persistence_group_before_facade(self) -> None:
         names = tuple(step.name for step in integration_steps())
-        self.assertLess(names.index("storage.project_archive"), names.index("storage.project_archive_platform"))
-        self.assertLess(names.index("storage.project_archive_platform"), names.index("runtime.drag_drop_root"))
+        self.assertLess(names.index("services.persistence"), names.index("lifecycle.facade"))
+        root = Path(__file__).resolve().parents[2]
+        source = (root / "standalone/ps_sezhao/integration_groups.py").read_text(encoding="utf-8")
+        self.assertLess(
+            source.index("apply_project_archive_pipeline(app_class)"),
+            source.index("apply_project_archive_platform_guard(app_class)"),
+        )
 
 
 if __name__ == "__main__":
