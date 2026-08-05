@@ -68,6 +68,7 @@ const requiredFiles = [
   "standalone/ps_sezhao/__init__.py",
   "standalone/ps_sezhao/bootstrap.py",
   "standalone/ps_sezhao/integration_groups.py",
+  "standalone/ps_sezhao/app_v071_text_layout_patch.py",
   "standalone/ps_sezhao/services/lifecycle_facade.py",
   "standalone/ps_sezhao/services/proxy_service.py",
   "standalone/ps_sezhao/services/output_service.py",
@@ -75,6 +76,7 @@ const requiredFiles = [
   "standalone/ps_sezhao/services/roll_project_pipeline.py",
   "standalone/ps_sezhao/storage/project_archive.py",
   "standalone/ps_sezhao/validation/real_roll.py",
+  "standalone/tests/test_text_layout_v071.py",
   "scripts/validate-real-roll.py",
   "scripts/build-release.sh",
   "hook-tkinterdnd2.py",
@@ -138,6 +140,7 @@ for (const method of [
 for (const installer of [
   "apply_v055_import_drop_patch",
   "apply_v061_resizable_layout_patch",
+  "apply_v071_text_layout_patch",
   "apply_proxy_pipeline",
   "apply_output_pipeline",
   "apply_complete_output_pipeline",
@@ -146,6 +149,17 @@ for (const installer of [
   "apply_project_archive_pipeline",
   "install_drag_drop_root",
 ]) requireToken(groups, installer, `Grouped integration is missing: ${installer}`);
+
+const textLayout = read("standalone/ps_sezhao/app_v071_text_layout_patch.py");
+for (const token of [
+  "PingFang SC",
+  "Microsoft YaHei UI",
+  "Noto Sans CJK SC",
+  "_reflow_global_toolbar",
+  "_reflow_preview_toolbar",
+  "_reflow_geometry_toolbar",
+  "_reflow_roll_project_header",
+]) requireToken(textLayout, token, `Desktop text layout is incomplete: ${token}`);
 
 const lrInfo = read("lightroom-classic/PS-Sezhao.lrplugin/Info.lua");
 const lrVersionPattern = new RegExp(
