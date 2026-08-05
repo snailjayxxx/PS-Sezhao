@@ -14,7 +14,7 @@ return {
         local available = LrFileUtils.exists(path)
         return {
             {
-                title = 'PS-Sezhao 0.7.0-beta.1',
+                title = 'PS-Sezhao 0.7.0-beta.2',
                 f:row {
                     spacing = f:control_spacing(),
                     f:static_text { title = '适配版本：' },
@@ -31,7 +31,7 @@ return {
                     f:static_text { title = available and '本地处理器可用' or '处理器缺失，请重新安装对应平台安装包' },
                 },
                 f:static_text {
-                    title = 'Beta 版用于验证整卷项目、后台输出、几何校正、归档迁移与跨会话恢复。原始图片不会被覆盖。',
+                    title = 'Beta 2 修复桌面端中文文字截断、胶卷项目按钮压缩以及工具栏跨栏重叠。原始图片不会被覆盖。',
                     width_in_chars = 65,
                     height_in_lines = 3,
                 },
