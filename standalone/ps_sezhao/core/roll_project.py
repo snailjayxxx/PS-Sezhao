@@ -4,6 +4,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
+from ..engine import Controls
+from .geometry import GeometrySettings
 from .output import OutputSettings
 
 
@@ -143,18 +145,24 @@ def calculate_project_progress(
         str(Path(path).expanduser().resolve(strict=False)).casefold()
         for path in exported_paths
     }
+    default_controls = Controls().sanitized().to_dict()
     analyzed = 0
     edited = 0
     exported_count = 0
     for item in items:
-        if getattr(item, "analysis", None):
+        analysis = getattr(item, "analysis", None)
+        if analysis:
             analyzed += 1
-        controls = dict(getattr(item, "controls", {}) or {})
+        controls = Controls.from_dict(getattr(item, "controls", None)).sanitized().to_dict()
         crop = tuple(getattr(item, "crop", (0.0, 0.0, 1.0, 1.0)))
         rotation = int(getattr(item, "rotation", 0) or 0)
-        geometry = dict(getattr(item, "geometry", {}) or {})
-        if getattr(item, "analysis", None) or controls or crop != (0.0, 0.0, 1.0, 1.0) or rotation or any(
-            value not in (None, False, 0, 0.0, "", (), [], {}) for value in geometry.values()
+        geometry = GeometrySettings.from_dict(getattr(item, "geometry", None))
+        if (
+            analysis
+            or controls != default_controls
+            or crop != (0.0, 0.0, 1.0, 1.0)
+            or rotation
+            or not geometry.is_identity
         ):
             edited += 1
         key = str(Path(getattr(item, "path", "")).expanduser().resolve(strict=False)).casefold()
