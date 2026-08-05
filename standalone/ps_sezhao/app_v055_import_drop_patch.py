@@ -35,45 +35,52 @@ SUPPORTED_SUFFIXES = frozenset(
 )
 
 
-class _SafeTkFactory:
-    """Create a normal Tk root and load TkDND as an optional capability.
+def _load_tkdnd(root: Any) -> tuple[bool, str | None, str | None]:
+    if TkinterDnD is None:
+        return False, "tkinterdnd2 is not installed", None
 
-    A TkDND binary can be incompatible with the Tcl/Tk interpreter bundled by
-    a particular macOS build. Loading it must never prevent the application
-    from opening. The root records the capability result so the UI can enable
-    drag-and-drop only when the extension loaded successfully.
-    """
+    try:
+        require = getattr(TkinterDnD, "require", None)
+        if not callable(require):
+            require = getattr(TkinterDnD, "_require", None)
+        if not callable(require):
+            raise RuntimeError("TkinterDnD does not expose a load function")
+        version = str(require(root))
+        return True, None, version
+    except Exception as exc:  # TclError and RuntimeError are expected fallbacks
+        return False, f"{type(exc).__name__}: {exc}", None
 
-    _ps_sezhao_safe_tk_factory = True
 
-    def __init__(self, original_root_class: Any) -> None:
-        self._original_root_class = original_root_class
+def build_safe_root_class(original_root_class: Any) -> Any:
+    """Build a normal Tk root with optional DnD wrapper methods."""
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        root = self._original_root_class(*args, **kwargs)
-        root._ps_sezhao_dnd_available = False
-        root._ps_sezhao_dnd_error = None
+    wrapper_class = (
+        getattr(TkinterDnD, "DnDWrapper", None)
+        if TkinterDnD is not None
+        else None
+    )
+    bases = (
+        (original_root_class, wrapper_class)
+        if isinstance(wrapper_class, type)
+        else (original_root_class,)
+    )
+    original_init = original_root_class.__init__
 
-        if TkinterDnD is None:
-            root._ps_sezhao_dnd_error = "tkinterdnd2 is not installed"
-            return root
+    def safe_init(self: Any, *args: Any, **kwargs: Any) -> None:
+        original_init(self, *args, **kwargs)
+        available, error, version = _load_tkdnd(self)
+        self._ps_sezhao_dnd_available = available
+        self._ps_sezhao_dnd_error = error
+        self._ps_sezhao_dnd_version = version
 
-        try:
-            require = getattr(TkinterDnD, "require", None)
-            if not callable(require):
-                require = getattr(TkinterDnD, "_require", None)
-            if not callable(require):
-                raise RuntimeError("TkinterDnD does not expose a load function")
-            require(root)
-            root._ps_sezhao_dnd_available = bool(
-                hasattr(root, "drop_target_register") and hasattr(root, "dnd_bind")
-            )
-            if not root._ps_sezhao_dnd_available:
-                root._ps_sezhao_dnd_error = "TkDND loaded without widget bindings"
-        except Exception as exc:  # TclError and RuntimeError are both expected here
-            root._ps_sezhao_dnd_available = False
-            root._ps_sezhao_dnd_error = f"{type(exc).__name__}: {exc}"
-        return root
+    return type(
+        "PSSezhaoTk",
+        bases,
+        {
+            "__init__": safe_init,
+            "_ps_sezhao_safe_tk_class": True,
+        },
+    )
 
 
 class _TkModuleProxy:
@@ -83,7 +90,7 @@ class _TkModuleProxy:
 
     def __init__(self, original_module: Any) -> None:
         self._original_module = original_module
-        self.Tk = _SafeTkFactory(original_module.Tk)
+        self.Tk = build_safe_root_class(original_module.Tk)
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._original_module, name)
@@ -131,13 +138,7 @@ def collect_supported_paths(paths: Iterable[Path]) -> list[Path]:
 
 
 def install_drag_drop_root(app_module: Any) -> bool:
-    """Install a safe root factory with automatic non-DnD fallback.
-
-    The application module gets a local proxy; the process-wide tkinter.Tk
-    class is left untouched. Root creation always starts with normal Tk, then
-    attempts to load TkDND into that interpreter. Failure is recorded on the
-    root instead of being raised to the user.
-    """
+    """Install a safe root class with automatic non-DnD fallback."""
 
     current_tk = app_module.tk
     if getattr(current_tk, "_ps_sezhao_dnd_proxy", False):
@@ -183,6 +184,7 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
             DND_FILES is None
             or not available
             or not hasattr(self.root, "drop_target_register")
+            or not hasattr(self.root, "dnd_bind")
         ):
             self._drag_drop_enabled = False
             self._drag_drop_error = getattr(self.root, "_ps_sezhao_dnd_error", None)
