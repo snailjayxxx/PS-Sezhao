@@ -6,6 +6,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const root = path.resolve(__dirname, "..");
+const version = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
 const html = fs.readFileSync(path.join(root, "plugin/index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "plugin/styles.css"), "utf8");
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "plugin/manifest.json"), "utf8"));
@@ -22,6 +23,8 @@ const standaloneWorkspace = fs.readFileSync(path.join(root, "standalone/ps_sezha
 const standaloneJobs = fs.readFileSync(path.join(root, "standalone/ps_sezhao/jobs.py"), "utf8");
 const rawIo = fs.readFileSync(path.join(root, "standalone/ps_sezhao/raw_io.py"), "utf8");
 const rawPatch = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app_v051_raw_patch.py"), "utf8");
+const cropPatch = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app_v052_source_crop_patch.py"), "utf8");
+const cropUi = fs.readFileSync(path.join(root, "standalone/ps_sezhao/crop_ui.py"), "utf8");
 const lrRoot = path.join(root, "lightroom-classic/PS-Sezhao.lrplugin");
 const lrInfo = fs.readFileSync(path.join(lrRoot, "Info.lua"), "utf8");
 const lrNative = fs.readFileSync(path.join(lrRoot, "ApplyNative.lua"), "utf8");
@@ -33,12 +36,13 @@ const buildScript = fs.readFileSync(path.join(root, "scripts/build-release.sh"),
 const developerGuide = fs.readFileSync(path.join(root, "PHOTOSHOP_DEVELOPER_LOAD.md"), "utf8");
 
 test("unified release supports Photoshop 2024 and Lightroom Classic 15.4", function () {
-  assert.equal(manifest.version, "0.5.1");
+  const [major, minor, revision] = version.split(".").map(Number);
+  assert.equal(manifest.version, version);
   assert.equal(manifest.host.minVersion, "25.0.0");
-  assert.match(runtime, /const VERSION = "0\.5\.1"/);
-  assert.match(finalOps, /const VERSION = "0\.5\.1"/);
+  assert.match(runtime, new RegExp(`const VERSION = "${version.replaceAll(".", "\\.")}"`));
+  assert.match(finalOps, new RegExp(`const VERSION = "${version.replaceAll(".", "\\.")}"`));
   assert.match(lrInfo, /LrSdkMinimumVersion = 15\.4/);
-  assert.match(lrInfo, /major = 0, minor = 5, revision = 1/);
+  assert.match(lrInfo, new RegExp(`major = ${major}, minor = ${minor}, revision = ${revision}`));
 });
 
 test("Lightroom presents native mode first and retains high precision mode", function () {
@@ -116,14 +120,18 @@ test("Photoshop range controls gain manual numeric input and step buttons", func
   assert.match(css, /\.numeric-value-input/);
 });
 
-test("Photoshop large preview and click eyedroppers remain available", function () {
+test("Photoshop eyedroppers sample the remembered original layer, not preview pixels", function () {
   ["panelPreviewStage", "panelPreviewImage", "panelPreviewZoom", "pickBase", "pickNeutral", "sampleSize"].forEach(function (id) {
     assert.match(html, new RegExp(`id="${id}"`));
   });
   assert.match(preview, /imaging\.encodeImageData/);
   assert.match(panelPreview, /mapEventToDocument/);
-  assert.match(sampler, /colorSamplerTool/);
+  assert.match(sampler, /layerID:\s*source\.layer\.id/);
+  assert.match(sampler, /state\.analysis \? storedSource\(\) : ensureActiveCandidate\(\)/);
   assert.match(sampler, /handlePanelPreviewClick/);
+  assert.match(html, /id="baseAdjustR"/);
+  assert.match(html, /id="baseAdjustG"/);
+  assert.match(html, /id="baseAdjustB"/);
 });
 
 test("standalone edition exposes multi-photo navigation and synchronization", function () {
@@ -136,15 +144,29 @@ test("standalone edition exposes multi-photo navigation and synchronization", fu
   assert.match(standaloneApp, /export_all/);
 });
 
-test("standalone edition supports zoom pan and non-destructive crop", function () {
-  assert.match(standaloneApp, /zoom_at/);
-  assert.match(standaloneApp, /zoom_fit_view/);
-  assert.match(standaloneApp, /on_canvas_motion/);
-  assert.match(standaloneApp, /interaction_mode/);
-  assert.match(standaloneApp, /crop_norm/);
-  assert.match(standaloneWorkspace, /def crop_array/);
-  assert.match(standaloneWorkspace, /class PhotoState/);
-  assert.match(standaloneJobs, /crop_array/);
+test("standalone v0.5.2 shows only the applied crop and restores full image for editing", function () {
+  assert.match(cropPatch, /self\.crop_editing/);
+  assert.match(cropPatch, /text="完成裁切"/);
+  assert.match(cropPatch, /shown = crop_array\(self\._display_full_array, self\.crop_norm\)/);
+  assert.match(cropPatch, /if not self\.crop_editing/);
+  assert.match(cropPatch, /app_class\._draw_crop_overlay = draw_crop_overlay/);
+  assert.match(cropPatch, /crop_hit_test/);
+  assert.match(cropUi, /update_crop_from_drag/);
+});
+
+test("standalone base picker reads original source and exposes manual RGB base adjustment", function () {
+  assert.match(cropPatch, /sample_median_rgb\(self\.preview_source/);
+  assert.match(cropPatch, /map_view_point_to_source/);
+  assert.match(cropPatch, /base_adjust_units/);
+  assert.match(cropPatch, /胶片基底手动微调/);
+  assert.match(cropPatch, /payload\["base_adjust"\]/);
+});
+
+test("automatic border analysis and unsaved batch analysis use the crop", function () {
+  assert.match(cropPatch, /return crop_array\(self\.preview_source, self\.crop_norm\)/);
+  assert.match(cropPatch, /method="crop-border"/);
+  assert.match(standaloneJobs, /source = crop_array\(image, crop\)/);
+  assert.ok(standaloneJobs.indexOf("source = crop_array(image, crop)") < standaloneJobs.indexOf("analysis_source = make_preview(source, 1800)"));
 });
 
 test("standalone sliders support entry and plus-minus micro adjustment", function () {
@@ -155,7 +177,7 @@ test("standalone sliders support entry and plus-minus micro adjustment", functio
   assert.match(standaloneApp, /text="\+"/);
 });
 
-test("standalone v0.5.1 directly decodes camera RAW", function () {
+test("standalone directly decodes camera RAW", function () {
   assert.match(rawIo, /class RawDecodeSettings/);
   assert.match(rawIo, /output_bps": 16/);
   assert.match(rawIo, /ColorSpace\.ProPhoto/);
