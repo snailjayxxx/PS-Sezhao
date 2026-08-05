@@ -5,13 +5,13 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 - **Photoshop 版**：UXP `.ccx` 插件，直接读取和写入 Photoshop 图层。
 - **Photoshop 开发者加载版**：完整 UXP 插件目录。
 - **Lightroom Classic 版**：原生直接转正、高精度 16 位 TIFF、恢复快照。
-- **独立桌面版**：不依赖 Adobe，支持相机 RAW 直读、多图工作区、裁切和批量输出。
+- **独立桌面版**：不依赖 Adobe，支持相机 RAW 直读、多图、缩放、裁切和批量输出。
 
 照片只在本机处理，不上传服务器。
 
 ## 当前版本
 
-统一版本：**v0.5.1**
+统一版本：**v0.5.2**
 
 - Photoshop 2024（25.0）或更高版本
 - Lightroom Classic 15.4 或更高版本
@@ -22,64 +22,61 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 | 使用场景 | 下载文件 |
 |---|---|
-| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.5.1.ccx` |
-| Photoshop 开发者加载 | `PS-Sezhao-Photoshop-Developer-v0.5.1.zip` |
-| Lightroom Classic · Apple Silicon | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.1.zip` |
-| Lightroom Classic · Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.1.zip` |
-| 独立桌面版 · Apple Silicon | `PS-Sezhao-Standalone-macOS-arm64-v0.5.1.zip` |
-| 独立桌面版 · Windows x64 | `PS-Sezhao-Standalone-Windows-x64-v0.5.1.zip` |
+| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.5.2.ccx` |
+| Photoshop 开发者加载 | `PS-Sezhao-Photoshop-Developer-v0.5.2.zip` |
+| Lightroom Classic · Apple Silicon | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.2.zip` |
+| Lightroom Classic · Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.2.zip` |
+| 独立桌面版 · Apple Silicon | `PS-Sezhao-Standalone-macOS-arm64-v0.5.2.zip` |
+| 独立桌面版 · Windows x64 | `PS-Sezhao-Standalone-Windows-x64-v0.5.2.zip` |
 
-## v0.5.1：独立版相机 RAW 直读
+## v0.5.2：原图吸管
 
-独立桌面版现在可直接把相机 RAW 加入单图或多图工作区。常见扩展名包括：
+胶片基底吸管不从转正或调色后的预览读取颜色：
+
+- 独立版始终从 `preview_source` 对应的未修改输入图像取样；
+- 裁切后点击可见画面时，坐标会先映射回完整原图；
+- Photoshop 版从记录的原始负片图层读取像素，不读取临时预览图层；
+- 基底颜色确定后，色调范围使用当前裁切区域重新计算。
+
+因此，改变曝光、色温、RGB 增益或风格后重新吸取基底，不会把修改后的颜色误当成胶片基底。
+
+## 胶片基底手动微调
+
+独立桌面版和 Lightroom 高精度窗口新增：
+
+```text
+基底 R：滑块　−　数字输入　+
+基底 G：滑块　−　数字输入　+
+基底 B：滑块　−　数字输入　+
+```
+
+界面同时显示“原图识别值”和“当前实际使用值”。三通道偏移按8位等效单位调整，每张照片分别保存，也可通过参数同步功能应用到多张图片。
+
+Photoshop 版原有“胶片基底微调”继续保留，并同样支持数字输入和加减按钮。
+
+## 新裁切方式
+
+- 平时只显示裁切后保留的画面；
+- 不显示裁切框、遮罩或被裁掉的部分；
+- 点击“裁切”后显示完整照片和当前裁切框；
+- 可拖动四角、四边中点、整个框，也可在框外重新拖出范围；
+- 点击“完成裁切”后重新只显示保留范围；
+- 再次点击“裁切”会恢复完整照片和上次裁切框；
+- 裁切仍是非破坏性的，只在导出时应用。
+
+“自动分析边框”只分析裁切后的区域。完成或重置裁切时，会按新范围重新计算；批量任务和 Lightroom 高精度任务在没有保存分析时，也会先裁切再分析。
+
+## 相机 RAW 直读
+
+独立版可直接加入常见 RAW：
 
 ```text
 CR2 / CR3 / NEF / NRW / ARW / RAF / RW2 / ORF / PEF / SRW / DNG
 ```
 
-实际可解码范围取决于安装包内的 rawpy 与 LibRaw；新相机、特殊压缩、多帧 RAW 或厂家私有格式可能暂不支持。遇到不支持的文件时，程序会显示运行时版本和明确的 16 位 TIFF 替代流程。
+完整解码固定采用16位、线性Gamma、关闭自动提亮和ProPhoto RGB。RAW设置包括相机、日光、自动和自定义白平衡，高光处理、去马赛克方式、内嵌预览优先和重新解码。
 
-### 固定高质量解码流程
-
-完整 RAW 解码固定采用：
-
-```text
-相机 RAW
-→ 16 位解码
-→ 关闭自动提亮
-→ 线性 Gamma
-→ ProPhoto RGB
-→ 胶片基底分析与光密度转正
-→ 16 位 TIFF（嵌入 ProPhoto ICC）
-```
-
-RAW 设置面板提供：
-
-- 相机拍摄白平衡；
-- 日光白平衡；
-- LibRaw 自动白平衡；
-- 自定义 R / G / B / G2 通道倍率；
-- 高光混合、裁切或重建；
-- AHD、线性、VNG、PPG 去马赛克；
-- 优先读取 RAW 内嵌预览；
-- 无内嵌预览时使用半尺寸快速预览；
-- 修改设置后重新解码当前 RAW。
-
-切换到 RAW 时，程序优先显示内嵌预览，同时在后台完成完整 16 位解码。批量导出会逐张解码和释放内存，不会同时展开整卷 RAW。
-
-## v0.5.0：数字微调、多图、缩放和裁切
-
-Photoshop 与独立版的主要参数同时提供滑块、数字输入框和 `− / +` 微调按钮。独立版和 Lightroom 高精度窗口支持：
-
-- 一次添加多张图片或整个文件夹；
-- 左侧多选图片列表；
-- 每张图片独立保存分析、参数和裁切；
-- 参数与裁切同步到选中照片；
-- 鼠标滚轮缩放、平移、适应窗口、100% 和 200%；
-- 非破坏性矩形裁切；
-- 保存当前、导出选中和导出全部。
-
-裁切不会修改原始文件，只在导出时应用。
+具体相机与压缩方式支持范围取决于发行包内的 rawpy / LibRaw。不支持时可先用 Lightroom、Camera Raw 或相机厂商软件导出16位TIFF。
 
 ## Lightroom Classic
 
@@ -90,7 +87,7 @@ Photoshop 与独立版的主要参数同时提供滑块、数字输入框和 `�
 → PS-Sezhao：原生直接转正所选照片（默认）
 ```
 
-直接把反相曲线、RGB 曲线、白平衡和明暗参数写入 Lightroom 当前照片，不生成新文件。默认创建恢复快照。Lightroom 中的相机 RAW 仍由 Lightroom 自己解码。
+直接写入 Lightroom 非破坏性调整，不生成新文件，并默认创建恢复快照。该模式没有独立处理窗口。
 
 ### 高精度 16 位 TIFF
 
@@ -99,11 +96,11 @@ Photoshop 与独立版的主要参数同时提供滑块、数字输入框和 `�
 → PS-Sezhao：高精度 16 位 TIFF
 ```
 
-Lightroom 先渲染 16 位 ProPhoto RGB TIFF，再打开多图窗口。每张照片可单独调色和裁切，成品会自动导回目录。
+Lightroom 先渲染16位ProPhoto RGB TIFF，再打开与独立版相同的多图窗口。因此原图吸管、基底手动微调和新裁切方式均可使用。
 
 ## Photoshop
 
-Photoshop 版继续处理已经进入 Photoshop 文档的图层。相机 RAW 应先通过 Camera Raw 打开，再使用 PS-Sezhao。Photoshop 版保留点击吸管、实时画布预览、大图预览、数字输入和完整分辨率输出。
+相机 RAW 先通过 Camera Raw 打开，再使用 PS-Sezhao。Photoshop 版保留点击吸管、实时画布预览、大图预览、基底微调、数字输入和完整分辨率输出。
 
 ## 开发检查
 
