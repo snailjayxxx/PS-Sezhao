@@ -6,6 +6,7 @@ from typing import Any, Type
 from tkinter import messagebox, simpledialog
 
 from ..core.roll_project import RollProjectSettings, assign_project_output_settings
+from ..storage.roll_project_store import RollProjectStore
 
 
 def apply_startup_close_policy(app_class: Type[Any]) -> None:
@@ -23,20 +24,24 @@ def apply_startup_close_policy(app_class: Type[Any]) -> None:
         lr_job: str | None = None,
         initial_files: list[str] | None = None,
     ) -> None:
-        # The existing persistence layers restore the last transient workspace
-        # and the last active roll during initialization. Suppress both restore
-        # calls for this one initialization only; explicitly supplied files and
-        # Lightroom jobs still open normally.
+        # The roll-project layer asks its store for the previously active project
+        # before the base window opens any explicitly supplied files. Temporarily
+        # report no active project so a file opened from Finder never inherits a
+        # previous roll's metadata. The transient workspace restore is also
+        # suppressed for this initialization only.
+        original_get_active_project_id = RollProjectStore.get_active_project_id
+        RollProjectStore.get_active_project_id = lambda _store: None
         self._restore_project_session = lambda: None
         self._restore_active_roll_project = lambda: None
         try:
             original_init(self, root, lr_job=lr_job, initial_files=initial_files)
         finally:
+            RollProjectStore.get_active_project_id = original_get_active_project_id
             self.__dict__.pop("_restore_project_session", None)
             self.__dict__.pop("_restore_active_roll_project", None)
 
         self._roll_restore_pending = False
-        if lr_job is None and not initial_files:
+        if lr_job is None:
             self.active_roll_project_id = None
             self.active_roll_project_name = ""
             self.active_roll_project_settings = RollProjectSettings()
@@ -51,7 +56,10 @@ def apply_startup_close_policy(app_class: Type[Any]) -> None:
                 pass
             if hasattr(self, "_refresh_roll_project_status"):
                 self._refresh_roll_project_status()
-            self.status.set("请选择图像或打开已有胶卷项目。")
+            if initial_files:
+                self.status.set(f"已打开 {len(self.items)} 张图片，当前为未保存的临时工作区。")
+            else:
+                self.status.set("请选择图像或打开已有胶卷项目。")
 
         self.root.protocol("WM_DELETE_WINDOW", self._close_with_project_prompt)
 
