@@ -145,6 +145,24 @@ def apply_v073_style_status_patch(app_class: Type[Any]) -> None:
         listbox.focus_set()
         return "break"
 
+    def hide_local_status_labels(self: Any) -> None:
+        for label in (
+            getattr(self, "_v072_crop_status_label", None),
+            getattr(self, "_v072_geometry_status_label", None),
+        ):
+            if label is not None:
+                try:
+                    label.grid_remove()
+                except tk.TclError:
+                    pass
+        for group in getattr(self, "_v072_tool_groups", ()):
+            for widget in group.winfo_children():
+                if isinstance(widget, ttk.Label) and _textvariable(widget) == str(self.rotation_status):
+                    try:
+                        widget.grid_remove()
+                    except tk.TclError:
+                        pass
+
     def build_top_status_panel(self: Any) -> None:
         toolbar = next(
             (
@@ -164,7 +182,6 @@ def apply_v073_style_status_patch(app_class: Type[Any]) -> None:
 
         panel = ttk.LabelFrame(toolbar, text="当前状态", padding=(8, 4))
         panel.grid(row=0, column=9, rowspan=2, sticky="nsew", padx=(10, 3), pady=(0, 1))
-        panel.columnconfigure(0, weight=1)
         ttk.Label(panel, textvariable=self.status, anchor="e").grid(
             row=0, column=0, columnspan=3, sticky="ew"
         )
@@ -180,23 +197,29 @@ def apply_v073_style_status_patch(app_class: Type[Any]) -> None:
         for column in range(3):
             panel.columnconfigure(column, weight=1)
 
-        local_labels = (
-            getattr(self, "_v072_crop_status_label", None),
-            getattr(self, "_v072_geometry_status_label", None),
-        )
-        for label in local_labels:
-            if label is not None:
-                label.grid_remove()
-        for group in getattr(self, "_v072_tool_groups", ()):
-            for widget in group.winfo_children():
-                if isinstance(widget, ttk.Label) and _textvariable(widget) == str(self.rotation_status):
-                    widget.grid_remove()
-
         self._v073_top_status_panel = panel
+        self._v073_hide_local_status_labels()
+
+        viewbar = getattr(self, "_v072_viewbar", None)
+        if viewbar is not None:
+            viewbar.bind(
+                "<Configure>",
+                lambda _event: self.root.after_idle(self._v073_hide_local_status_labels),
+                add="+",
+            )
+        geometry_bar = getattr(self, "_v072_geometry_bar", None)
+        if geometry_bar is not None:
+            geometry_bar.bind(
+                "<Configure>",
+                lambda _event: self.root.after_idle(self._v073_hide_local_status_labels),
+                add="+",
+            )
+        self.root.after_idle(self._v073_hide_local_status_labels)
 
     app_class._build_ui = build_ui
     app_class._v073_configure_style_selectors = configure_style_selectors
     app_class._v073_open_style_popup = open_style_popup
     app_class._v073_close_style_popup = close_style_popup
+    app_class._v073_hide_local_status_labels = hide_local_status_labels
     app_class._v073_build_top_status_panel = build_top_status_panel
     app_class._v073_style_status_applied = True
