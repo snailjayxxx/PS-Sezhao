@@ -1,4 +1,5 @@
 from ps_sezhao import app as app_module
+from ps_sezhao import app_v052_source_crop_patch as source_crop_module
 from ps_sezhao import engine as engine_module
 from ps_sezhao.app_v050_patch import apply_patch
 from ps_sezhao.app_v051_raw_patch import apply_raw_patch
@@ -19,6 +20,7 @@ apply_engine_patch()
 apply_style_engine_patch()
 app_module.process_image = process_image_tiled
 app_module.neutral_gains = engine_module.neutral_gains
+source_crop_module.neutral_gains = engine_module.neutral_gains
 apply_patch(app_module.SezhaoApp)
 apply_raw_patch(app_module.SezhaoApp)
 apply_source_crop_patch(app_module.SezhaoApp)
