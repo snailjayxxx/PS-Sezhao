@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
+CORE_VERSION="${VERSION%%-*}"
 DIST="$ROOT/dist"
 DEV_STAGE="$ROOT/.build/PS-Sezhao-Photoshop-Developer"
 LR_STAGE="$ROOT/.build/PS-Sezhao.lrplugin"
@@ -20,21 +21,22 @@ cp "$ROOT/PHOTOSHOP_DEVELOPER_LOAD.md" "$DEV_STAGE/开发者加载说明.md"
   zip -q -r "$CCX" .
 )
 
-# 在发布前验证关键结构，避免多套一层目录导致 Creative Cloud 错误 -4。
+# 在发布前验证关键结构。UXP 清单只接受纯数字 x.y.z，
+# Beta 标识保留在发行标签、文件名和运行时显示版本中。
 unzip -Z1 "$CCX" | grep -qx 'manifest.json'
 node -e '
   const fs = require("fs");
-  const expected = fs.readFileSync(process.argv[1], "utf8").trim();
+  const expected = process.argv[1];
   const manifest = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
   if (manifest.version !== expected) throw new Error(`CCX manifest version ${manifest.version} != ${expected}`);
   if (manifest.host?.app !== "PS") throw new Error("CCX manifest does not target Photoshop");
   if (manifest.host?.minVersion !== "25.0.0") throw new Error("CCX does not target Photoshop 2024+");
-' "$ROOT/VERSION" "$ROOT/plugin/manifest.json"
+' "$CORE_VERSION" "$ROOT/plugin/manifest.json"
 
 (
   cd "$ROOT/.build"
   zip -q -r "$DIST/PS-Sezhao-Photoshop-Developer-v${VERSION}.zip" PS-Sezhao-Photoshop-Developer
-  zip -q -r "$DIST/PS-Sezhao-LightroomClassic-source-v${VERSION}.zip" PS-Sezhao.lrplugin
+  zip -q -r "$DIST/PS-Sezhao-LightroomClassic-Source-v${VERSION}.zip" PS-Sezhao.lrplugin
 )
 (
   cd "$ROOT"

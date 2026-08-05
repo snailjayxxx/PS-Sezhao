@@ -5,34 +5,18 @@ from typing import Any, Iterable, Type
 
 from tkinter import messagebox
 
+from .services.import_service import (
+    SUPPORTED_SUFFIXES,
+    canonical_path as _canonical_path,
+    collect_supported_paths,
+    discover_supported_paths,
+)
+
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
 except ImportError:  # pragma: no cover - buttons remain available without DnD
     DND_FILES = None
     TkinterDnD = None
-
-
-SUPPORTED_SUFFIXES = frozenset(
-    {
-        ".tif",
-        ".tiff",
-        ".jpg",
-        ".jpeg",
-        ".png",
-        ".bmp",
-        ".webp",
-        ".dng",
-        ".cr2",
-        ".cr3",
-        ".nef",
-        ".arw",
-        ".raf",
-        ".rw2",
-        ".orf",
-        ".pef",
-        ".srw",
-    }
-)
 
 
 def _load_tkdnd(root: Any) -> tuple[bool, str | None, str | None]:
@@ -52,7 +36,14 @@ def _load_tkdnd(root: Any) -> tuple[bool, str | None, str | None]:
 
 
 def build_safe_root_class(original_root_class: Any) -> Any:
-    """Build a normal Tk root with optional DnD wrapper methods."""
+    """Build a Tk root that has DnD methods but never requires DnD to start.
+
+    The package's normal ``TkinterDnD.Tk`` constructor raises when its native
+    library is incompatible with the active Tcl/Tk interpreter. This class uses
+    normal ``tk.Tk`` initialization first, then loads TkDND as an optional
+    capability. ``DnDWrapper`` supplies widget registration methods without
+    changing how the interpreter itself is created.
+    """
 
     wrapper_class = (
         getattr(TkinterDnD, "DnDWrapper", None)
@@ -94,47 +85,6 @@ class _TkModuleProxy:
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._original_module, name)
-
-
-def _canonical_path(path: Path) -> str:
-    try:
-        return str(path.resolve(strict=False)).casefold()
-    except OSError:
-        return str(path.absolute()).casefold()
-
-
-def discover_supported_paths(path: Path) -> list[Path]:
-    """Return supported images for one file or folder, including RAW files."""
-
-    try:
-        if path.is_file():
-            return [path] if path.suffix.lower() in SUPPORTED_SUFFIXES else []
-        if not path.is_dir():
-            return []
-
-        files = [
-            candidate
-            for candidate in path.rglob("*")
-            if candidate.is_file() and candidate.suffix.lower() in SUPPORTED_SUFFIXES
-        ]
-        return sorted(files, key=lambda candidate: str(candidate).casefold())
-    except OSError:
-        return []
-
-
-def collect_supported_paths(paths: Iterable[Path]) -> list[Path]:
-    """Expand files/folders and remove duplicates while preserving order."""
-
-    collected: list[Path] = []
-    seen: set[str] = set()
-    for path in paths:
-        for candidate in discover_supported_paths(Path(path)):
-            key = _canonical_path(candidate)
-            if key in seen:
-                continue
-            seen.add(key)
-            collected.append(candidate)
-    return collected
 
 
 def install_drag_drop_root(app_module: Any) -> bool:
