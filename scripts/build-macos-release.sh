@@ -21,7 +21,7 @@ sign_and_notarize_app() {
   local password
   password="$(openssl rand -hex 20)"
 
-  printf '%s' "$APPLE_CERTIFICATE_P12_BASE64" | base64 --decode > "$certificate"
+  printf '%s' "$APPLE_CERTIFICATE_P12_BASE64" | openssl base64 -d -A > "$certificate"
   security create-keychain -p "$password" "$keychain"
   security set-keychain-settings -lut 21600 "$keychain"
   security unlock-keychain -p "$password" "$keychain"
