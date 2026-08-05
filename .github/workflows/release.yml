@@ -189,18 +189,24 @@ jobs:
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           TAG="v${VERSION}"
+          RELEASE_FLAGS=()
+          if [[ "$VERSION" == *-* ]]; then
+            RELEASE_FLAGS+=(--prerelease --latest=false)
+          fi
           if gh release view "$TAG" >/dev/null 2>&1; then
             git tag -f "$TAG" "$GITHUB_SHA"
             git push origin "refs/tags/$TAG" --force
             gh release upload "$TAG" release-assets/* --clobber
             gh release edit "$TAG" \
               --title "PS-Sezhao $TAG" \
-              --notes-file RELEASE_NOTES.md
+              --notes-file RELEASE_NOTES.md \
+              "${RELEASE_FLAGS[@]}"
           else
             gh release create "$TAG" release-assets/* \
               --target "$GITHUB_SHA" \
               --title "PS-Sezhao $TAG" \
-              --notes-file RELEASE_NOTES.md
+              --notes-file RELEASE_NOTES.md \
+              "${RELEASE_FLAGS[@]}"
           fi
 
   report:
