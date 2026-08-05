@@ -26,9 +26,12 @@ def run_gui_smoke(app_module: Any, *, require_dnd: bool = False) -> int:
             getattr(application, "file_tree", None),
             getattr(application, "canvas", None),
             getattr(application, "controls", None),
+            getattr(application, "export_cancel_button", None),
         )
         if any(widget is None or not bool(widget.winfo_exists()) for widget in required_widgets):
             raise RuntimeError("GUI smoke test could not create all core widgets")
+        if getattr(application, "_output_service", None) is None:
+            raise RuntimeError("GUI smoke test could not initialize the output queue")
 
         dnd_enabled = bool(getattr(root, "_ps_sezhao_dnd_available", False))
         dnd_error = getattr(root, "_ps_sezhao_dnd_error", None)

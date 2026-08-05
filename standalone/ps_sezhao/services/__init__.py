@@ -4,6 +4,14 @@ from .import_service import (
     collect_supported_paths,
     discover_supported_paths,
 )
+from .output_service import (
+    ExportEvent,
+    ExportFailure,
+    ExportSummary,
+    ExportTask,
+    OutputQueueService,
+    reserve_unique_destination,
+)
 from .proxy_service import (
     EDIT_PROXY_MAX_EDGE,
     THUMBNAIL_MAX_EDGE,
@@ -17,6 +25,12 @@ __all__ = [
     "canonical_path",
     "collect_supported_paths",
     "discover_supported_paths",
+    "ExportEvent",
+    "ExportFailure",
+    "ExportSummary",
+    "ExportTask",
+    "OutputQueueService",
+    "reserve_unique_destination",
     "EDIT_PROXY_MAX_EDGE",
     "THUMBNAIL_MAX_EDGE",
     "PreviewFrame",

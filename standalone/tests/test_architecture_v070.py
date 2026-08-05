@@ -7,6 +7,7 @@ from pathlib import Path
 from ps_sezhao.bootstrap import configure_application, integration_steps
 from ps_sezhao.core.contracts import (
     MATH_CONTRACT_VERSION,
+    OUTPUT_QUEUE_CONTRACT_VERSION,
     PROJECT_SCHEMA_VERSION,
     PROXY_CONTRACT_VERSION,
     RAW_DECODE_CONTRACT_VERSION,
@@ -21,8 +22,10 @@ class ArchitectureV070Tests(unittest.TestCase):
         self.assertEqual(len(names), len(set(names)))
         self.assertEqual(names[:3], ("engine.base", "engine.styles", "runtime.bindings"))
         self.assertIn("services.preview_proxy", names)
+        self.assertIn("services.output_queue", names)
         self.assertIn("storage.project_session", names)
-        self.assertLess(names.index("services.preview_proxy"), names.index("storage.project_session"))
+        self.assertLess(names.index("services.preview_proxy"), names.index("services.output_queue"))
+        self.assertLess(names.index("services.output_queue"), names.index("storage.project_session"))
         self.assertEqual(names[-1], "runtime.drag_drop_root")
 
         first = configure_application()
@@ -92,6 +95,7 @@ class ArchitectureV070Tests(unittest.TestCase):
             self.assertEqual(Path(workspace.current_file or ""), first)
             self.assertGreaterEqual(PROJECT_SCHEMA_VERSION, 2)
             self.assertGreaterEqual(PROXY_CONTRACT_VERSION, 1)
+            self.assertGreaterEqual(OUTPUT_QUEUE_CONTRACT_VERSION, 1)
 
     def test_architecture_document_uses_only_internal_optimization_language(self) -> None:
         root = Path(__file__).resolve().parents[2]
