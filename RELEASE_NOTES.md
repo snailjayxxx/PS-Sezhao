@@ -1,49 +1,53 @@
-# PS-Sezhao v0.6.2
+# PS-Sezhao v0.6.3
 
-本版本修复 v0.6.1 独立版和 Lightroom 高精度窗口启动时出现的 `TclError: invalid command name` 崩溃，同时保留三栏宽度自由调整和右侧参数栏自适应功能。
+本版本修复 macOS 独立版在加载拖放组件时可能无法启动的问题，并加强 Windows 与 macOS 发行包的真实窗口启动验证。
 
-## 崩溃原因
+## 拖放组件兼容处理
 
-v0.6.1 为了建立新的三栏布局，在所有旧版界面补丁完成后销毁并重建了整个主界面。RAW 白平衡模块、胶片基底模块等功能仍保存着旧输入框的 Python 引用。
+程序不再使用拖放专用根窗口直接启动，而是先创建普通 Tk 窗口，再尝试把拖放能力加载到当前 Tcl/Tk 解释器中。
 
-旧界面被销毁后，这些引用所对应的 Tk 控件已经不存在。重建 RAW 参数区时再次更新旧输入框状态，就会出现：
+处理结果分为两种：
 
-`_tkinter.TclError: invalid command name`
+- 拖放组件加载成功：支持从 Finder 或资源管理器拖入图片和文件夹；
+- 拖放组件加载失败：自动保留普通 Tk 窗口，程序继续正常打开。
 
-## 修复方式
+降级后仅暂时不能直接拖入文件，“添加图像”和“添加文件夹”按钮仍可正常使用。拖放动态库与系统 Tcl/Tk 不兼容时，不再出现启动阶段崩溃。
 
-v0.6.2 不再销毁或重建任何现有界面控件，而是直接增强程序原本已经存在的三栏 `ttk.Panedwindow`：
+## 拖放运行时更新
 
-- 保留 RAW 白平衡输入框及其原始引用；
-- 保留胶片基底、中性灰、撤销重做和历史记录控件；
-- 保留文件列表、预览画布、拖放和滚轮绑定；
-- 只调整三栏权重、初始分隔位置和最小可用宽度；
-- 右侧滚动画布仍实时跟随当前右栏宽度；
-- 下拉框、滑块和说明文字仍会随栏宽横向伸缩。
+- 将 `tkinterdnd2` 更新到 `0.6.2` 系列；
+- 收集新版提供的平台动态库与 Tcl 脚本；
+- 增加独立 PyInstaller hook；
+- 保留 Windows、macOS 和 Linux 的运行时检测。
 
-## 三栏调整
+## 真实发行包启动检查
 
-- 左侧：相片文件列表；
-- 中间：图片预览与裁切；
-- 右侧：输出与参数调整。
+以前只执行 `--help`，不会创建图形窗口，因此无法发现 TkDND 加载错误。
 
-两条分隔线可以继续自由拖动。程序仅在鼠标释放或窗口尺寸变化后限制三栏的最小可用宽度，不会锁定固定比例。
+现在 Windows 和 macOS 构建完成后会：
 
-## 回归测试
+1. 启动打包后的可执行程序；
+2. 创建真实 Tk 根窗口；
+3. 建立文件列表、图片画布和参数栏；
+4. 验证 TkDND 运行时可以在构建环境加载；
+5. 完成 `update_idletasks()` 后关闭窗口。
 
-新增测试明确检查：
+只有真实窗口和拖放运行时均通过，发行任务才会继续。
 
-- 布局补丁中不再执行 `old_body.destroy()`；
-- 不再第二次调用 `_build_controls_panel()` 重建参数控件；
-- 不同窗口宽度下三栏均保持最低可用宽度；
-- 用户拖动后的分隔位置只在超出最低宽度时进行修正；
-- Windows、macOS、Photoshop、Lightroom、RAW 和拖放打包流程继续验证。
+## 保留功能
+
+- RAW 解码和嵌入预览；
+- 三栏自由调整；
+- 裁切、旋转与批量输出；
+- 扫描仪与胶卷双风格；
+- Lightroom 高精度流程；
+- Photoshop 插件。
 
 ## 发行文件
 
-- `PS-Sezhao-Photoshop-v0.6.2.ccx`
-- `PS-Sezhao-Photoshop-Developer-v0.6.2.zip`
-- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.6.2.zip`
-- `PS-Sezhao-LightroomClassic-Windows-x64-v0.6.2.zip`
-- `PS-Sezhao-Standalone-macOS-arm64-v0.6.2.zip`
-- `PS-Sezhao-Standalone-Windows-x64-v0.6.2.zip`
+- `PS-Sezhao-Photoshop-v0.6.3.ccx`
+- `PS-Sezhao-Photoshop-Developer-v0.6.3.zip`
+- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.6.3.zip`
+- `PS-Sezhao-LightroomClassic-Windows-x64-v0.6.3.zip`
+- `PS-Sezhao-Standalone-macOS-arm64-v0.6.3.zip`
+- `PS-Sezhao-Standalone-Windows-x64-v0.6.3.zip`

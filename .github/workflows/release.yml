@@ -88,6 +88,7 @@ jobs:
           pyinstaller --noconfirm --clean --windowed \
             --name PS-Sezhao \
             --paths standalone \
+            --additional-hooks-dir=. \
             --collect-all rawpy \
             --collect-all tkinterdnd2 \
             standalone/main.py
@@ -98,9 +99,9 @@ jobs:
             "release-assets/PS-Sezhao-Standalone-macOS-arm64-v${VERSION}.zip"
           ditto -c -k --sequesterRsrc --keepParent lr-stage/PS-Sezhao.lrplugin \
             "release-assets/PS-Sezhao-LightroomClassic-macOS-arm64-v${VERSION}.zip"
-      - name: Verify packaged RAW and drag-drop runtimes
+      - name: Start packaged macOS GUI and verify drag-drop runtime
         run: |
-          dist/PS-Sezhao.app/Contents/MacOS/PS-Sezhao --help >/dev/null
+          dist/PS-Sezhao.app/Contents/MacOS/PS-Sezhao --gui-smoke-test --require-dnd
           if ! find dist/PS-Sezhao.app -iname '*tkdnd*' -print -quit | grep -q .; then
             echo 'The macOS app does not contain the TkDND runtime.' >&2
             exit 1
@@ -129,6 +130,7 @@ jobs:
           pyinstaller --noconfirm --clean --onefile --windowed `
             --name PS-Sezhao `
             --paths standalone `
+            --additional-hooks-dir=. `
             --collect-all rawpy `
             --collect-all tkinterdnd2 `
             standalone/main.py
@@ -138,7 +140,7 @@ jobs:
           Copy-Item dist/PS-Sezhao.exe lr-stage/PS-Sezhao.lrplugin/bin/windows-x64/PS-Sezhao.exe -Force
           Compress-Archive -Path dist/PS-Sezhao.exe -DestinationPath "release-assets/PS-Sezhao-Standalone-Windows-x64-v$version.zip" -Force
           Compress-Archive -Path lr-stage/PS-Sezhao.lrplugin -DestinationPath "release-assets/PS-Sezhao-LightroomClassic-Windows-x64-v$version.zip" -Force
-      - name: Verify packaged RAW and drag-drop modules
+      - name: Verify packaged RAW, drag-drop and real GUI startup
         shell: pwsh
         run: |
           $listing = (& pyi-archive_viewer -l dist/PS-Sezhao.exe | Out-String)
@@ -154,7 +156,11 @@ jobs:
           if ($listing -notmatch 'tkdnd') {
             throw 'The Windows executable archive does not contain the TkDND runtime.'
           }
-          Write-Host 'Windows archive contains RAW and TkDND runtimes.'
+          $process = Start-Process -FilePath "dist/PS-Sezhao.exe" -ArgumentList "--gui-smoke-test", "--require-dnd" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "Packaged Windows GUI smoke test failed with exit code $($process.ExitCode)."
+          }
+          Write-Host 'Windows archive and packaged GUI validation succeeded.'
       - uses: actions/upload-artifact@v4
         with:
           name: windows-release-assets

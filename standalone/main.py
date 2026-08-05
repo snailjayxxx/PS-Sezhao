@@ -13,6 +13,7 @@ from ps_sezhao.app_v060_style_library_patch import apply_v060_style_library_patc
 from ps_sezhao.app_v061_resizable_layout_patch import apply_v061_resizable_layout_patch
 from ps_sezhao.engine_style_v060_patch import apply_style_engine_patch
 from ps_sezhao.engine_v053_patch import apply_engine_patch
+from ps_sezhao.gui_smoke import requested_gui_smoke, run_gui_smoke
 from ps_sezhao.processing import process_image_tiled
 
 # Use the same bounded-memory renderer for preview, single-image save and batch output.
@@ -35,4 +36,7 @@ apply_v061_resizable_layout_patch(app_module.SezhaoApp)
 install_drag_drop_root(app_module)
 
 if __name__ == "__main__":
+    smoke_requested, require_dnd = requested_gui_smoke()
+    if smoke_requested:
+        raise SystemExit(run_gui_smoke(app_module, require_dnd=require_dnd))
     raise SystemExit(app_module.main())

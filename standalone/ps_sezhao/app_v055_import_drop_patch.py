@@ -7,7 +7,7 @@ from tkinter import messagebox
 
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
-except ImportError:  # pragma: no cover - source mode can still use the buttons
+except ImportError:  # pragma: no cover - buttons remain available without DnD
     DND_FILES = None
     TkinterDnD = None
 
@@ -35,14 +35,55 @@ SUPPORTED_SUFFIXES = frozenset(
 )
 
 
+class _SafeTkFactory:
+    """Create a normal Tk root and load TkDND as an optional capability.
+
+    A TkDND binary can be incompatible with the Tcl/Tk interpreter bundled by
+    a particular macOS build. Loading it must never prevent the application
+    from opening. The root records the capability result so the UI can enable
+    drag-and-drop only when the extension loaded successfully.
+    """
+
+    _ps_sezhao_safe_tk_factory = True
+
+    def __init__(self, original_root_class: Any) -> None:
+        self._original_root_class = original_root_class
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        root = self._original_root_class(*args, **kwargs)
+        root._ps_sezhao_dnd_available = False
+        root._ps_sezhao_dnd_error = None
+
+        if TkinterDnD is None:
+            root._ps_sezhao_dnd_error = "tkinterdnd2 is not installed"
+            return root
+
+        try:
+            require = getattr(TkinterDnD, "require", None)
+            if not callable(require):
+                require = getattr(TkinterDnD, "_require", None)
+            if not callable(require):
+                raise RuntimeError("TkinterDnD does not expose a load function")
+            require(root)
+            root._ps_sezhao_dnd_available = bool(
+                hasattr(root, "drop_target_register") and hasattr(root, "dnd_bind")
+            )
+            if not root._ps_sezhao_dnd_available:
+                root._ps_sezhao_dnd_error = "TkDND loaded without widget bindings"
+        except Exception as exc:  # TclError and RuntimeError are both expected here
+            root._ps_sezhao_dnd_available = False
+            root._ps_sezhao_dnd_error = f"{type(exc).__name__}: {exc}"
+        return root
+
+
 class _TkModuleProxy:
     """Override only app_module.tk.Tk without mutating tkinter globally."""
 
     _ps_sezhao_dnd_proxy = True
 
-    def __init__(self, original_module: Any, root_class: Any) -> None:
+    def __init__(self, original_module: Any) -> None:
         self._original_module = original_module
-        self.Tk = root_class
+        self.Tk = _SafeTkFactory(original_module.Tk)
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._original_module, name)
@@ -90,34 +131,28 @@ def collect_supported_paths(paths: Iterable[Path]) -> list[Path]:
 
 
 def install_drag_drop_root(app_module: Any) -> bool:
-    """Use a TkDND root without replacing tkinter.Tk process-wide.
+    """Install a safe root factory with automatic non-DnD fallback.
 
-    TkinterDnD.Tk.__init__ calls tkinter.Tk.__init__. Replacing tkinter.Tk with
-    TkinterDnD.Tk therefore makes it call itself recursively. A lightweight
-    module proxy keeps every normal tkinter symbol while overriding Tk only for
-    the standalone app module.
+    The application module gets a local proxy; the process-wide tkinter.Tk
+    class is left untouched. Root creation always starts with normal Tk, then
+    attempts to load TkDND into that interpreter. Failure is recorded on the
+    root instead of being raised to the user.
     """
-
-    if TkinterDnD is None:
-        return False
 
     current_tk = app_module.tk
     if getattr(current_tk, "_ps_sezhao_dnd_proxy", False):
-        return True
+        return TkinterDnD is not None
 
-    app_module.tk = _TkModuleProxy(current_tk, TkinterDnD.Tk)
-    return True
+    app_module.tk = _TkModuleProxy(current_tk)
+    return TkinterDnD is not None
 
 
 def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
-    """Repair image/folder import and add Explorer/Finder drag-and-drop."""
+    """Repair image/folder import and add optional Explorer/Finder DnD."""
 
     if getattr(app_class, "_v055_import_drop_applied", False):
         return
 
-    # v0.5.4 exposed these implementations only under underscored names, while
-    # the import path calls the public names. Install the public aliases
-    # unconditionally so both button imports and drag/drop use the same methods.
     alias_pairs = (
         ("detected_base", "_detected_base"),
         ("direct_base_units", "_direct_base_units"),
@@ -139,29 +174,50 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
     def build_ui(self: Any) -> None:
         original_build_ui(self)
         self._drag_drop_enabled = False
+        self._drag_drop_error = getattr(self.root, "_ps_sezhao_dnd_error", None)
         self._install_drop_targets()
 
     def install_drop_targets(self: Any) -> None:
-        if DND_FILES is None or not hasattr(self.root, "drop_target_register"):
+        available = bool(getattr(self.root, "_ps_sezhao_dnd_available", False))
+        if (
+            DND_FILES is None
+            or not available
+            or not hasattr(self.root, "drop_target_register")
+        ):
+            self._drag_drop_enabled = False
+            self._drag_drop_error = getattr(self.root, "_ps_sezhao_dnd_error", None)
+            self.status.set(
+                "拖放组件不可用；程序仍可正常使用“添加图像”和“添加文件夹”。"
+            )
             return
 
         targets: list[Any] = []
-        for widget in (self.root, getattr(self, "canvas", None), getattr(self, "file_tree", None)):
+        for widget in (
+            self.root,
+            getattr(self, "canvas", None),
+            getattr(self, "file_tree", None),
+        ):
             if widget is not None and all(widget is not current for current in targets):
                 targets.append(widget)
 
         installed = False
+        errors: list[str] = []
         for widget in targets:
             try:
                 widget.drop_target_register(DND_FILES)
                 widget.dnd_bind("<<Drop>>", self._on_external_drop)
                 installed = True
-            except Exception:
-                continue
+            except Exception as exc:
+                errors.append(f"{type(exc).__name__}: {exc}")
 
         self._drag_drop_enabled = installed
         if installed:
             self.status.set("可点击添加图像/文件夹，也可从资源管理器或 Finder 拖入。")
+        else:
+            self._drag_drop_error = "; ".join(errors) or "无法注册拖放目标"
+            self.status.set(
+                "拖放组件加载后无法注册目标；请使用“添加图像”或“添加文件夹”。"
+            )
 
     def parse_drop_paths(self: Any, raw_data: str) -> list[Path]:
         try:
@@ -170,7 +226,11 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
             values = (raw_data,)
         return [Path(str(value)) for value in values if str(value).strip()]
 
-    def open_dropped_paths(self: Any, paths: Iterable[Path], folder_count: int = 0) -> int:
+    def open_dropped_paths(
+        self: Any,
+        paths: Iterable[Path],
+        folder_count: int = 0,
+    ) -> int:
         files = collect_supported_paths(paths)
         existing = {
             _canonical_path(Path(item.path))
