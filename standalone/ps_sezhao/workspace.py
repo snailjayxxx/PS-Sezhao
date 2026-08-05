@@ -6,7 +6,9 @@ from typing import Iterable
 
 import numpy as np
 
-SUPPORTED_EXTENSIONS = {".tif", ".tiff", ".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+from .raw_io import RAW_EXTENSIONS
+
+SUPPORTED_EXTENSIONS = {".tif", ".tiff", ".jpg", ".jpeg", ".png", ".bmp", ".webp"} | RAW_EXTENSIONS
 FULL_CROP = (0.0, 0.0, 1.0, 1.0)
 
 
