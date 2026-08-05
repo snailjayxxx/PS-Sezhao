@@ -3,56 +3,59 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>PS-Sezhao v0.7.0-beta.4 安装说明</title>
+  <title>PS-Sezhao v0.7.0-beta.5 安装说明</title>
   <style>
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei UI",sans-serif;line-height:1.7;max-width:920px;margin:40px auto;padding:0 24px;color:#202124}
     h1,h2{line-height:1.25} code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#f4f5f7;border-radius:6px} code{padding:2px 5px} pre{padding:14px;overflow:auto}.note{border-left:4px solid #4d8bc9;background:#f3f8fc;padding:10px 14px}.warn{border-left-color:#d48a18;background:#fff8e8} li{margin:6px 0}
   </style>
 </head>
 <body>
-<h1>PS-Sezhao v0.7.0-beta.4 安装说明</h1>
+<h1>PS-Sezhao v0.7.0-beta.5 安装说明</h1>
 
 <h2>macOS Apple Silicon</h2>
 <ol>
-  <li>打开 <code>PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.4.dmg</code>。</li>
+  <li>打开 <code>PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.5.dmg</code>。</li>
   <li>将 <code>PS-Sezhao.app</code> 拖到右侧 <code>Applications</code> 文件夹。</li>
   <li>从 Finder 的“应用程序”中打开 PS-Sezhao。</li>
 </ol>
-<p>Beta 4 不再运行 <code>.command</code> 安装脚本。标准安装版数据库保留在：</p>
-<pre>~/Library/Application Support/PS-Sezhao/workspace.sqlite3</pre>
-<p>用户 LUT 保存在：</p>
-<pre>~/Library/Application Support/PS-Sezhao/lut/</pre>
-<p class="note warn">只有使用 Apple Developer ID 签名并完成 Apple 公证的构建，才能避免首次打开时的 Gatekeeper 手动确认。构建流程已经支持自动签名和公证，但发布者必须配置有效的 Apple 开发者证书和公证凭据。</p>
+<p>拖动安装只复制 App。首次成功启动时，程序自动建立：</p>
+<pre>~/Library/Application Support/PS-Sezhao/
+├── workspace.sqlite3
+├── project/
+├── lut/
+└── logs/
+    └── startup.log</pre>
+<p>数据库保持旧位置；<code>project</code> 用于项目归档和备份；<code>lut</code> 用于用户 Cube LUT；<code>logs/startup.log</code> 用于启动诊断。</p>
+<p class="note warn">未签名测试包仍会被 Gatekeeper 阻止。只有使用 Apple Developer ID 签名并完成 Apple 公证，才能避免首次手动确认。程序获准运行后若仍启动失败，会显示日志路径。</p>
 
 <h2>Windows 64 位</h2>
 <ol>
-  <li>运行 <code>PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.4.exe</code>。</li>
+  <li>运行 <code>PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.5.exe</code>。</li>
   <li>默认安装到 <code>%LOCALAPPDATA%\Programs\PS-Sezhao\</code>。</li>
   <li>安装器会创建开始菜单快捷方式，并可选择创建桌面快捷方式。</li>
 </ol>
-<p>Windows 安装版继续在应用目录中保留 <code>project</code> 和 <code>lut</code>。</p>
+<p>Windows 安装版在应用目录中保留 <code>project</code>、<code>lut</code>，首次启动时生成 <code>logs</code>。</p>
 
 <h2>启动与关闭</h2>
 <ul>
-  <li>普通启动时不再自动打开上次关闭时的照片。</li>
+  <li>普通启动不自动打开上次关闭时的照片。</li>
   <li>已有胶卷项目通过左侧“打开”手动恢复。</li>
-  <li>关闭且当前有照片时，会询问是否保存本次胶卷项目。</li>
-  <li>“是”保存后退出；“否”直接退出并清空临时照片列表；“取消”返回程序。</li>
-  <li>临时工作区选择保存时，需要输入胶卷项目名称。</li>
+  <li>关闭且当前有照片时，询问是否保存本次胶卷项目。</li>
+  <li>“是”保存后退出；“否”直接退出；“取消”返回程序。</li>
 </ul>
 
 <h2>便携版</h2>
-<p>便携 ZIP 必须保留整个外层文件夹：</p>
 <pre>PS-Sezhao/
 ├── PS-Sezhao.app 或 PS-Sezhao.exe
 ├── project/
-│   └── workspace.sqlite3
 ├── lut/
+├── logs/
 ├── 安装说明.html
 └── .ps-sezhao-portable</pre>
 
 <h2>用户 LUT</h2>
 <p>右侧“胶卷风格”区域提供“添加 LUT…”和“打开 LUT 文件夹”。支持标准 1D/3D <code>.cube</code> 文件。</p>
 <!-- Static validator literal: %LOCALAPPDATA%\\Programs\\PS-Sezhao\\ -->
+<!-- Static validator literal: 是否保存本次胶卷项目 -->
 </body>
 </html>
