@@ -108,16 +108,27 @@ def apply_v061_resizable_layout_patch(app_class: Type[Any]) -> None:
         self._build_file_panel(list_panel)
         self._build_preview_panel(preview_frame)
         self._build_controls_panel(controls_outer)
+
+        # v0.5.4 added these panels after _build_ui rather than inside
+        # _build_controls_panel. The old widgets were destroyed with the old
+        # panes, so recreate/configure them for the new controls container.
+        if hasattr(self, "_expand_base_adjust_controls"):
+            self._expand_base_adjust_controls()
+        if hasattr(self, "_configure_direct_base_panel"):
+            self._configure_direct_base_panel()
+        if hasattr(self, "_add_neutral_gain_panel"):
+            self._add_neutral_gain_panel()
+
         self._make_controls_panel_responsive()
 
         # The earlier patches installed wheel and drop bindings on the widgets
         # that were just replaced. Reinstall them on the new pane widgets.
-        if hasattr(self, "_expand_base_adjust_controls"):
-            self._expand_base_adjust_controls()
         if hasattr(self, "_install_side_panel_wheel_scrolling"):
             self._install_side_panel_wheel_scrolling()
         if hasattr(self, "_install_drop_targets"):
             self._install_drop_targets()
+        if hasattr(self, "_update_history_buttons"):
+            self._update_history_buttons()
 
         self.root.after_idle(self._set_initial_pane_sashes)
 
@@ -169,7 +180,9 @@ def apply_v061_resizable_layout_patch(app_class: Type[Any]) -> None:
             if current > 0:
                 widget.configure(wraplength=wraplength)
 
-        canvas.configure(scrollregion=canvas.bbox("all"))
+        bounds = canvas.bbox("all")
+        if bounds is not None:
+            canvas.configure(scrollregion=bounds)
 
     def set_initial_pane_sashes(self: Any) -> None:
         if getattr(self, "_pane_layout_initialized", False):
