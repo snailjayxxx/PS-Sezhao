@@ -19,6 +19,7 @@ from .proxy_service import (
     PreviewProxyService,
 )
 from .runtime_service import install_runtime_bindings
+from .sync_pipeline import MODULE_LABELS, copy_modules
 
 __all__ = [
     "SUPPORTED_SUFFIXES",
@@ -35,5 +36,7 @@ __all__ = [
     "THUMBNAIL_MAX_EDGE",
     "PreviewFrame",
     "PreviewProxyService",
+    "MODULE_LABELS",
+    "copy_modules",
     "install_runtime_bindings",
 ]
