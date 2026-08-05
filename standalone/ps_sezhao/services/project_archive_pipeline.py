@@ -123,7 +123,7 @@ def apply_project_archive_pipeline(app_class: Type[Any]) -> None:
                 try:
                     result = worker()
                 except Exception as exc:
-                    self.root.after(0, lambda: finish_error(exc))
+                    self.root.after(0, lambda error=exc: finish_error(error))
                     return
                 self.root.after(0, lambda: finish_success(result))
 
