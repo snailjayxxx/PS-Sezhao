@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PS-Sezhao 独立版安装说明</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei UI",sans-serif;line-height:1.65;max-width:920px;margin:40px auto;padding:0 24px;color:#202124}
+    h1,h2{line-height:1.25} code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#f4f5f7;border-radius:6px} code{padding:2px 5px} pre{padding:14px;overflow:auto}.note{border-left:4px solid #4d8bc9;background:#f3f8fc;padding:10px 14px}.warn{border-left-color:#d48a18;background:#fff8e8} li{margin:6px 0}
+  </style>
+</head>
+<body>
+<h1>PS-Sezhao 独立版安装说明</h1>
+<p>安装版和便携版都使用同一套目录结构，程序、胶卷项目数据库和用户 LUT 放在同一个外层文件夹中：</p>
+<pre>PS-Sezhao/
+├── PS-Sezhao.app 或 PS-Sezhao.exe
+├── project/
+│   └── workspace.sqlite3
+├── lut/
+├── 安装说明.html
+└── .ps-sezhao-portable</pre>
+
+<h2>macOS（Apple Silicon）</h2>
+<ol>
+  <li>打开 <code>PS-Sezhao-Installer-macOS-arm64-*.dmg</code>。</li>
+  <li>双击“安装到用户应用程序.command”。安装器会复制到 <code>~/Applications/PS-Sezhao/</code>。</li>
+  <li>安装完成后打开该文件夹，再打开 <code>PS-Sezhao.app</code>。</li>
+  <li>若 macOS 首次阻止未公证应用，请在 Finder 中按住 Control 点击 App，选择“打开”；也可进入“系统设置 → 隐私与安全性”确认打开。</li>
+</ol>
+<p class="note warn">不要只把 <code>PS-Sezhao.app</code> 单独拖到系统 <code>/Applications</code>。这样会失去同级的 <code>project</code> 和 <code>lut</code> 目录。安装脚本使用用户目录，不需要管理员权限。</p>
+
+<h2>Windows 64 位</h2>
+<ol>
+  <li>运行 <code>PS-Sezhao-Installer-Windows-x64-*.exe</code>。</li>
+  <li>默认安装到 <code>%LOCALAPPDATA%\Programs\PS-Sezhao\</code>，无需管理员权限。</li>
+  <li>安装器会创建开始菜单快捷方式，并可选择创建桌面快捷方式。</li>
+  <li>更新安装会替换程序，但不会删除 <code>project</code> 和 <code>lut</code> 中的用户数据。</li>
+</ol>
+
+<h2>便携版</h2>
+<p>解压 ZIP 后保留整个 <code>PS-Sezhao</code> 文件夹，不要只移动其中的可执行文件。可把整个文件夹放在本机硬盘、移动硬盘或 NAS 的可写目录中。</p>
+
+<h2>胶卷项目迁移</h2>
+<p>Beta 3 第一次启动时，会把旧位置中的 <code>workspace.sqlite3</code> 自动复制到新的 <code>project</code> 文件夹。旧数据库不会删除，并会在新目录生成 <code>MIGRATED_FROM.txt</code> 记录来源。</p>
+<ul>
+  <li>旧 macOS 位置：<code>~/Library/Application Support/PS-Sezhao/workspace.sqlite3</code></li>
+  <li>旧 Windows 位置：<code>%LOCALAPPDATA%\PS-Sezhao\workspace.sqlite3</code></li>
+</ul>
+
+<h2>添加用户 LUT</h2>
+<ol>
+  <li>在右侧“胶卷风格”区域点击“添加 LUT…”；当前支持标准 <code>.cube</code>，包括 1D 和 3D LUT。</li>
+  <li>程序验证后会把文件复制到同级 <code>lut</code> 文件夹。</li>
+  <li>用户 LUT 会出现在胶卷风格下拉列表中，使用“胶卷强度”控制混合比例。</li>
+  <li>也可以手动把 <code>.cube</code> 文件复制到 <code>lut</code> 文件夹，重新启动程序或再次打开风格列表即可读取。</li>
+</ol>
+<p class="note">项目只保存 LUT 文件名，不把 LUT 内容写进数据库。跨电脑迁移时需要同时复制 <code>project</code> 和 <code>lut</code> 文件夹。</p>
+
+<h2>卸载</h2>
+<p>Windows 可在系统“已安装的应用”中卸载；安装器会保留 <code>project</code> 和 <code>lut</code>。macOS 直接删除 <code>~/Applications/PS-Sezhao/PS-Sezhao.app</code> 即可，保留同级数据目录。确定不再需要项目后，再手动删除整个 PS-Sezhao 文件夹。</p>
+</body>
+</html>
