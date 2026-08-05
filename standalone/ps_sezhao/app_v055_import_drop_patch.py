@@ -5,34 +5,18 @@ from typing import Any, Iterable, Type
 
 from tkinter import messagebox
 
+from .services.import_service import (
+    SUPPORTED_SUFFIXES,
+    canonical_path,
+    collect_supported_paths,
+    discover_supported_paths,
+)
+
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
 except ImportError:  # pragma: no cover - source mode can still use the buttons
     DND_FILES = None
     TkinterDnD = None
-
-
-SUPPORTED_SUFFIXES = frozenset(
-    {
-        ".tif",
-        ".tiff",
-        ".jpg",
-        ".jpeg",
-        ".png",
-        ".bmp",
-        ".webp",
-        ".dng",
-        ".cr2",
-        ".cr3",
-        ".nef",
-        ".arw",
-        ".raf",
-        ".rw2",
-        ".orf",
-        ".pef",
-        ".srw",
-    }
-)
 
 
 class _TkModuleProxy:
@@ -48,55 +32,8 @@ class _TkModuleProxy:
         return getattr(self._original_module, name)
 
 
-def _canonical_path(path: Path) -> str:
-    try:
-        return str(path.resolve(strict=False)).casefold()
-    except OSError:
-        return str(path.absolute()).casefold()
-
-
-def discover_supported_paths(path: Path) -> list[Path]:
-    """Return supported images for one file or folder, including RAW files."""
-
-    try:
-        if path.is_file():
-            return [path] if path.suffix.lower() in SUPPORTED_SUFFIXES else []
-        if not path.is_dir():
-            return []
-
-        files = [
-            candidate
-            for candidate in path.rglob("*")
-            if candidate.is_file() and candidate.suffix.lower() in SUPPORTED_SUFFIXES
-        ]
-        return sorted(files, key=lambda candidate: str(candidate).casefold())
-    except OSError:
-        return []
-
-
-def collect_supported_paths(paths: Iterable[Path]) -> list[Path]:
-    """Expand files/folders and remove duplicates while preserving order."""
-
-    collected: list[Path] = []
-    seen: set[str] = set()
-    for path in paths:
-        for candidate in discover_supported_paths(Path(path)):
-            key = _canonical_path(candidate)
-            if key in seen:
-                continue
-            seen.add(key)
-            collected.append(candidate)
-    return collected
-
-
 def install_drag_drop_root(app_module: Any) -> bool:
-    """Use a TkDND root without replacing tkinter.Tk process-wide.
-
-    TkinterDnD.Tk.__init__ calls tkinter.Tk.__init__. Replacing tkinter.Tk with
-    TkinterDnD.Tk therefore makes it call itself recursively. A lightweight
-    module proxy keeps every normal tkinter symbol while overriding Tk only for
-    the standalone app module.
-    """
+    """Use a TkDND root without replacing tkinter.Tk process-wide."""
 
     if TkinterDnD is None:
         return False
@@ -115,9 +52,6 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
     if getattr(app_class, "_v055_import_drop_applied", False):
         return
 
-    # v0.5.4 exposed these implementations only under underscored names, while
-    # the import path calls the public names. Install the public aliases
-    # unconditionally so both button imports and drag/drop use the same methods.
     alias_pairs = (
         ("detected_base", "_detected_base"),
         ("direct_base_units", "_direct_base_units"),
@@ -146,7 +80,11 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
             return
 
         targets: list[Any] = []
-        for widget in (self.root, getattr(self, "canvas", None), getattr(self, "file_tree", None)):
+        for widget in (
+            self.root,
+            getattr(self, "canvas", None),
+            getattr(self, "file_tree", None),
+        ):
             if widget is not None and all(widget is not current for current in targets):
                 targets.append(widget)
 
@@ -170,14 +108,18 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
             values = (raw_data,)
         return [Path(str(value)) for value in values if str(value).strip()]
 
-    def open_dropped_paths(self: Any, paths: Iterable[Path], folder_count: int = 0) -> int:
+    def open_dropped_paths(
+        self: Any,
+        paths: Iterable[Path],
+        folder_count: int = 0,
+    ) -> int:
         files = collect_supported_paths(paths)
         existing = {
-            _canonical_path(Path(item.path))
+            canonical_path(Path(item.path))
             for item in self.items
             if getattr(item, "path", None) is not None
         }
-        new_files = [path for path in files if _canonical_path(path) not in existing]
+        new_files = [path for path in files if canonical_path(path) not in existing]
 
         if not new_files:
             self.status.set("拖入内容中没有新的可添加图片或 RAW 文件。")
@@ -222,3 +164,12 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
     app_class._open_dropped_paths = open_dropped_paths
     app_class._on_external_drop = on_external_drop
     app_class._v055_import_drop_applied = True
+
+
+__all__ = [
+    "SUPPORTED_SUFFIXES",
+    "apply_v055_import_drop_patch",
+    "collect_supported_paths",
+    "discover_supported_paths",
+    "install_drag_drop_root",
+]
