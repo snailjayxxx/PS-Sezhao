@@ -60,35 +60,35 @@ class UiLayoutV072Tests(unittest.TestCase):
                 self.assertEqual(len(tool_groups), 3)
                 self.assertTrue(all(isinstance(group, ttk.LabelFrame) for group in tool_groups))
                 self.assertEqual(tuple(str(group.cget("text")) for group in tool_groups), ("裁切工具", "缩放", "旋转"))
-                self.assertEqual(
-                    tuple(int(group.grid_info()["column"]) for group in tool_groups),
-                    (0, 1, 2),
-                )
                 self.assertEqual(int(application._v072_viewbar.columnconfigure(4)["weight"]), 1)
 
                 geometry_groups = application._v072_geometry_groups
                 self.assertEqual(tuple(str(group.cget("text")) for group in geometry_groups), ("范围", "拉直", "变换"))
-                self.assertEqual(
-                    tuple(int(group.grid_info()["column"]) for group in geometry_groups),
-                    (0, 1, 2),
-                )
                 self.assertEqual(int(application._v072_geometry_bar.columnconfigure(4)["weight"]), 1)
 
                 application._layout_v072_preview_groups(SimpleNamespace(width=700))
                 self.assertEqual(int(tool_groups[0].grid_info()["row"]), 0)
                 self.assertEqual(int(tool_groups[1].grid_info()["row"]), 0)
                 self.assertEqual(int(tool_groups[2].grid_info()["row"]), 1)
+                self.assertEqual(int(tool_groups[2].grid_info()["column"]), 0)
                 application._layout_v072_preview_groups(SimpleNamespace(width=1200))
+                self.assertEqual(
+                    tuple(int(group.grid_info()["column"]) for group in tool_groups),
+                    (0, 1, 2),
+                )
                 self.assertEqual(int(tool_groups[2].grid_info()["row"]), 0)
-                self.assertEqual(int(tool_groups[2].grid_info()["column"]), 2)
 
                 application._layout_v072_geometry_groups(SimpleNamespace(width=700))
                 self.assertEqual(int(geometry_groups[0].grid_info()["row"]), 0)
                 self.assertEqual(int(geometry_groups[1].grid_info()["row"]), 0)
                 self.assertEqual(int(geometry_groups[2].grid_info()["row"]), 1)
+                self.assertEqual(int(geometry_groups[2].grid_info()["column"]), 0)
                 application._layout_v072_geometry_groups(SimpleNamespace(width=1200))
+                self.assertEqual(
+                    tuple(int(group.grid_info()["column"]) for group in geometry_groups),
+                    (0, 1, 2),
+                )
                 self.assertEqual(int(geometry_groups[2].grid_info()["row"]), 0)
-                self.assertEqual(int(geometry_groups[2].grid_info()["column"]), 2)
 
                 self.assertTrue(application.project_folder_button.winfo_exists())
                 self.assertTrue((Path(temporary_directory) / "project").is_dir())
