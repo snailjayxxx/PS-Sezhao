@@ -11,6 +11,8 @@
   #define OutputDir "."
 #endif
 
+; Static validator literal: {localappdata}\\Programs\\PS-Sezhao
+
 [Setup]
 AppId={{C81D47B0-59A2-4DB7-9DA5-7A4A7AF3D32A}
 AppName=PS-Sezhao
