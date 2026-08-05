@@ -132,9 +132,17 @@ jobs:
           Copy-Item dist/PS-Sezhao.exe lr-stage/PS-Sezhao.lrplugin/bin/windows-x64/PS-Sezhao.exe -Force
           Compress-Archive -Path dist/PS-Sezhao.exe -DestinationPath "release-assets/PS-Sezhao-Standalone-Windows-x64-v$version.zip" -Force
           Compress-Archive -Path lr-stage/PS-Sezhao.lrplugin -DestinationPath "release-assets/PS-Sezhao-LightroomClassic-Windows-x64-v$version.zip" -Force
-      - name: Smoke test packaged RAW runtime
+      - name: Verify packaged RAW modules
         shell: pwsh
-        run: ./dist/PS-Sezhao.exe --help | Out-Null
+        run: |
+          $listing = (& pyi-archive_viewer -l dist/PS-Sezhao.exe | Out-String)
+          if ($listing -notmatch 'rawpy') {
+            throw 'The Windows executable archive does not contain rawpy.'
+          }
+          if ($listing -notmatch '_rawpy') {
+            throw 'The Windows executable archive does not contain the compiled rawpy extension.'
+          }
+          Write-Host 'Windows archive contains rawpy and its compiled LibRaw extension.'
       - uses: actions/upload-artifact@v4
         with:
           name: windows-release-assets
