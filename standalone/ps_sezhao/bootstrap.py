@@ -46,6 +46,7 @@ def integration_steps() -> tuple[IntegrationStep, ...]:
     from .services.geometry_history import apply_geometry_history_guard
     from .services.geometry_pipeline import apply_geometry_pipeline
     from .services.lightroom_job_pipeline import apply_lightroom_job_pipeline
+    from .services.output_defaults import apply_safe_output_defaults
     from .services.output_pipeline import apply_output_pipeline
     from .services.output_queue_compat import apply_output_queue_compatibility
     from .services.output_sync_extension import apply_output_sync_extension
@@ -86,6 +87,7 @@ def integration_steps() -> tuple[IntegrationStep, ...]:
         IntegrationStep("services.output_queue_compat", apply_output_queue_compatibility),
         IntegrationStep("services.module_sync", lambda: apply_sync_pipeline(app_class)),
         IntegrationStep("services.output_sync", lambda: apply_output_sync_extension(app_class)),
+        IntegrationStep("services.output_defaults", lambda: apply_safe_output_defaults(app_class)),
         IntegrationStep("services.module_sync_transaction", lambda: apply_sync_transaction_guard(app_class)),
         IntegrationStep("services.lightroom_jobs", lambda: apply_lightroom_job_pipeline(app_class)),
         IntegrationStep("storage.project_session", lambda: apply_project_session(app_class)),
