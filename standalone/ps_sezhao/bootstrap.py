@@ -51,6 +51,7 @@ def integration_steps() -> tuple[IntegrationStep, ...]:
     from .services.output_queue_compat import apply_output_queue_compatibility
     from .services.output_sync_extension import apply_output_sync_extension
     from .services.project_archive_pipeline import apply_project_archive_pipeline
+    from .services.project_archive_platform_guard import apply_project_archive_platform_guard
     from .services.project_session import apply_project_session
     from .services.proxy_pipeline import apply_proxy_pipeline
     from .services.roll_project_pipeline import apply_roll_project_pipeline
@@ -97,6 +98,7 @@ def integration_steps() -> tuple[IntegrationStep, ...]:
         IntegrationStep("storage.roll_projects", lambda: apply_roll_project_pipeline(app_class)),
         IntegrationStep("storage.roll_project_state", lambda: apply_roll_project_state_guard(app_class)),
         IntegrationStep("storage.project_archive", lambda: apply_project_archive_pipeline(app_class)),
+        IntegrationStep("storage.project_archive_platform", lambda: apply_project_archive_platform_guard(app_class)),
         IntegrationStep("runtime.drag_drop_root", lambda: install_drag_drop_root(app_module)),
     )
 
