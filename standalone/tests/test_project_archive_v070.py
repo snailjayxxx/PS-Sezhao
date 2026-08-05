@@ -23,6 +23,7 @@ from ps_sezhao.storage.roll_project_store import RollProjectStore
 
 class ProjectArchiveTests(unittest.TestCase):
     def _build_project(self, root: Path, store: RollProjectStore) -> tuple[str, list[Path]]:
+        root.mkdir(parents=True, exist_ok=True)
         sources: list[Path] = []
         for index in range(2):
             path = root / f"frame-{index + 1}.png"
