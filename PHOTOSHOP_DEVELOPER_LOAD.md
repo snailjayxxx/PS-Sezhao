@@ -16,55 +16,32 @@
 从 GitHub Release 下载：
 
 ```text
-PS-Sezhao-Photoshop-Developer-v0.5.1.zip
+PS-Sezhao-Photoshop-Developer-v0.5.2.zip
 ```
 
-解压后应看到：
-
-```text
-PS-Sezhao-Photoshop-Developer/
-├── manifest.json
-├── index.html
-├── styles.css
-├── engine.js
-├── runtime-common.js
-├── runtime-panel-preview.js
-├── runtime-preview.js
-├── runtime-sampler.js
-├── runtime-final.js
-├── runtime-controls-v050.js
-├── runtime-v022.js
-└── 开发者加载说明.md
-```
+解压后选择其中的 `manifest.json`。
 
 ## 使用 UXP Developer Tool 加载
 
 1. 完全关闭旧版本 PS-Sezhao 插件面板。
 2. 启动 Photoshop 2024 或更高版本。
 3. 启动 Adobe UXP Developer Tool。
-4. 在 UXP Developer Tool 中启用 Developer Mode；系统要求时输入管理员密码。
+4. 启用 Developer Mode；系统要求时输入管理员密码。
 5. 点击 `Add Plugin`。
 6. 选择解压目录中的 `manifest.json`。
 7. 在插件右侧菜单中选择 `Load`。
-8. 回到 Photoshop，打开：
+8. 回到 Photoshop，打开 `插件 → 胶片去色罩`。
+9. 确认顶部显示 `PS-SEZHAO · 0.5.2`。
 
-```text
-插件 → 胶片去色罩
-```
+## v0.5.2 吸管与胶片基底
 
-插件顶部应显示：
-
-```text
-PS-SEZHAO · 0.5.1
-```
-
-每个主要滑块下方显示 `− / 数字输入框 / +`。数字可直接输入，按 Enter 生效；加减按钮按该参数的最小步长微调。
-
-v0.5.1 的相机 RAW 直读位于独立桌面版。Photoshop 中的 RAW 仍先通过 Camera Raw 打开，再由插件处理进入 Photoshop 的图层。
+- 胶片基底吸管从记录的原始负片图层读取像素；
+- 即使画布顶部显示临时转正预览，也不会读取预览图层颜色；
+- 插件内大图点击会先换算到文档坐标，再读取原始负片图层；
+- 面板“胶片基底微调”提供 R/G/B 滑块、数字输入和 `− / +` 微调；
+- 相机 RAW 仍先通过 Camera Raw 打开，再处理进入 Photoshop 的图层。
 
 ## 更新源码版本
-
-安装新版本开发者包后：
 
 1. 在 UXP Developer Tool 中卸载或移除旧目录。
 2. 解压新版本到新的文件夹。
