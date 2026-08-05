@@ -16,7 +16,7 @@ const {
   schedulePreview, resetControls
 } = c;
 
-const VERSION = "0.5.4";
+const VERSION = "0.5.5";
 const V022_UI_IDS = [
   "pickBase", "pickNeutral", "cancelPicker", "sampleSize",
   "panelPreviewStage", "panelPreviewImage", "panelPreviewPlaceholder",
@@ -101,7 +101,7 @@ function initializeUI() {
   refreshOutputs();
   history.initialize();
   updateReadiness();
-  setStatus("准备就绪。胶片基底 R/G/B 现在直接填写最终数值；中性灰吸管修改 RGB 输出增益。", "");
+  setStatus("准备就绪。胶片基底 R/G/B 直接填写最终数值；桌面版 v0.5.5 修复图片导入并增加系统拖放。", "");
   return true;
 }
 function scheduleInitialize() {
