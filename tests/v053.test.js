@@ -8,7 +8,7 @@ const assert = require("node:assert/strict");
 const root = path.resolve(__dirname, "..");
 const runtime = fs.readFileSync(path.join(root, "plugin/runtime-v022.js"), "utf8");
 const wideEngine = fs.readFileSync(path.join(root, "plugin/runtime-engine-v053.js"), "utf8");
-const main = fs.readFileSync(path.join(root, "standalone/main.py"), "utf8");
+const groups = fs.readFileSync(path.join(root, "standalone/ps_sezhao/integration_groups.py"), "utf8");
 const scrollPatch = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app_v053_scroll_patch.py"), "utf8");
 const pythonEnginePatch = fs.readFileSync(path.join(root, "standalone/ps_sezhao/engine_v053_patch.py"), "utf8");
 
@@ -21,9 +21,9 @@ test("Photoshop v0.5.3 engine retains full normalized base offset compatibility"
   assert.match(wideEngine, /-1, 1/);
 });
 
-test("standalone keeps expanded internal base compatibility before direct-value UI mapping", function () {
-  assert.match(main, /apply_engine_patch\(\)/);
-  assert.match(main, /apply_scroll_patch\(app_module\.SezhaoApp\)/);
+test("standalone grouped engine retains expanded range before direct UI mapping", function () {
+  assert.match(groups, /apply_engine_patch\(\)/);
+  assert.match(groups, /apply_scroll_patch\(app_class\)/);
   assert.match(scrollPatch, /BASE_MIN_UNITS = -255/);
   assert.match(scrollPatch, /BASE_MAX_UNITS = 255/);
   assert.match(scrollPatch, /widget\.configure\(from_=BASE_MIN_UNITS, to=BASE_MAX_UNITS/);
