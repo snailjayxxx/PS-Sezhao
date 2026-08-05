@@ -40,7 +40,7 @@ class StyleStatusAndMacPathsV073Tests(unittest.TestCase):
         finally:
             root.destroy()
 
-    def test_installed_macos_app_keeps_database_in_application_support(self) -> None:
+    def test_installed_macos_app_creates_project_lut_and_logs_but_keeps_database_path(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             data_root = Path(temporary_directory) / "Library" / "Application Support" / "PS-Sezhao"
             with (
@@ -53,12 +53,19 @@ class StyleStatusAndMacPathsV073Tests(unittest.TestCase):
                 os.environ.pop(paths.ENV_DATA_ROOT, None)
                 os.environ.pop(paths.ENV_PROJECT_DATABASE, None)
                 database = paths.default_project_database_path()
+                project_directory = paths.default_project_directory()
                 lut_directory = paths.default_lut_directory()
+                log_directory = paths.default_log_directory()
 
             self.assertEqual(database, data_root / "workspace.sqlite3")
+            self.assertEqual(project_directory, data_root / "project")
             self.assertEqual(lut_directory, data_root / "lut")
+            self.assertEqual(log_directory, data_root / "logs")
+            self.assertTrue(project_directory.is_dir())
             self.assertTrue(lut_directory.is_dir())
-            self.assertFalse((data_root / "project").exists())
+            self.assertTrue(log_directory.is_dir())
+            self.assertTrue((project_directory / "README.txt").is_file())
+            self.assertTrue((lut_directory / "README.txt").is_file())
 
 
 if __name__ == "__main__":
