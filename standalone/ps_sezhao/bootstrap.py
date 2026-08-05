@@ -53,6 +53,7 @@ def integration_steps() -> tuple[IntegrationStep, ...]:
     from .services.project_session import apply_project_session
     from .services.proxy_pipeline import apply_proxy_pipeline
     from .services.roll_project_pipeline import apply_roll_project_pipeline
+    from .services.roll_project_state import apply_roll_project_state_guard
     from .services.runtime_service import install_runtime_bindings
     from .services.sync_pipeline import apply_sync_pipeline
     from .services.sync_transaction import apply_sync_transaction_guard
@@ -93,6 +94,7 @@ def integration_steps() -> tuple[IntegrationStep, ...]:
         IntegrationStep("services.lightroom_jobs", lambda: apply_lightroom_job_pipeline(app_class)),
         IntegrationStep("storage.project_session", lambda: apply_project_session(app_class)),
         IntegrationStep("storage.roll_projects", lambda: apply_roll_project_pipeline(app_class)),
+        IntegrationStep("storage.roll_project_state", lambda: apply_roll_project_state_guard(app_class)),
         IntegrationStep("runtime.drag_drop_root", lambda: install_drag_drop_root(app_module)),
     )
 
