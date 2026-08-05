@@ -29,6 +29,8 @@ def run_gui_smoke(app_module: Any, *, require_dnd: bool = False) -> int:
             getattr(application, "export_cancel_button", None),
             getattr(application, "sync_settings_button", None),
             getattr(application, "perspective_button", None),
+            getattr(application, "output_settings_button", None),
+            getattr(application, "contact_sheet_button", None),
         )
         if any(widget is None or not bool(widget.winfo_exists()) for widget in required_widgets):
             raise RuntimeError("GUI smoke test could not create all core widgets")
@@ -36,6 +38,16 @@ def run_gui_smoke(app_module: Any, *, require_dnd: bool = False) -> int:
             raise RuntimeError("GUI smoke test could not initialize the output queue")
         if not hasattr(application, "straighten_angle") or not hasattr(application, "geometry_status"):
             raise RuntimeError("GUI smoke test could not create geometry controls")
+        for attribute in (
+            "output_color_space_label",
+            "output_resize_mode_label",
+            "output_filename_template",
+            "output_collision_label",
+            "output_film_stock",
+            "contact_columns",
+        ):
+            if not hasattr(application, attribute):
+                raise RuntimeError(f"GUI smoke test could not create output setting: {attribute}")
 
         dnd_enabled = bool(getattr(root, "_ps_sezhao_dnd_available", False))
         dnd_error = getattr(root, "_ps_sezhao_dnd_error", None)
