@@ -6,6 +6,7 @@ from ps_sezhao.app_v053_scroll_patch import apply_scroll_patch
 from ps_sezhao.app_v054_history_direct_patch import apply_v054_patch
 from ps_sezhao.app_v054_sync_patch import apply_v054_sync_patch
 from ps_sezhao.app_v055_import_drop_patch import apply_v055_import_drop_patch, install_drag_drop_root
+from ps_sezhao.app_v057_rotate_output_patch import apply_v057_rotate_output_patch
 from ps_sezhao.engine_v053_patch import apply_engine_patch
 from ps_sezhao.processing import process_image_tiled
 
@@ -20,6 +21,7 @@ apply_scroll_patch(app_module.SezhaoApp)
 apply_v054_patch(app_module.SezhaoApp)
 apply_v054_sync_patch(app_module.SezhaoApp)
 apply_v055_import_drop_patch(app_module.SezhaoApp)
+apply_v057_rotate_output_patch(app_module.SezhaoApp)
 install_drag_drop_root(app_module)
 
 if __name__ == "__main__":

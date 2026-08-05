@@ -10,6 +10,7 @@ from .raw_io import RAW_EXTENSIONS
 
 SUPPORTED_EXTENSIONS = {".tif", ".tiff", ".jpg", ".jpeg", ".png", ".bmp", ".webp"} | RAW_EXTENSIONS
 FULL_CROP = (0.0, 0.0, 1.0, 1.0)
+VALID_ROTATIONS = (0, 90, 180, 270)
 
 
 def clamp_crop(crop: Iterable[float] | None) -> tuple[float, float, float, float]:
@@ -29,6 +30,42 @@ def clamp_crop(crop: Iterable[float] | None) -> tuple[float, float, float, float
         top, bottom = bottom, top
     if right - left < 1e-4 or bottom - top < 1e-4:
         return FULL_CROP
+    return left, top, right, bottom
+
+
+def normalize_rotation(value: int | float | str | None) -> int:
+    try:
+        degrees = int(round(float(value or 0) / 90.0)) * 90
+    except (TypeError, ValueError):
+        degrees = 0
+    return degrees % 360
+
+
+def rotate_array(image: np.ndarray, clockwise_degrees: int | float | str | None) -> np.ndarray:
+    """Rotate an H×W×C image clockwise in 90-degree steps."""
+
+    array = np.asarray(image)
+    rotation = normalize_rotation(clockwise_degrees)
+    if rotation == 0:
+        return array.copy()
+    turns_counter_clockwise = {90: -1, 180: 2, 270: 1}[rotation]
+    return np.rot90(array, k=turns_counter_clockwise, axes=(0, 1)).copy()
+
+
+def rotate_crop(
+    crop: Iterable[float] | None,
+    clockwise_degrees: int | float | str | None,
+) -> tuple[float, float, float, float]:
+    """Rotate a normalized crop rectangle with its source image."""
+
+    left, top, right, bottom = clamp_crop(crop)
+    rotation = normalize_rotation(clockwise_degrees)
+    if rotation == 90:
+        return clamp_crop((1.0 - bottom, left, 1.0 - top, right))
+    if rotation == 180:
+        return clamp_crop((1.0 - right, 1.0 - bottom, 1.0 - left, 1.0 - top))
+    if rotation == 270:
+        return clamp_crop((top, 1.0 - right, bottom, 1.0 - left))
     return left, top, right, bottom
 
 
@@ -80,16 +117,20 @@ class PhotoState:
     controls: dict[str, object] = field(default_factory=dict)
     analysis: dict[str, object] | None = None
     crop: tuple[float, float, float, float] = FULL_CROP
+    rotation: int = 0
 
     def __post_init__(self) -> None:
         self.path = Path(self.path)
         self.crop = clamp_crop(self.crop)
+        self.rotation = normalize_rotation(self.rotation)
 
     @property
     def crop_label(self) -> str:
         if crop_is_full(self.crop):
-            return "完整"
-        left, top, right, bottom = self.crop
-        width = max(0.0, right - left)
-        height = max(0.0, bottom - top)
-        return f"{width * 100:.0f}% × {height * 100:.0f}%"
+            label = "完整"
+        else:
+            left, top, right, bottom = self.crop
+            width = max(0.0, right - left)
+            height = max(0.0, bottom - top)
+            label = f"{width * 100:.0f}% × {height * 100:.0f}%"
+        return f"{label} · {self.rotation}°" if self.rotation else label

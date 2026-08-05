@@ -1,44 +1,69 @@
-# PS-Sezhao v0.5.6
+# PS-Sezhao v0.5.7
 
-本版本是 v0.5.5 的启动崩溃热修复版。
+本版本加入每张图片独立旋转、固定在右上角的输出区，以及保存格式和 JPEG 质量选择，并删除右侧重复的多图同步入口。
 
-## 修复 Windows 启动递归崩溃
+## 图片旋转
 
-v0.5.5 为启用拖放功能，直接把全局 `tkinter.Tk` 替换成了 `TkinterDnD.Tk`。但 `TkinterDnD.Tk.__init__()` 内部仍会调用 `tkinter.Tk.__init__()`，因此启动时不断调用自身，最终出现：
+独立版预览工具栏新增：
 
-```text
-RecursionError: maximum recursion depth exceeded
-```
+- `左转 90°`
+- `右转 90°`
 
-v0.5.6 不再修改系统级 `tkinter.Tk`。程序改用一个仅对 PS-Sezhao 启动模块生效的轻量代理：
+旋转是非破坏性的，并按每张图片独立保存。旋转同时应用于：
 
-- PS-Sezhao 创建窗口时使用 `TkinterDnD.Tk`；
-- `tkinterdnd2` 内部仍能调用原始 `tkinter.Tk`；
-- 其他 Canvas、StringVar、Frame 等 tkinter 组件保持原样；
-- 重复初始化拖放模块也不会形成嵌套代理。
+- 大图预览；
+- 裁切范围；
+- 单张保存；
+- 导出选中和导出全部；
+- Lightroom 批量处理；
+- 撤销和重做。
 
-## 回归测试
+已有裁切不会被清空，程序会同步旋转裁切坐标，使裁切框继续覆盖原来的物理画面区域。
 
-新增专门测试确认：
+## 固定输出区
 
-- 启用拖放前后的全局 `tkinter.Tk` 完全相同；
-- PS-Sezhao 自己的根窗口使用 `TkinterDnD.Tk`；
-- 其他 tkinter 类仍由原始模块提供；
-- 连续安装两次拖放根窗口配置不会递归。
+原本位于右侧滚动面板中部的输出按钮已移动到右侧顶部，并固定显示，不再随参数面板滚动。
 
-同时保留 v0.5.5 的功能：
+固定输出区包含：
 
-- 修复“添加图像”和“添加文件夹”无响应；
-- 支持拖入单张、多张图片和 RAW；
-- 支持拖入文件夹并递归查找图片和 RAW；
-- 自动去除重复路径；
-- Windows 和 macOS 安装包包含 TkDND 运行库。
+- 保存当前；
+- 导出选中；
+- 导出全部；
+- LR 批量应用并完成；
+- 输出格式；
+- JPEG 质量。
+
+## 保存格式与质量
+
+可选择：
+
+- 16 位 TIFF（无损）；
+- JPEG；
+- PNG（无损）。
+
+JPEG 质量可在 1～100 之间选择，默认 95。TIFF 和 PNG 使用无损保存，因此选择这两种格式时 JPEG 质量输入会自动禁用。
+
+批量导出会统一使用当前选择的格式和 JPEG 质量。
+
+## 多图同步入口整理
+
+左下角的：
+
+- `同步参数到选中`
+- `同步裁切到选中`
+
+与右侧“多图同步”中的：
+
+- `参数 → 选中图片`
+- `裁切 → 选中图片`
+
+原本调用完全相同的函数，没有任何功能差异。v0.5.7 保留左下角入口，删除右侧重复区域。
 
 ## 发行文件
 
-- `PS-Sezhao-Photoshop-v0.5.6.ccx`
-- `PS-Sezhao-Photoshop-Developer-v0.5.6.zip`
-- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.6.zip`
-- `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.6.zip`
-- `PS-Sezhao-Standalone-macOS-arm64-v0.5.6.zip`
-- `PS-Sezhao-Standalone-Windows-x64-v0.5.6.zip`
+- `PS-Sezhao-Photoshop-v0.5.7.ccx`
+- `PS-Sezhao-Photoshop-Developer-v0.5.7.zip`
+- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.7.zip`
+- `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.7.zip`
+- `PS-Sezhao-Standalone-macOS-arm64-v0.5.7.zip`
+- `PS-Sezhao-Standalone-Windows-x64-v0.5.7.zip`
