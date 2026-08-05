@@ -218,16 +218,21 @@ class OutputQueueIntegrationTests(unittest.TestCase):
                 description = json.loads(exported.getexif().get(270, "{}"))
                 self.assertEqual(description["FilmStock"], "Gold 200")
 
-    def test_bootstrap_places_complete_output_and_safe_defaults_in_order(self) -> None:
+    def test_complete_output_is_installed_inside_processing_group_before_persistence(self) -> None:
         names = tuple(step.name for step in integration_steps())
-        self.assertLess(names.index("services.output_queue"), names.index("services.complete_output"))
-        self.assertLess(names.index("services.complete_output"), names.index("services.module_sync"))
-        self.assertLess(names.index("services.module_sync"), names.index("services.output_sync"))
-        self.assertLess(names.index("services.output_sync"), names.index("services.output_defaults"))
-        self.assertLess(
-            names.index("services.output_defaults"),
-            names.index("services.module_sync_transaction"),
+        self.assertLess(names.index("services.processing"), names.index("services.persistence"))
+        root = Path(__file__).resolve().parents[2]
+        group_source = (root / "standalone/ps_sezhao/integration_groups.py").read_text(encoding="utf-8")
+        ordered_markers = (
+            "apply_output_pipeline(app_class)",
+            "apply_complete_output_pipeline(app_class)",
+            "apply_sync_pipeline(app_class)",
+            "apply_output_sync_extension(app_class)",
+            "apply_safe_output_defaults(app_class)",
+            "apply_sync_transaction_guard(app_class)",
         )
+        positions = [group_source.index(marker) for marker in ordered_markers]
+        self.assertEqual(positions, sorted(positions))
 
     def test_new_workspace_uses_preserve_input_icc_default(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
