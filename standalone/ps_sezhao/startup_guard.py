@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import platform
 import subprocess
 import sys
@@ -94,11 +93,13 @@ def _show_startup_error(error: BaseException, log_path: Path) -> None:
     if sys.platform == "darwin":
         try:
             script = (
-                'display alert "PS-Sezhao 无法启动" '
-                f'message {message!r} as critical buttons {{"好"}} default button "好"'
+                'on run argv\n'
+                'display alert "PS-Sezhao 无法启动" message (item 1 of argv) '
+                'as critical buttons {"好"} default button "好"\n'
+                'end run'
             )
             subprocess.run(
-                ["/usr/bin/osascript", "-e", script],
+                ["/usr/bin/osascript", "-e", script, message],
                 check=False,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
