@@ -56,27 +56,29 @@ class ImportDropPatchTests(unittest.TestCase):
     def test_release_configuration_contains_safe_drag_drop_runtime(self) -> None:
         project_root = Path(__file__).resolve().parents[2]
         version = (project_root / "VERSION").read_text(encoding="utf-8").strip()
+        core_version = version.split("-", 1)[0]
         package = json.loads((project_root / "package.json").read_text(encoding="utf-8"))
         manifest = json.loads((project_root / "plugin/manifest.json").read_text(encoding="utf-8"))
         runtime_entry = (project_root / "plugin/runtime-v022.js").read_text(encoding="utf-8")
         runtime_final = (project_root / "plugin/runtime-final.js").read_text(encoding="utf-8")
         lightroom_info = (project_root / "lightroom-classic/PS-Sezhao.lrplugin/Info.lua").read_text(encoding="utf-8")
         bootstrap = (project_root / "standalone/ps_sezhao/bootstrap.py").read_text(encoding="utf-8")
+        groups = (project_root / "standalone/ps_sezhao/integration_groups.py").read_text(encoding="utf-8")
         requirements = (project_root / "standalone/requirements.txt").read_text(encoding="utf-8")
         workflow = (project_root / ".github/workflows/release.yml").read_text(encoding="utf-8")
         hook = (project_root / "hook-tkinterdnd2.py").read_text(encoding="utf-8")
 
         self.assertEqual(package["version"], version)
-        self.assertEqual(manifest["version"], version)
+        self.assertEqual(manifest["version"], core_version)
         self.assertIn(f'const VERSION = "{version}"', runtime_entry)
         self.assertIn(f'const VERSION = "{version}"', runtime_final)
-        major, minor, revision = version.split(".")
+        major, minor, revision = core_version.split(".")
         self.assertIn(
             f"major = {major}, minor = {minor}, revision = {revision}",
             lightroom_info,
         )
-        self.assertIn("apply_v055_import_drop_patch", bootstrap)
-        self.assertIn("install_drag_drop_root", bootstrap)
+        self.assertIn("apply_v055_import_drop_patch", groups)
+        self.assertIn("install_drag_drop_root", groups)
         self.assertIn("requested_gui_smoke", bootstrap)
         self.assertIn("tkinterdnd2>=0.6.2,<0.7", requirements)
         self.assertGreaterEqual(workflow.count("--collect-all tkinterdnd2"), 2)
