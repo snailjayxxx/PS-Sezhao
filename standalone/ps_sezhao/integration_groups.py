@@ -133,6 +133,7 @@ def install_persistence_service_group(context: IntegrationContext) -> None:
     from .services.project_session import apply_project_session
     from .services.roll_project_pipeline import apply_roll_project_pipeline
     from .services.roll_project_state import apply_roll_project_state_guard
+    from .services.startup_close_policy import apply_startup_close_policy
 
     app_class = context.app_class
     apply_project_session(app_class)
@@ -140,6 +141,7 @@ def install_persistence_service_group(context: IntegrationContext) -> None:
     apply_roll_project_state_guard(app_class)
     apply_project_archive_pipeline(app_class)
     apply_project_archive_platform_guard(app_class)
+    apply_startup_close_policy(app_class)
 
 
 def install_drag_drop_group(context: IntegrationContext) -> None:
