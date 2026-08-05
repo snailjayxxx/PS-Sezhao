@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 from PIL import Image
@@ -26,6 +28,7 @@ from ps_sezhao.core.output import (
 from ps_sezhao.engine import Controls
 from ps_sezhao.services.complete_output_pipeline import CompleteExportTask
 from ps_sezhao.services.output_service import OutputQueueService
+from ps_sezhao.ui import create_application, create_root
 
 
 class OutputContractTests(unittest.TestCase):
@@ -215,11 +218,30 @@ class OutputQueueIntegrationTests(unittest.TestCase):
                 description = json.loads(exported.getexif().get(270, "{}"))
                 self.assertEqual(description["FilmStock"], "Gold 200")
 
-    def test_bootstrap_places_complete_output_between_queue_and_module_sync(self) -> None:
+    def test_bootstrap_places_complete_output_and_safe_defaults_in_order(self) -> None:
         names = tuple(step.name for step in integration_steps())
         self.assertLess(names.index("services.output_queue"), names.index("services.complete_output"))
         self.assertLess(names.index("services.complete_output"), names.index("services.module_sync"))
         self.assertLess(names.index("services.module_sync"), names.index("services.output_sync"))
+        self.assertLess(names.index("services.output_sync"), names.index("services.output_defaults"))
+        self.assertLess(
+            names.index("services.output_defaults"),
+            names.index("services.module_sync_transaction"),
+        )
+
+    def test_new_workspace_uses_preserve_input_icc_default(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            database = Path(temporary_directory) / "workspace.sqlite3"
+            with patch.dict(os.environ, {"PS_SEZHAO_PROJECT_DB": str(database)}):
+                root = create_root()
+                root.withdraw()
+                try:
+                    application = create_application(root)
+                    root.update_idletasks()
+                    self.assertEqual(application.output_color_space_label.get(), "保留输入 ICC")
+                    self.assertEqual(application._collect_output_settings().color_space, "preserve")
+                finally:
+                    root.destroy()
 
 
 if __name__ == "__main__":
