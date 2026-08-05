@@ -10,6 +10,7 @@ from ps_sezhao.app_v054_sync_patch import apply_v054_sync_patch
 from ps_sezhao.app_v055_import_drop_patch import apply_v055_import_drop_patch, install_drag_drop_root
 from ps_sezhao.app_v057_rotate_output_patch import apply_v057_rotate_output_patch
 from ps_sezhao.app_v060_style_library_patch import apply_v060_style_library_patch
+from ps_sezhao.app_v061_resizable_layout_patch import apply_v061_resizable_layout_patch
 from ps_sezhao.engine_style_v060_patch import apply_style_engine_patch
 from ps_sezhao.engine_v053_patch import apply_engine_patch
 from ps_sezhao.processing import process_image_tiled
@@ -30,6 +31,7 @@ apply_v054_sync_patch(app_module.SezhaoApp)
 apply_v055_import_drop_patch(app_module.SezhaoApp)
 apply_v057_rotate_output_patch(app_module.SezhaoApp)
 apply_v060_style_library_patch(app_module.SezhaoApp)
+apply_v061_resizable_layout_patch(app_module.SezhaoApp)
 install_drag_drop_root(app_module)
 
 if __name__ == "__main__":
