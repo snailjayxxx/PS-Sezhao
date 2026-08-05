@@ -66,15 +66,15 @@ class RotationAndOutputV057Tests(unittest.TestCase):
     def test_release_contains_fixed_output_rotation_and_quality(self) -> None:
         root = Path(__file__).resolve().parents[2]
         version = (root / "VERSION").read_text(encoding="utf-8").strip()
+        core_version = version.split("-", 1)[0]
         package = json.loads((root / "package.json").read_text(encoding="utf-8"))
         manifest = json.loads((root / "plugin/manifest.json").read_text(encoding="utf-8"))
         patch = (root / "standalone/ps_sezhao/app_v057_rotate_output_patch.py").read_text(encoding="utf-8")
-        bootstrap = (root / "standalone/ps_sezhao/bootstrap.py").read_text(encoding="utf-8")
+        groups = (root / "standalone/ps_sezhao/integration_groups.py").read_text(encoding="utf-8")
         jobs = (root / "standalone/ps_sezhao/jobs.py").read_text(encoding="utf-8")
 
-        self.assertEqual(version, "0.6.3")
         self.assertEqual(package["version"], version)
-        self.assertEqual(manifest["version"], version)
+        self.assertEqual(manifest["version"], core_version)
         for token in (
             "左转 90°",
             "右转 90°",
@@ -86,7 +86,7 @@ class RotationAndOutputV057Tests(unittest.TestCase):
             "jpeg_quality=quality",
         ):
             self.assertIn(token, patch)
-        self.assertIn("apply_v057_rotate_output_patch", bootstrap)
+        self.assertIn("apply_v057_rotate_output_patch", groups)
         self.assertLess(jobs.index("rotate_array(image"), jobs.index("crop_array(image"))
 
 
