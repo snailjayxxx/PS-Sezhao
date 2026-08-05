@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 from pathlib import Path
 from typing import Any, Callable
 
 from .core.geometry import GeometrySettings, apply_photo_geometry
+from .core.output import OutputSettings, prepare_output, save_output_file
 from .engine import Analysis, Controls, analyze_image
-from .io_utils import load_image, make_preview, save_image
+from .io_utils import load_image, make_preview
 from .processing import process_image_tiled
 from .raw_io import RawDecodeSettings, prepare_save_output
 from .workspace import clamp_crop, crop_array, normalize_rotation, rotate_array
@@ -28,6 +30,10 @@ def run_job(job_path: str | Path, progress: ProgressCallback | None = None) -> l
     default_rotation = normalize_rotation(settings.get("rotation", 0))
     default_geometry = GeometrySettings.from_dict(settings.get("geometry"))
     default_raw = RawDecodeSettings.from_dict(settings.get("raw_decode"))
+    default_output_payload = dict(settings.get("output_settings") or {})
+    if job.get("jpeg_quality") is not None:
+        default_output_payload["jpeg_quality"] = job.get("jpeg_quality")
+    default_output = OutputSettings.from_dict(default_output_payload)
     output_paths: list[str] = []
 
     for index, item in enumerate(items, start=1):
@@ -52,12 +58,29 @@ def run_job(job_path: str | Path, progress: ProgressCallback | None = None) -> l
         )
         result = process_image_tiled(source, analysis, controls)
         result = prepare_save_output(result, metadata)
-        save_image(
-            output_path,
+
+        output_payload = default_output.to_dict()
+        output_payload.update(dict(item.get("output_settings") or {}))
+        output_settings = OutputSettings.from_dict(output_payload)
+        if item.get("jpeg_quality") is not None:
+            output_settings = replace(
+                output_settings,
+                jpeg_quality=int(item.get("jpeg_quality")),
+            ).sanitized()
+        prepared = prepare_output(
             result,
-            bit_depth=int(item.get("bit_depth", job.get("bit_depth", 16))),
-            icc_profile=metadata.get("icc_profile"),
-            jpeg_quality=int(item.get("jpeg_quality", job.get("jpeg_quality", 95))),
+            output_settings,
+            source_icc_profile=metadata.get("icc_profile"),
+            source_metadata=metadata,
+        )
+        bit_depth = int(item.get("bit_depth", job.get("bit_depth", output_settings.bit_depth)))
+        save_output_file(
+            output_path,
+            prepared.image,
+            bit_depth=bit_depth,
+            icc_profile=prepared.icc_profile,
+            jpeg_quality=output_settings.jpeg_quality,
+            metadata=prepared.metadata,
         )
         output_paths.append(str(output_path))
         if progress:
