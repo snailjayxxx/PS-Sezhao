@@ -28,12 +28,17 @@ const requiredProjectFiles = [
   "standalone/main.py",
   "standalone/ps_sezhao/__init__.py",
   "standalone/ps_sezhao/app.py",
+  "standalone/ps_sezhao/app_v050_patch.py",
+  "standalone/ps_sezhao/app_v051_raw_patch.py",
+  "standalone/ps_sezhao/color_profiles.py",
   "standalone/ps_sezhao/engine.py",
   "standalone/ps_sezhao/io_utils.py",
   "standalone/ps_sezhao/jobs.py",
   "standalone/ps_sezhao/processing.py",
+  "standalone/ps_sezhao/raw_io.py",
   "standalone/ps_sezhao/workspace.py",
   "standalone/tests/test_workspace.py",
+  "standalone/tests/test_raw_io.py",
   "PHOTOSHOP_DEVELOPER_LOAD.md",
   "scripts/build-release.sh"
 ];
@@ -70,6 +75,8 @@ const runtimeEntry = fs.readFileSync(path.join(plugin, "runtime-v022.js"), "utf8
 if (!runtimeEntry.includes(`const VERSION = "${version}"`)) throw new Error("Photoshop runtime version label is stale");
 if (!runtimeEntry.includes('require("./runtime-controls-v050.js")')) throw new Error("Photoshop numeric controls are not loaded");
 if (!/initializeNumericControls\(\)/.test(runtimeEntry)) throw new Error("Photoshop numeric controls are not initialized");
+const finalRuntime = fs.readFileSync(path.join(plugin, "runtime-final.js"), "utf8");
+if (!finalRuntime.includes(`const VERSION = "${version}"`)) throw new Error("Photoshop output layer version is stale");
 
 const [major, minor, revision] = version.split(".").map(Number);
 const lrInfo = fs.readFileSync(path.join(lrPlugin, "Info.lua"), "utf8");
@@ -105,12 +112,33 @@ if (!/photo:applyDevelopSnapshot/.test(lrRestore)) throw new Error("Native resto
 
 const standaloneInit = fs.readFileSync(path.join(root, "standalone/ps_sezhao/__init__.py"), "utf8");
 if (!standaloneInit.includes(`__version__ = "${version}"`)) throw new Error("Standalone version is stale");
+const standaloneMain = fs.readFileSync(path.join(root, "standalone/main.py"), "utf8");
 const standaloneApp = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app.py"), "utf8");
 const standaloneJobs = fs.readFileSync(path.join(root, "standalone/ps_sezhao/jobs.py"), "utf8");
+const rawIo = fs.readFileSync(path.join(root, "standalone/ps_sezhao/raw_io.py"), "utf8");
+const rawPatch = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app_v051_raw_patch.py"), "utf8");
+const workspace = fs.readFileSync(path.join(root, "standalone/ps_sezhao/workspace.py"), "utf8");
+const requirements = fs.readFileSync(path.join(root, "standalone/requirements.txt"), "utf8");
 for (const token of ["ttk.Treeview", "open_folder_dialog", "zoom_at", "crop_norm", "sync_controls_selected", "sync_crop_selected", "export_selected", "export_all", "commit_entry", "adjust_control"]) {
   if (!standaloneApp.includes(token)) throw new Error(`Standalone v0.5.0 feature is missing: ${token}`);
 }
 if (!standaloneJobs.includes("crop_array")) throw new Error("Standalone/Lightroom batch jobs must apply non-destructive crop");
+if (!standaloneMain.includes("apply_raw_patch")) throw new Error("Standalone launcher does not enable v0.5.1 RAW support");
+for (const token of ["rawpy", "output_bps\": 16", "gamma\": (1.0, 1.0)", "ColorSpace.ProPhoto", "no_auto_bright\": True", "extract_thumb", "LibRawFileUnsupportedError", "prepare_save_output"]) {
+  const literal = token.replace(/\\"/g, '"');
+  if (!rawIo.includes(literal)) throw new Error(`RAW decoder feature is missing: ${literal}`);
+}
+for (const token of ["重新解码当前 RAW", "相机拍摄白平衡", "自定义通道倍率", "优先读取 RAW 内嵌预览", "16 位线性解码", "extract_raw_preview"]) {
+  if (!rawPatch.includes(token)) throw new Error(`RAW user interface feature is missing: ${token}`);
+}
+for (const extension of [".cr2", ".cr3", ".nef", ".arw", ".raf", ".rw2", ".orf", ".dng"]) {
+  if (!rawIo.includes(`"${extension}"`)) throw new Error(`Common RAW extension is missing: ${extension}`);
+}
+if (!workspace.includes("RAW_EXTENSIONS")) throw new Error("Folder discovery does not include RAW files");
+if (!requirements.includes("rawpy>=0.27,<0.28")) throw new Error("rawpy runtime dependency is missing or unpinned");
+if (!standaloneJobs.includes("RawDecodeSettings") || !standaloneJobs.includes("prepare_save_output")) {
+  throw new Error("Batch jobs do not preserve RAW decode/output settings");
+}
 
 for (const script of runtimeScripts) {
   const scriptPath = path.join(plugin, script);
@@ -136,5 +164,10 @@ if (!buildScript.includes("PS-Sezhao-Photoshop-v${VERSION}.ccx")) throw new Erro
 if (!buildScript.includes("PS-Sezhao-Photoshop-Developer-v${VERSION}.zip")) throw new Error("Developer-load ZIP is missing from common release build");
 if (!buildScript.includes("unzip -Z1")) throw new Error("CCX root structure validation is missing");
 if (!buildScript.includes("manifest.host?.minVersion !== \"25.0.0\"")) throw new Error("CCX Photoshop 2024 validation is missing");
+const workflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
+if ((workflow.match(/--collect-all rawpy/g) || []).length < 2) {
+  throw new Error("Both macOS and Windows packages must collect rawpy/LibRaw binaries");
+}
+if (!workflow.includes("Verify RAW runtime")) throw new Error("CI does not verify the RAW runtime");
 
-console.log(`Validated unified PS-Sezhao ${version} with numeric controls, multi-photo workspace, zoom and crop`);
+console.log(`Validated unified PS-Sezhao ${version} with direct camera RAW, embedded previews and 16-bit linear ProPhoto decoding`);
