@@ -72,7 +72,7 @@ class RotationAndOutputV057Tests(unittest.TestCase):
         launcher = (root / "standalone/main.py").read_text(encoding="utf-8")
         jobs = (root / "standalone/ps_sezhao/jobs.py").read_text(encoding="utf-8")
 
-        self.assertEqual(version, "0.6.0")
+        self.assertEqual(version, "0.6.1")
         self.assertEqual(package["version"], version)
         self.assertEqual(manifest["version"], version)
         for token in (
