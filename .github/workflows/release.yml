@@ -82,9 +82,8 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r standalone/requirements-build.txt
-      - name: Build Apple Silicon app, portable package, DMG and Lightroom package
+      - name: Build Apple Silicon app
         run: |
-          VERSION="$(tr -d '[:space:]' < VERSION)"
           pyinstaller --noconfirm --clean --windowed \
             --name PS-Sezhao \
             --paths standalone \
@@ -92,29 +91,16 @@ jobs:
             --collect-all rawpy \
             --collect-all tkinterdnd2 \
             standalone/main.py
-
-          mkdir -p release-assets lr-stage/PS-Sezhao.lrplugin/bin/macos-arm64
-          mkdir -p portable-stage/PS-Sezhao/project portable-stage/PS-Sezhao/lut dmg-stage
-          cp -R lightroom-classic/PS-Sezhao.lrplugin/. lr-stage/PS-Sezhao.lrplugin/
-          cp -R dist/PS-Sezhao.app lr-stage/PS-Sezhao.lrplugin/bin/macos-arm64/
-          cp -R dist/PS-Sezhao.app portable-stage/PS-Sezhao/
-          cp standalone/installer/INSTALL.zh-CN.html portable-stage/PS-Sezhao/安装说明.html
-          printf '%s\n' 'PS-Sezhao portable data root.' > portable-stage/PS-Sezhao/.ps-sezhao-portable
-
-          ditto -c -k --sequesterRsrc --keepParent portable-stage/PS-Sezhao \
-            "release-assets/PS-Sezhao-Standalone-macOS-arm64-v${VERSION}.zip"
-          ditto -c -k --sequesterRsrc --keepParent lr-stage/PS-Sezhao.lrplugin \
-            "release-assets/PS-Sezhao-LightroomClassic-macOS-arm64-v${VERSION}.zip"
-
-          cp -R portable-stage/PS-Sezhao dmg-stage/
-          cp standalone/installer/INSTALL.zh-CN.html dmg-stage/安装说明.html
-          cp standalone/installer/install-macos-user.command dmg-stage/安装到用户应用程序.command
-          chmod +x dmg-stage/安装到用户应用程序.command
-          hdiutil create -quiet -format UDZO -fs HFS+ \
-            -volname "PS-Sezhao Installer" \
-            -srcfolder dmg-stage \
-            "release-assets/PS-Sezhao-Installer-macOS-arm64-v${VERSION}.dmg"
-      - name: Start packaged macOS GUI and verify portable folders
+      - name: Build portable package, standard DMG and Lightroom package
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: bash scripts/build-macos-release.sh
+      - name: Start packaged macOS GUI and verify installer layout
         run: |
           dist/PS-Sezhao.app/Contents/MacOS/PS-Sezhao --gui-smoke-test --require-dnd
           if ! find dist/PS-Sezhao.app -iname '*tkdnd*' -print -quit | grep -q .; then
@@ -124,6 +110,9 @@ jobs:
           test -d portable-stage/PS-Sezhao/project
           test -d portable-stage/PS-Sezhao/lut
           test -f portable-stage/PS-Sezhao/.ps-sezhao-portable
+          test -L dmg-stage/Applications
+          test -d dmg-stage/PS-Sezhao.app
+          test ! -e dmg-stage/安装到用户应用程序.command
           test -f release-assets/PS-Sezhao-Installer-macOS-arm64-v*.dmg
       - uses: actions/upload-artifact@v4
         with:
