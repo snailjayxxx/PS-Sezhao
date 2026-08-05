@@ -34,19 +34,22 @@ jobs:
           python -m pip install -r standalone/requirements.txt
           sudo apt-get update
           sudo apt-get install -y lua5.4
-      - name: Verify RAW runtime
+      - name: Verify RAW and drag-drop runtimes
         run: |
           PYTHONPATH=standalone python - <<'PY'
           import rawpy
+          from tkinterdnd2 import DND_FILES, TkinterDnD
           from ps_sezhao.color_profiles import validate_profiles
           validate_profiles()
-          print('rawpy', rawpy.__version__, 'LibRaw', rawpy.libraw_version)
+          assert DND_FILES
+          assert TkinterDnD.Tk
+          print('rawpy', rawpy.__version__, 'LibRaw', rawpy.libraw_version, 'TkinterDnD2 ready')
           PY
       - name: Validate Photoshop plug-in
         run: node scripts/validate.mjs
       - name: Run Photoshop engine and UI tests
         run: node --test tests/*.test.js
-      - name: Run standalone engine and RAW tests
+      - name: Run standalone engine, RAW and import tests
         run: PYTHONPATH=standalone python -m unittest discover -s standalone/tests -v
       - name: Validate Lightroom Lua syntax
         run: luac5.4 -p lightroom-classic/PS-Sezhao.lrplugin/*.lua
@@ -88,6 +91,7 @@ jobs:
           pyinstaller --noconfirm --clean --windowed \
             --name PS-Sezhao \
             --paths standalone \
+            --additional-hooks-dir standalone/hooks \
             --collect-all rawpy \
             standalone/main.py
           mkdir -p release-assets lr-stage/PS-Sezhao.lrplugin/bin/macos-arm64
@@ -97,9 +101,14 @@ jobs:
             "release-assets/PS-Sezhao-Standalone-macOS-arm64-v${VERSION}.zip"
           ditto -c -k --sequesterRsrc --keepParent lr-stage/PS-Sezhao.lrplugin \
             "release-assets/PS-Sezhao-LightroomClassic-macOS-arm64-v${VERSION}.zip"
-      - name: Smoke test packaged RAW runtime
+      - name: Verify packaged RAW and drag-drop runtimes
         run: |
           dist/PS-Sezhao.app/Contents/MacOS/PS-Sezhao --help >/dev/null
+          if ! find dist/PS-Sezhao.app -iname '*tkdnd*' -print -quit | grep -q .; then
+            echo 'The macOS app does not contain TkDnD runtime files.' >&2
+            exit 1
+          fi
+          echo 'macOS app contains TkDnD runtime files.'
       - uses: actions/upload-artifact@v4
         with:
           name: macos-release-assets
@@ -124,6 +133,7 @@ jobs:
           pyinstaller --noconfirm --clean --onefile --windowed `
             --name PS-Sezhao `
             --paths standalone `
+            --additional-hooks-dir standalone/hooks `
             --collect-all rawpy `
             standalone/main.py
           New-Item -ItemType Directory -Force release-assets | Out-Null
@@ -132,7 +142,7 @@ jobs:
           Copy-Item dist/PS-Sezhao.exe lr-stage/PS-Sezhao.lrplugin/bin/windows-x64/PS-Sezhao.exe -Force
           Compress-Archive -Path dist/PS-Sezhao.exe -DestinationPath "release-assets/PS-Sezhao-Standalone-Windows-x64-v$version.zip" -Force
           Compress-Archive -Path lr-stage/PS-Sezhao.lrplugin -DestinationPath "release-assets/PS-Sezhao-LightroomClassic-Windows-x64-v$version.zip" -Force
-      - name: Verify packaged RAW modules
+      - name: Verify packaged RAW and drag-drop modules
         shell: pwsh
         run: |
           $listing = (& pyi-archive_viewer -l dist/PS-Sezhao.exe | Out-String)
@@ -142,7 +152,13 @@ jobs:
           if ($listing -notmatch '_rawpy') {
             throw 'The Windows executable archive does not contain the compiled rawpy extension.'
           }
-          Write-Host 'Windows archive contains rawpy and its compiled LibRaw extension.'
+          if ($listing -notmatch 'tkinterdnd2') {
+            throw 'The Windows executable archive does not contain tkinterdnd2.'
+          }
+          if ($listing -notmatch 'tkdnd') {
+            throw 'The Windows executable archive does not contain the native TkDnD runtime.'
+          }
+          Write-Host 'Windows archive contains rawpy, LibRaw and TkDnD.'
       - uses: actions/upload-artifact@v4
         with:
           name: windows-release-assets
