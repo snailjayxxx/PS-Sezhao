@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 import numpy as np
 
+from .core.geometry import GeometrySettings
 from .raw_io import RAW_EXTENSIONS
 
 SUPPORTED_EXTENSIONS = {".tif", ".tiff", ".jpg", ".jpeg", ".png", ".bmp", ".webp"} | RAW_EXTENSIONS
@@ -118,11 +119,17 @@ class PhotoState:
     analysis: dict[str, object] | None = None
     crop: tuple[float, float, float, float] = FULL_CROP
     rotation: int = 0
+    geometry: dict[str, Any] = field(default_factory=dict)
+    raw_settings: dict[str, Any] = field(default_factory=dict)
+    output_settings: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.path = Path(self.path)
         self.crop = clamp_crop(self.crop)
         self.rotation = normalize_rotation(self.rotation)
+        self.geometry = GeometrySettings.from_dict(self.geometry).to_dict()
+        self.raw_settings = dict(self.raw_settings or {})
+        self.output_settings = dict(self.output_settings or {})
 
     @property
     def crop_label(self) -> str:
@@ -133,4 +140,14 @@ class PhotoState:
             width = max(0.0, right - left)
             height = max(0.0, bottom - top)
             label = f"{width * 100:.0f}% × {height * 100:.0f}%"
-        return f"{label} · {self.rotation}°" if self.rotation else label
+        geometry = GeometrySettings.from_dict(self.geometry)
+        details: list[str] = []
+        if self.rotation:
+            details.append(f"{self.rotation}°")
+        if abs(geometry.straighten) >= 0.05:
+            details.append(f"拉直 {geometry.straighten:+.1f}°")
+        if geometry.flip_horizontal:
+            details.append("水平翻转")
+        if geometry.flip_vertical:
+            details.append("垂直翻转")
+        return label if not details else f"{label} · {' · '.join(details)}"

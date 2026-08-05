@@ -14,7 +14,7 @@ return {
         local available = LrFileUtils.exists(path)
         return {
             {
-                title = 'PS-Sezhao 0.5.4',
+                title = 'PS-Sezhao 0.7.0-beta.1',
                 f:row {
                     spacing = f:control_spacing(),
                     f:static_text { title = '适配版本：' },
@@ -31,7 +31,7 @@ return {
                     f:static_text { title = available and '本地处理器可用' or '处理器缺失，请重新安装对应平台安装包' },
                 },
                 f:static_text {
-                    title = '高精度窗口支持撤销/重做；胶片基底直接填写最终 R/G/B；中性灰吸管修改的 RGB 输出增益可继续手动调整。',
+                    title = 'Beta 版用于验证整卷项目、后台输出、几何校正、归档迁移与跨会话恢复。原始图片不会被覆盖。',
                     width_in_chars = 65,
                     height_in_lines = 3,
                 },

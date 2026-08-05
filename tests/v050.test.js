@@ -7,13 +7,16 @@ const assert = require("node:assert/strict");
 
 const root = path.resolve(__dirname, "..");
 const main = fs.readFileSync(path.join(root, "standalone/main.py"), "utf8");
+const groups = fs.readFileSync(path.join(root, "standalone/ps_sezhao/integration_groups.py"), "utf8");
 const patch = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app_v050_patch.py"), "utf8");
 const jobs = fs.readFileSync(path.join(root, "standalone/ps_sezhao/jobs.py"), "utf8");
 const numeric = fs.readFileSync(path.join(root, "plugin/runtime-controls-v050.js"), "utf8");
 
-test("standalone launcher applies the v0.5.0 crop and Lightroom patch", function () {
-  assert.match(main, /from ps_sezhao\.app_v050_patch import apply_patch/);
-  assert.match(main, /apply_patch\(app_module\.SezhaoApp\)/);
+test("standalone unified launcher installs the v0.5.0 compatibility layer", function () {
+  assert.match(main, /from ps_sezhao\.bootstrap import run_application/);
+  assert.doesNotMatch(main, /app_v050_patch/);
+  assert.match(groups, /from \.app_v050_patch import apply_patch/);
+  assert.match(groups, /apply_patch\(app_class\)/);
   assert.match(patch, /crop_dragged/);
   assert.match(patch, /self\.crop_norm = getattr\(self, "crop_before_drag"/);
 });

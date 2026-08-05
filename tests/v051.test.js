@@ -7,6 +7,7 @@ const assert = require("node:assert/strict");
 
 const root = path.resolve(__dirname, "..");
 const main = fs.readFileSync(path.join(root, "standalone/main.py"), "utf8");
+const groups = fs.readFileSync(path.join(root, "standalone/ps_sezhao/integration_groups.py"), "utf8");
 const rawIo = fs.readFileSync(path.join(root, "standalone/ps_sezhao/raw_io.py"), "utf8");
 const rawPatch = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app_v051_raw_patch.py"), "utf8");
 const jobs = fs.readFileSync(path.join(root, "standalone/ps_sezhao/jobs.py"), "utf8");
@@ -14,9 +15,11 @@ const workspace = fs.readFileSync(path.join(root, "standalone/ps_sezhao/workspac
 const requirements = fs.readFileSync(path.join(root, "standalone/requirements.txt"), "utf8");
 const workflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
 
-test("standalone launcher enables v0.5.1 RAW integration", function () {
-  assert.match(main, /from ps_sezhao\.app_v051_raw_patch import apply_raw_patch/);
-  assert.match(main, /apply_raw_patch\(app_module\.SezhaoApp\)/);
+test("standalone unified launcher installs RAW integration", function () {
+  assert.match(main, /from ps_sezhao\.bootstrap import run_application/);
+  assert.doesNotMatch(main, /app_v051_raw_patch/);
+  assert.match(groups, /from \.app_v051_raw_patch import apply_raw_patch/);
+  assert.match(groups, /apply_raw_patch\(app_class\)/);
 });
 
 test("RAW decoder uses deterministic 16-bit linear ProPhoto settings", function () {

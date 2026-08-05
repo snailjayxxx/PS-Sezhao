@@ -100,18 +100,18 @@ class StyleLibraryV060Tests(unittest.TestCase):
     def test_release_wires_style_library_into_all_high_precision_paths(self) -> None:
         root = Path(__file__).resolve().parents[2]
         version = (root / "VERSION").read_text(encoding="utf-8").strip()
+        core_version = version.split("-", 1)[0]
         package = json.loads((root / "package.json").read_text(encoding="utf-8"))
         manifest = json.loads((root / "plugin/manifest.json").read_text(encoding="utf-8"))
-        launcher = (root / "standalone/main.py").read_text(encoding="utf-8")
+        groups = (root / "standalone/ps_sezhao/integration_groups.py").read_text(encoding="utf-8")
         runtime = (root / "plugin/runtime-v022.js").read_text(encoding="utf-8")
         html = (root / "plugin/index.html").read_text(encoding="utf-8")
 
-        self.assertEqual(version, "0.6.3")
         self.assertEqual(package["version"], version)
-        self.assertEqual(manifest["version"], version)
-        self.assertIn("apply_style_engine_patch", launcher)
-        self.assertIn("apply_v060_style_library_patch", launcher)
-        self.assertIn("source_crop_module.neutral_gains = engine_module.neutral_gains", launcher)
+        self.assertEqual(manifest["version"], core_version)
+        self.assertIn("apply_style_engine_patch", groups)
+        self.assertIn("apply_v060_style_library_patch", groups)
+        self.assertIn("source_crop_module", groups)
         self.assertIn('require("./runtime-engine-style-v060.js")', runtime)
         self.assertIn('require("./runtime-style-v060.js")', runtime)
         self.assertIn('id="scannerProfile"', html)
