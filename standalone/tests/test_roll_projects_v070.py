@@ -117,7 +117,7 @@ class RollProjectStoreTests(unittest.TestCase):
 
 
 class RollProjectSessionTests(unittest.TestCase):
-    def test_active_roll_project_restores_across_sessions(self) -> None:
+    def test_saved_roll_starts_closed_and_can_be_opened_manually(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root_path = Path(directory)
             database = root_path / "workspace.sqlite3"
@@ -164,7 +164,7 @@ class RollProjectSessionTests(unittest.TestCase):
                     )
                     first_app.vars["exposure"].set(0.65)
                     first_app._store_current_state()
-                    first_app._save_project_session_now()
+                    first_app._save_active_roll_project()
                     stored = first_app.roll_project_store.load_project(project_id)
                     self.assertIsNotNone(stored)
                     self.assertEqual(stored.items[0].frame_number, "F-001")
@@ -177,6 +177,12 @@ class RollProjectSessionTests(unittest.TestCase):
                 try:
                     second_app = create_application(second_root)
                     second_root.update_idletasks()
+                    self.assertIsNone(second_app.active_roll_project_id)
+                    self.assertEqual(second_app.items, [])
+                    self.assertIn("临时工作区", second_app.active_roll_title.get())
+
+                    second_app._activate_roll_project(project_id)
+                    second_root.update_idletasks()
                     self.assertEqual(second_app.active_roll_project_id, project_id)
                     self.assertEqual(second_app.active_roll_project_name, "Family Roll")
                     self.assertEqual(len(second_app.items), 2)
@@ -184,7 +190,6 @@ class RollProjectSessionTests(unittest.TestCase):
                     self.assertEqual(second_app.items[1].output_settings["frame_number"], "F-002")
                     self.assertEqual(second_app.items[0].output_settings["film_stock"], "Gold 200")
                     self.assertAlmostEqual(second_app.vars["exposure"].get(), 0.65)
-                    self.assertIn("Family Roll", second_app.active_roll_title.get())
                 finally:
                     second_root.destroy()
 

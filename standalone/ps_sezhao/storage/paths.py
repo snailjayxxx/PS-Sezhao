@@ -26,7 +26,7 @@ def application_container() -> Path:
                     return parent.parent
         return executable.parent
 
-    # Source runs use the repository root as the portable container.  The file
+    # Source runs use the repository root as the portable container. The file
     # lives at standalone/ps_sezhao/storage/paths.py.
     return Path(__file__).resolve(strict=False).parents[3]
 
@@ -51,9 +51,9 @@ def legacy_project_database_path() -> Path:
 def _fallback_data_root() -> Path:
     home = Path.home()
     if sys.platform == "darwin":
-        # A lone .app copied directly into /Applications cannot safely create
-        # sibling folders there. Keep user-visible projects in Documents.
-        return home / "Documents" / "PS-Sezhao"
+        # Standard installed macOS apps keep mutable data outside the signed
+        # .app bundle in the user's Application Support directory.
+        return _legacy_data_root()
     if os.name == "nt":
         local_app_data = os.environ.get("LOCALAPPDATA")
         base = Path(local_app_data) if local_app_data else home / "AppData" / "Local"
@@ -81,6 +81,14 @@ def _portable_layout_present(root: Path) -> bool:
     )
 
 
+def _uses_macos_application_support_layout() -> bool:
+    if sys.platform != "darwin" or not getattr(sys, "frozen", False):
+        return False
+    if os.environ.get(ENV_DATA_ROOT):
+        return False
+    return not _portable_layout_present(application_container())
+
+
 def default_data_root() -> Path:
     """Resolve the writable root shared by the app, project and LUT folders."""
 
@@ -98,6 +106,10 @@ def default_data_root() -> Path:
 def ensure_data_layout() -> Path:
     root = default_data_root()
     root.mkdir(parents=True, exist_ok=True)
+    if _uses_macos_application_support_layout():
+        (root / LUT_DIRECTORY_NAME).mkdir(parents=True, exist_ok=True)
+        return root
+
     (root / PROJECT_DIRECTORY_NAME).mkdir(parents=True, exist_ok=True)
     (root / LUT_DIRECTORY_NAME).mkdir(parents=True, exist_ok=True)
     marker = root / PORTABLE_MARKER
@@ -113,7 +125,10 @@ def ensure_data_layout() -> Path:
 
 
 def default_project_directory() -> Path:
-    return ensure_data_layout() / PROJECT_DIRECTORY_NAME
+    root = ensure_data_layout()
+    if _uses_macos_application_support_layout():
+        return root
+    return root / PROJECT_DIRECTORY_NAME
 
 
 def default_lut_directory() -> Path:
@@ -153,7 +168,7 @@ def _migrate_legacy_database(target: Path) -> None:
 
 
 def default_project_database_path() -> Path:
-    """Return the portable project database and migrate the previous location."""
+    """Return the project database and migrate a previous location when needed."""
 
     override = os.environ.get(ENV_PROJECT_DATABASE)
     if override:
