@@ -14,6 +14,8 @@ from ps_sezhao.core.geometry import (
     perspective_is_identity,
     rotate_geometry,
 )
+from ps_sezhao.raw_io import RawDecodeSettings
+from ps_sezhao.services.lightroom_job_pipeline import apply_lightroom_job_pipeline
 from ps_sezhao.services.sync_pipeline import copy_modules
 from ps_sezhao.storage.project_store import ProjectStore
 from ps_sezhao.workspace import PhotoState
@@ -148,6 +150,51 @@ class ModuleSyncTests(unittest.TestCase):
 
     def test_default_perspective_is_stable(self) -> None:
         self.assertTrue(perspective_is_identity(IDENTITY_PERSPECTIVE))
+
+
+class LightroomJobPipelineTests(unittest.TestCase):
+    def test_each_job_item_receives_its_own_edit_state(self) -> None:
+        class FakeApplication:
+            def _run_lr_job(self) -> None:
+                self.called = True
+
+            def _store_current_state(self) -> None:
+                return None
+
+            def _raw_settings_for_item(self, item: PhotoState) -> RawDecodeSettings:
+                return RawDecodeSettings.from_dict(item.raw_settings)
+
+        apply_lightroom_job_pipeline(FakeApplication)
+        app = FakeApplication()
+        app.called = False
+        app.items = [
+            PhotoState(
+                Path("scan.ARW"),
+                controls={"exposure": 0.7},
+                analysis={"base": [0.9, 0.6, 0.4], "black": [0, 0, 0], "white": [1, 1, 1]},
+                crop=(0.1, 0.2, 0.8, 0.9),
+                rotation=90,
+                geometry=GeometrySettings(straighten=1.4, flip_horizontal=True).to_dict(),
+                raw_settings={"wb_mode": "daylight"},
+                output_settings={"format_label": "JPEG", "jpeg_quality": 89},
+            )
+        ]
+        app.lr_job_data = {"items": [{"input": "scan.ARW", "output": "scan.tif"}]}
+        app._run_lr_job()
+
+        self.assertTrue(app.called)
+        payload = app.lr_job_data["items"][0]
+        self.assertEqual(payload["controls"]["exposure"], 0.7)
+        self.assertEqual(payload["rotation"], 90)
+        self.assertAlmostEqual(payload["geometry"]["straighten"], 1.4)
+        self.assertEqual(payload["raw_decode"]["wb_mode"], "daylight")
+        self.assertEqual(payload["output_settings"]["jpeg_quality"], 89)
+
+    def test_output_pipeline_uses_static_format_import_for_packaging(self) -> None:
+        root = Path(__file__).resolve().parents[2]
+        source = (root / "standalone/ps_sezhao/services/output_pipeline.py").read_text(encoding="utf-8")
+        self.assertIn("from ..app_v057_rotate_output_patch import OUTPUT_FORMATS", source)
+        self.assertNotIn("__import__", source)
 
 
 if __name__ == "__main__":
