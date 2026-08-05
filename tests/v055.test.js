@@ -26,7 +26,7 @@ test("desktop drag and drop accepts Explorer and Finder files or folders", funct
   assert.match(patch, /drop_target_register\(DND_FILES\)/);
   assert.match(patch, /dnd_bind\("<<Drop>>"/);
   assert.match(patch, /root\.tk\.splitlist/);
-  assert.match(patch, /path\.rglob\("\*"\)/);
+  assert.match(patch, /folder\.rglob\("\*"\)/);
   assert.match(patch, /self\.open_paths\(unique\)/);
 });
 
