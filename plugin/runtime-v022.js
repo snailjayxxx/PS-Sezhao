@@ -3,6 +3,8 @@
 const { entrypoints } = require("uxp");
 const c = require("./runtime-common.js");
 require("./runtime-engine-v053.js").apply(c.engine);
+const history = require("./runtime-history-v054.js");
+history.applyCommon(c);
 const preview = require("./runtime-preview.js");
 const finalOps = require("./runtime-final.js");
 const panelPreview = require("./runtime-panel-preview.js");
@@ -14,21 +16,24 @@ const {
   schedulePreview, resetControls
 } = c;
 
-const VERSION = "0.5.3";
+const VERSION = "0.5.4";
 const V022_UI_IDS = [
   "pickBase", "pickNeutral", "cancelPicker", "sampleSize",
   "panelPreviewStage", "panelPreviewImage", "panelPreviewPlaceholder",
-  "panelPreviewMessage", "panelPreviewZoom", "panelPreviewExpand"
+  "panelPreviewMessage", "panelPreviewZoom", "panelPreviewExpand",
+  "undoEdit", "redoEdit", "resetNeutralGains"
 ];
 
 function bindClick(id, handler) { byId(id).addEventListener("click", handler); }
 function onAdjustmentInput() {
   refreshOutputs();
   schedulePreview();
+  history.record("control", false);
 }
 function onAdjustmentChange() {
   refreshOutputs();
   schedulePreview(0);
+  history.record("control", true);
 }
 function updateVersionLabels() {
   const eyebrow = document.querySelector(".eyebrow");
@@ -36,11 +41,11 @@ function updateVersionLabels() {
   if (eyebrow) eyebrow.textContent = "PS-SEZHAO · " + VERSION;
   if (badge) badge.textContent = "V5";
 }
-function expandBaseRanges() {
+function configureDirectBaseRanges() {
   ["baseAdjustR", "baseAdjustG", "baseAdjustB"].forEach(function (id) {
     const range = byId(id);
     if (!range) return;
-    range.min = "-255";
+    range.min = "0";
     range.max = "255";
     range.step = "1";
   });
@@ -55,7 +60,9 @@ function initializeUI() {
     byId(id).addEventListener("input", onAdjustmentInput);
     byId(id).addEventListener("change", onAdjustmentChange);
   });
-  byId("profile").addEventListener("change", onAdjustmentChange);
+  byId("profile").addEventListener("change", function () {
+    onAdjustmentChange();
+  });
   byId("previewEdge").addEventListener("change", function () {
     state.previewCache = null;
     state.previewGeometryKey = null;
@@ -78,19 +85,23 @@ function initializeUI() {
   bindClick("togglePreview", preview.togglePreview);
   bindClick("removePreview", function () { preview.removePreview(true); });
   bindClick("convert", finalOps.convert);
-  bindClick("reset", resetControls);
+  bindClick("reset", function () {
+    resetControls();
+    history.record("reset", true);
+  });
   bindClick("saveRoll", finalOps.saveRoll);
   bindClick("loadRoll", finalOps.loadRoll);
 
   updateVersionLabels();
-  expandBaseRanges();
+  configureDirectBaseRanges();
   numericControls.initializeNumericControls();
   panelPreview.initialize();
   sampler.initialize();
   applyControls(DEFAULT_CONTROLS);
   refreshOutputs();
+  history.initialize();
   updateReadiness();
-  setStatus("准备就绪。胶片基底微调已扩大到 −255～+255；吸管仍只读取原始负片图层。", "");
+  setStatus("准备就绪。胶片基底 R/G/B 现在直接填写最终数值；中性灰吸管修改 RGB 输出增益。", "");
   return true;
 }
 function scheduleInitialize() {
