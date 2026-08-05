@@ -12,9 +12,9 @@ class V053RangeAndScrollTests(unittest.TestCase):
     def setUp(self) -> None:
         apply_engine_patch()
 
-    def test_base_adjust_accepts_full_normalized_range(self) -> None:
+    def test_base_adjust_accepts_extended_normalized_range(self) -> None:
         controls = Controls(base_adjust=(-2.0, 0.5, 2.0)).sanitized()
-        self.assertEqual(controls.base_adjust, (-1.0, 0.5, 1.0))
+        self.assertEqual(controls.base_adjust, (-1.5, 0.5, 1.5))
 
     def test_windows_wheel_direction(self) -> None:
         self.assertEqual(_wheel_units(SimpleNamespace(delta=120)), -1)
