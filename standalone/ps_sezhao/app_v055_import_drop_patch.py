@@ -35,6 +35,19 @@ SUPPORTED_SUFFIXES = frozenset(
 )
 
 
+class _TkModuleProxy:
+    """Override only app_module.tk.Tk without mutating tkinter globally."""
+
+    _ps_sezhao_dnd_proxy = True
+
+    def __init__(self, original_module: Any, root_class: Any) -> None:
+        self._original_module = original_module
+        self.Tk = root_class
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._original_module, name)
+
+
 def _canonical_path(path: Path) -> str:
     try:
         return str(path.resolve(strict=False)).casefold()
@@ -77,11 +90,22 @@ def collect_supported_paths(paths: Iterable[Path]) -> list[Path]:
 
 
 def install_drag_drop_root(app_module: Any) -> bool:
-    """Use the TkDND-enabled root before app_module.main creates the window."""
+    """Use a TkDND root without replacing tkinter.Tk process-wide.
+
+    TkinterDnD.Tk.__init__ calls tkinter.Tk.__init__. Replacing tkinter.Tk with
+    TkinterDnD.Tk therefore makes it call itself recursively. A lightweight
+    module proxy keeps every normal tkinter symbol while overriding Tk only for
+    the standalone app module.
+    """
 
     if TkinterDnD is None:
         return False
-    app_module.tk.Tk = TkinterDnD.Tk
+
+    current_tk = app_module.tk
+    if getattr(current_tk, "_ps_sezhao_dnd_proxy", False):
+        return True
+
+    app_module.tk = _TkModuleProxy(current_tk, TkinterDnD.Tk)
     return True
 
 
