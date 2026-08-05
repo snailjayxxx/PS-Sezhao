@@ -188,11 +188,10 @@ class RollProjectSessionTests(unittest.TestCase):
                 finally:
                     second_root.destroy()
 
-    def test_bootstrap_wires_roll_projects_after_workspace_storage(self) -> None:
+    def test_bootstrap_keeps_persistence_before_lifecycle_facade(self) -> None:
         names = tuple(step.name for step in integration_steps())
-        self.assertLess(names.index("storage.project_session"), names.index("storage.roll_projects"))
-        self.assertLess(names.index("storage.roll_projects"), names.index("storage.roll_project_state"))
-        self.assertLess(names.index("storage.roll_project_state"), names.index("runtime.drag_drop_root"))
+        self.assertLess(names.index("services.persistence"), names.index("lifecycle.facade"))
+        self.assertLess(names.index("lifecycle.facade"), names.index("runtime.drag_drop_root"))
 
 
 if __name__ == "__main__":
