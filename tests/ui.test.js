@@ -9,6 +9,8 @@ const root = path.resolve(__dirname, "..");
 const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
 const version = read("VERSION").trim();
 const coreVersion = version.split("-", 1)[0];
+const betaBuildMatch = version.match(/-beta\.(\d+)$/);
+const expectedLrBuild = betaBuildMatch ? Number(betaBuildMatch[1]) : 0;
 const manifest = JSON.parse(read("plugin/manifest.json"));
 const html = read("plugin/index.html");
 const css = read("plugin/styles.css");
@@ -40,7 +42,10 @@ test("Beta release keeps UXP numeric core version and full visible version", fun
   assert.match(runtime, new RegExp(`const VERSION = "${version.replaceAll(".", "\\.")}"`));
   assert.match(finalOps, new RegExp(`const VERSION = "${version.replaceAll(".", "\\.")}"`));
   assert.match(lrInfo, /LrSdkMinimumVersion = 15\.4/);
-  assert.match(lrInfo, new RegExp(`major = ${major}, minor = ${minor}, revision = ${revision}, build = 1`));
+  assert.match(
+    lrInfo,
+    new RegExp(`major = ${major}, minor = ${minor}, revision = ${revision}, build = ${expectedLrBuild}`),
+  );
 });
 
 test("Lightroom retains native, restore and high precision workflows", function () {
