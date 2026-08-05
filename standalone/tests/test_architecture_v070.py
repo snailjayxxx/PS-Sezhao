@@ -14,36 +14,48 @@ from ps_sezhao.core.contracts import (
     RAW_DECODE_CONTRACT_VERSION,
 )
 from ps_sezhao.services.import_service import collect_supported_paths
+from ps_sezhao.services.lifecycle_facade import FACADE_METHODS
 from ps_sezhao.storage import ProjectStore
 
 
 class ArchitectureV070Tests(unittest.TestCase):
-    def test_bootstrap_order_is_explicit_unique_and_idempotent(self) -> None:
+    def test_bootstrap_uses_small_ordered_groups_and_is_idempotent(self) -> None:
         names = tuple(step.name for step in integration_steps())
+        self.assertEqual(
+            names,
+            (
+                "engine.processing",
+                "runtime.bindings",
+                "ui.compatibility",
+                "services.processing",
+                "services.persistence",
+                "lifecycle.facade",
+                "runtime.drag_drop_root",
+            ),
+        )
         self.assertEqual(len(names), len(set(names)))
-        self.assertEqual(names[:3], ("engine.base", "engine.styles", "runtime.bindings"))
-        for required in (
-            "services.preview_proxy",
-            "services.geometry",
-            "services.geometry_history",
-            "services.output_queue",
-            "services.module_sync",
-            "services.lightroom_jobs",
-            "storage.project_session",
-        ):
-            self.assertIn(required, names)
-        self.assertLess(names.index("services.preview_proxy"), names.index("services.geometry"))
-        self.assertLess(names.index("services.geometry"), names.index("services.output_queue"))
-        self.assertLess(names.index("services.output_queue"), names.index("services.module_sync"))
-        self.assertLess(names.index("services.module_sync"), names.index("services.lightroom_jobs"))
-        self.assertLess(names.index("services.lightroom_jobs"), names.index("storage.project_session"))
-        self.assertEqual(names[-1], "runtime.drag_drop_root")
 
         first = configure_application()
         second = configure_application()
         self.assertEqual(first.steps, names)
         self.assertEqual(second.steps, names)
         self.assertFalse(second.configured_now)
+
+        from ps_sezhao.app import SezhaoApp
+
+        self.assertTrue(SezhaoApp._lifecycle_facade_applied)
+        self.assertEqual(SezhaoApp._lifecycle_facade_methods, FACADE_METHODS)
+        dispatch = SezhaoApp._lifecycle_dispatch
+        for attribute in (
+            "initialize",
+            "build_ui",
+            "store_current_state",
+            "load_index",
+            "save_project_session",
+            "restore_project_session",
+            "handle_export_event",
+        ):
+            self.assertTrue(callable(getattr(dispatch, attribute)))
 
     def test_main_only_calls_the_unified_entrypoint(self) -> None:
         root = Path(__file__).resolve().parents[2]
@@ -52,6 +64,14 @@ class ArchitectureV070Tests(unittest.TestCase):
         self.assertNotIn("app_v0", source)
         self.assertNotIn("apply_patch", source)
         self.assertNotIn("apply_raw_patch", source)
+
+    def test_bootstrap_no_longer_lists_versioned_patch_steps(self) -> None:
+        root = Path(__file__).resolve().parents[2]
+        source = (root / "standalone/ps_sezhao/bootstrap.py").read_text(encoding="utf-8")
+        self.assertNotIn("app_v050_patch", source)
+        self.assertNotIn("app_v061_resizable_layout_patch", source)
+        self.assertNotIn("storage.project_session", source)
+        self.assertLessEqual(len(integration_steps()), 8)
 
     def test_import_service_recursively_expands_and_deduplicates(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
