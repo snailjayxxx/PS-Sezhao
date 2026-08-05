@@ -39,9 +39,24 @@ class RotationAndOutputV057Tests(unittest.TestCase):
 
     def test_crop_rotates_with_same_physical_area(self) -> None:
         crop = (0.10, 0.20, 0.60, 0.80)
-        self.assertEqual(rotate_crop(crop, 90), (0.20, 0.10, 0.80, 0.60))
-        self.assertEqual(rotate_crop(crop, 180), (0.40, 0.20, 0.90, 0.80))
-        self.assertEqual(rotate_crop(crop, 270), (0.20, 0.40, 0.80, 0.90))
+        np.testing.assert_allclose(
+            rotate_crop(crop, 90),
+            (0.20, 0.10, 0.80, 0.60),
+            rtol=0.0,
+            atol=1e-12,
+        )
+        np.testing.assert_allclose(
+            rotate_crop(crop, 180),
+            (0.40, 0.20, 0.90, 0.80),
+            rtol=0.0,
+            atol=1e-12,
+        )
+        np.testing.assert_allclose(
+            rotate_crop(crop, 270),
+            (0.20, 0.40, 0.80, 0.90),
+            rtol=0.0,
+            atol=1e-12,
+        )
 
     def test_photo_state_keeps_independent_rotation(self) -> None:
         state = PhotoState(Path("scan.ARW"), rotation=450)
