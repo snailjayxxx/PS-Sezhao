@@ -9,6 +9,8 @@ const manifest = JSON.parse(fs.readFileSync(path.join(plugin, "manifest.json"), 
 const runtimeScripts = [
   "engine.js",
   "runtime-common.js",
+  "runtime-engine-v053.js",
+  "runtime-history-v054.js",
   "runtime-panel-preview.js",
   "runtime-sampler.js",
   "runtime-preview.js",
@@ -30,8 +32,13 @@ const requiredProjectFiles = [
   "standalone/ps_sezhao/app.py",
   "standalone/ps_sezhao/app_v050_patch.py",
   "standalone/ps_sezhao/app_v051_raw_patch.py",
+  "standalone/ps_sezhao/app_v052_source_crop_patch.py",
+  "standalone/ps_sezhao/app_v053_scroll_patch.py",
+  "standalone/ps_sezhao/app_v054_history_direct_patch.py",
+  "standalone/ps_sezhao/history_state.py",
   "standalone/ps_sezhao/color_profiles.py",
   "standalone/ps_sezhao/engine.py",
+  "standalone/ps_sezhao/engine_v053_patch.py",
   "standalone/ps_sezhao/io_utils.py",
   "standalone/ps_sezhao/jobs.py",
   "standalone/ps_sezhao/processing.py",
@@ -39,6 +46,7 @@ const requiredProjectFiles = [
   "standalone/ps_sezhao/workspace.py",
   "standalone/tests/test_workspace.py",
   "standalone/tests/test_raw_io.py",
+  "standalone/tests/test_history_v054.py",
   "PHOTOSHOP_DEVELOPER_LOAD.md",
   "scripts/build-release.sh"
 ];
@@ -74,7 +82,9 @@ if (!html.includes('src="runtime-v022.js"')) throw new Error("index.html must lo
 const runtimeEntry = fs.readFileSync(path.join(plugin, "runtime-v022.js"), "utf8");
 if (!runtimeEntry.includes(`const VERSION = "${version}"`)) throw new Error("Photoshop runtime version label is stale");
 if (!runtimeEntry.includes('require("./runtime-controls-v050.js")')) throw new Error("Photoshop numeric controls are not loaded");
+if (!runtimeEntry.includes('require("./runtime-history-v054.js")')) throw new Error("Photoshop history/direct-base runtime is not loaded");
 if (!/initializeNumericControls\(\)/.test(runtimeEntry)) throw new Error("Photoshop numeric controls are not initialized");
+if (!/history\.initialize\(\)/.test(runtimeEntry)) throw new Error("Photoshop undo/redo history is not initialized");
 const finalRuntime = fs.readFileSync(path.join(plugin, "runtime-final.js"), "utf8");
 if (!finalRuntime.includes(`const VERSION = "${version}"`)) throw new Error("Photoshop output layer version is stale");
 
@@ -117,6 +127,8 @@ const standaloneApp = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app.
 const standaloneJobs = fs.readFileSync(path.join(root, "standalone/ps_sezhao/jobs.py"), "utf8");
 const rawIo = fs.readFileSync(path.join(root, "standalone/ps_sezhao/raw_io.py"), "utf8");
 const rawPatch = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app_v051_raw_patch.py"), "utf8");
+const historyPatch = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app_v054_history_direct_patch.py"), "utf8");
+const historyState = fs.readFileSync(path.join(root, "standalone/ps_sezhao/history_state.py"), "utf8");
 const workspace = fs.readFileSync(path.join(root, "standalone/ps_sezhao/workspace.py"), "utf8");
 const requirements = fs.readFileSync(path.join(root, "standalone/requirements.txt"), "utf8");
 for (const token of ["ttk.Treeview", "open_folder_dialog", "zoom_at", "crop_norm", "sync_controls_selected", "sync_crop_selected", "export_selected", "export_all", "commit_entry", "adjust_control"]) {
@@ -124,6 +136,13 @@ for (const token of ["ttk.Treeview", "open_folder_dialog", "zoom_at", "crop_norm
 }
 if (!standaloneJobs.includes("crop_array")) throw new Error("Standalone/Lightroom batch jobs must apply non-destructive crop");
 if (!standaloneMain.includes("apply_raw_patch")) throw new Error("Standalone launcher does not enable v0.5.1 RAW support");
+if (!standaloneMain.includes("apply_v054_patch")) throw new Error("Standalone launcher does not enable v0.5.4 history/direct-base support");
+for (const token of ["HistoryStack", "undo_edit", "redo_edit", "胶片基底（直接数值）", "中性灰校正（RGB 输出增益）", "direct - self.detected_base()"] ) {
+  if (!historyPatch.includes(token)) throw new Error(`Standalone v0.5.4 feature is missing: ${token}`);
+}
+if (!historyState.includes("redo_items") || !historyState.includes("def undo") || !historyState.includes("def redo")) {
+  throw new Error("Standalone undo/redo history stack is incomplete");
+}
 for (const token of ["rawpy", "output_bps\": 16", "gamma\": (1.0, 1.0)", "ColorSpace.ProPhoto", "no_auto_bright\": True", "extract_thumb", "LibRawFileUnsupportedError", "prepare_save_output"]) {
   const literal = token.replace(/\\"/g, '"');
   if (!rawIo.includes(literal)) throw new Error(`RAW decoder feature is missing: ${literal}`);
@@ -154,6 +173,10 @@ const numericRuntime = fs.readFileSync(path.join(plugin, "runtime-controls-v050.
 for (const token of ["numeric-value-input", "numeric-step-button", "dispatchRange", "ArrowUp", "ArrowDown"]) {
   if (!numericRuntime.includes(token)) throw new Error(`Photoshop numeric interaction is missing: ${token}`);
 }
+const historyRuntime = fs.readFileSync(path.join(plugin, "runtime-history-v054.js"), "utf8");
+for (const token of ["undoEdit", "redoEdit", "resetNeutralGains", "directBaseValue(index) - Number(detected[index]", "中性灰吸管修改的是下方红、绿、蓝输出增益"]) {
+  if (!historyRuntime.includes(token)) throw new Error(`Photoshop v0.5.4 history/direct-base feature is missing: ${token}`);
+}
 const css = fs.readFileSync(path.join(plugin, "styles.css"), "utf8");
 if (!css.includes(".numeric-stepper") || !css.includes(".numeric-value-input")) {
   throw new Error("Photoshop numeric control styles are missing");
@@ -170,4 +193,4 @@ if ((workflow.match(/--collect-all rawpy/g) || []).length < 2) {
 }
 if (!workflow.includes("Verify RAW runtime")) throw new Error("CI does not verify the RAW runtime");
 
-console.log(`Validated unified PS-Sezhao ${version} with direct camera RAW, embedded previews and 16-bit linear ProPhoto decoding`);
+console.log(`Validated unified PS-Sezhao ${version} with undo/redo, direct base RGB, editable neutral gains and camera RAW support`);
