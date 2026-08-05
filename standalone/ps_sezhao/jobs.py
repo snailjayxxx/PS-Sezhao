@@ -36,11 +36,14 @@ def run_job(job_path: str | Path, progress: ProgressCallback | None = None) -> l
         image, metadata = load_image(input_path, raw_settings=raw_settings)
         item_analysis = item.get("analysis", default_analysis)
         item_controls = item.get("controls")
-        analysis_source = make_preview(image, 1800)
-        analysis = Analysis.from_dict(item_analysis) if item_analysis else analyze_image(analysis_source)
         controls = Controls.from_dict(item_controls) if item_controls else default_controls
         crop = clamp_crop(item.get("crop", default_crop))
         source = crop_array(image, crop)
+        analysis_source = make_preview(source, 1800)
+        analysis = Analysis.from_dict(item_analysis) if item_analysis else analyze_image(
+            analysis_source,
+            method="crop-border",
+        )
         result = process_image_tiled(source, analysis, controls)
         result = prepare_save_output(result, metadata)
         save_image(
