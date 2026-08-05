@@ -111,6 +111,7 @@ class StyleLibraryV060Tests(unittest.TestCase):
         self.assertEqual(manifest["version"], version)
         self.assertIn("apply_style_engine_patch", launcher)
         self.assertIn("apply_v060_style_library_patch", launcher)
+        self.assertIn("source_crop_module.neutral_gains = engine_module.neutral_gains", launcher)
         self.assertIn('require("./runtime-engine-style-v060.js")', runtime)
         self.assertIn('require("./runtime-style-v060.js")', runtime)
         self.assertIn('id="scannerProfile"', html)
