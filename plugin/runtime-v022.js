@@ -13,7 +13,7 @@ const {
   schedulePreview, resetControls
 } = c;
 
-const VERSION = "0.5.1";
+const VERSION = "0.5.2";
 const V022_UI_IDS = [
   "pickBase", "pickNeutral", "cancelPicker", "sampleSize",
   "panelPreviewStage", "panelPreviewImage", "panelPreviewPlaceholder",
@@ -79,7 +79,7 @@ function initializeUI() {
   applyControls(DEFAULT_CONTROLS);
   refreshOutputs();
   updateReadiness();
-  setStatus("准备就绪。滑块下方数值可直接输入，也可使用 − / + 微调。", "");
+  setStatus("准备就绪。胶片基底吸管始终读取原始负片图层；基底微调支持数字输入和 − / +。", "");
   return true;
 }
 function scheduleInitialize() {
