@@ -19,6 +19,7 @@ class ArchitectureV070Tests(unittest.TestCase):
         names = tuple(step.name for step in integration_steps())
         self.assertEqual(len(names), len(set(names)))
         self.assertEqual(names[:3], ("engine.base", "engine.styles", "runtime.bindings"))
+        self.assertIn("storage.project_session", names)
         self.assertEqual(names[-1], "runtime.drag_drop_root")
 
         first = configure_application()
@@ -53,19 +54,29 @@ class ArchitectureV070Tests(unittest.TestCase):
                 {first.resolve(), second.resolve()},
             )
 
-    def test_project_store_round_trip_records_contract_versions(self) -> None:
+    def test_project_store_round_trip_records_contract_versions_and_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            database = Path(temporary_directory) / "project.sqlite3"
+            root = Path(temporary_directory)
+            database = root / "project.sqlite3"
+            first = root / "scan.ARW"
+            second = root / "scan2.tif"
             store = ProjectStore(database)
-            store.save_image_state(
-                file_path="scan.ARW",
-                controls={"exposure": 0.25, "profile": "generic"},
-                analysis={"base": [0.9, 0.6, 0.4]},
-                crop=(0.1, 0.2, 0.8, 0.9),
-                rotation=450,
+            store.save_session(
+                image_states=[
+                    {
+                        "file_path": first,
+                        "controls": {"exposure": 0.25, "profile": "generic"},
+                        "analysis": {"base": [0.9, 0.6, 0.4]},
+                        "crop": (0.1, 0.2, 0.8, 0.9),
+                        "rotation": 450,
+                    }
+                ],
+                file_paths=[first, second],
+                current_file=first,
                 updated_at=123,
             )
-            state = store.load_image_state("scan.ARW")
+            state = store.load_image_state(first)
+            workspace = store.load_workspace()
 
             self.assertIsNotNone(state)
             assert state is not None
@@ -74,7 +85,9 @@ class ArchitectureV070Tests(unittest.TestCase):
             self.assertEqual(state.crop, (0.1, 0.2, 0.8, 0.9))
             self.assertEqual(state.math_version, MATH_CONTRACT_VERSION)
             self.assertEqual(state.raw_decode_version, RAW_DECODE_CONTRACT_VERSION)
-            self.assertGreaterEqual(PROJECT_SCHEMA_VERSION, 1)
+            self.assertEqual(tuple(Path(path) for path in workspace.file_paths), (first, second))
+            self.assertEqual(Path(workspace.current_file or ""), first)
+            self.assertGreaterEqual(PROJECT_SCHEMA_VERSION, 2)
 
     def test_architecture_document_uses_only_internal_optimization_language(self) -> None:
         root = Path(__file__).resolve().parents[2]

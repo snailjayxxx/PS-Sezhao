@@ -72,7 +72,7 @@ class RotationAndOutputV057Tests(unittest.TestCase):
         bootstrap = (root / "standalone/ps_sezhao/bootstrap.py").read_text(encoding="utf-8")
         jobs = (root / "standalone/ps_sezhao/jobs.py").read_text(encoding="utf-8")
 
-        self.assertEqual(version, "0.6.2")
+        self.assertEqual(version, "0.6.3")
         self.assertEqual(package["version"], version)
         self.assertEqual(manifest["version"], version)
         for token in (

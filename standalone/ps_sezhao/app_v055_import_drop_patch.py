@@ -5,18 +5,75 @@ from typing import Any, Iterable, Type
 
 from tkinter import messagebox
 
-from .services.import_service import (
-    SUPPORTED_SUFFIXES,
-    canonical_path,
-    collect_supported_paths,
-    discover_supported_paths,
-)
-
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
-except ImportError:  # pragma: no cover - source mode can still use the buttons
+except ImportError:  # pragma: no cover - buttons remain available without DnD
     DND_FILES = None
     TkinterDnD = None
+
+
+SUPPORTED_SUFFIXES = frozenset(
+    {
+        ".tif",
+        ".tiff",
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".bmp",
+        ".webp",
+        ".dng",
+        ".cr2",
+        ".cr3",
+        ".nef",
+        ".arw",
+        ".raf",
+        ".rw2",
+        ".orf",
+        ".pef",
+        ".srw",
+    }
+)
+
+
+class _SafeTkFactory:
+    """Create a normal Tk root and load TkDND as an optional capability.
+
+    A TkDND binary can be incompatible with the Tcl/Tk interpreter bundled by
+    a particular macOS build. Loading it must never prevent the application
+    from opening. The root records the capability result so the UI can enable
+    drag-and-drop only when the extension loaded successfully.
+    """
+
+    _ps_sezhao_safe_tk_factory = True
+
+    def __init__(self, original_root_class: Any) -> None:
+        self._original_root_class = original_root_class
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        root = self._original_root_class(*args, **kwargs)
+        root._ps_sezhao_dnd_available = False
+        root._ps_sezhao_dnd_error = None
+
+        if TkinterDnD is None:
+            root._ps_sezhao_dnd_error = "tkinterdnd2 is not installed"
+            return root
+
+        try:
+            require = getattr(TkinterDnD, "require", None)
+            if not callable(require):
+                require = getattr(TkinterDnD, "_require", None)
+            if not callable(require):
+                raise RuntimeError("TkinterDnD does not expose a load function")
+            require(root)
+            root._ps_sezhao_dnd_available = bool(
+                hasattr(root, "drop_target_register") and hasattr(root, "dnd_bind")
+            )
+            if not root._ps_sezhao_dnd_available:
+                root._ps_sezhao_dnd_error = "TkDND loaded without widget bindings"
+        except Exception as exc:  # TclError and RuntimeError are both expected here
+            root._ps_sezhao_dnd_available = False
+            root._ps_sezhao_dnd_error = f"{type(exc).__name__}: {exc}"
+        return root
 
 
 class _TkModuleProxy:
@@ -24,30 +81,74 @@ class _TkModuleProxy:
 
     _ps_sezhao_dnd_proxy = True
 
-    def __init__(self, original_module: Any, root_class: Any) -> None:
+    def __init__(self, original_module: Any) -> None:
         self._original_module = original_module
-        self.Tk = root_class
+        self.Tk = _SafeTkFactory(original_module.Tk)
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._original_module, name)
 
 
-def install_drag_drop_root(app_module: Any) -> bool:
-    """Use a TkDND root without replacing tkinter.Tk process-wide."""
+def _canonical_path(path: Path) -> str:
+    try:
+        return str(path.resolve(strict=False)).casefold()
+    except OSError:
+        return str(path.absolute()).casefold()
 
-    if TkinterDnD is None:
-        return False
+
+def discover_supported_paths(path: Path) -> list[Path]:
+    """Return supported images for one file or folder, including RAW files."""
+
+    try:
+        if path.is_file():
+            return [path] if path.suffix.lower() in SUPPORTED_SUFFIXES else []
+        if not path.is_dir():
+            return []
+
+        files = [
+            candidate
+            for candidate in path.rglob("*")
+            if candidate.is_file() and candidate.suffix.lower() in SUPPORTED_SUFFIXES
+        ]
+        return sorted(files, key=lambda candidate: str(candidate).casefold())
+    except OSError:
+        return []
+
+
+def collect_supported_paths(paths: Iterable[Path]) -> list[Path]:
+    """Expand files/folders and remove duplicates while preserving order."""
+
+    collected: list[Path] = []
+    seen: set[str] = set()
+    for path in paths:
+        for candidate in discover_supported_paths(Path(path)):
+            key = _canonical_path(candidate)
+            if key in seen:
+                continue
+            seen.add(key)
+            collected.append(candidate)
+    return collected
+
+
+def install_drag_drop_root(app_module: Any) -> bool:
+    """Install a safe root factory with automatic non-DnD fallback.
+
+    The application module gets a local proxy; the process-wide tkinter.Tk
+    class is left untouched. Root creation always starts with normal Tk, then
+    attempts to load TkDND into that interpreter. Failure is recorded on the
+    root instead of being raised to the user.
+    """
 
     current_tk = app_module.tk
     if getattr(current_tk, "_ps_sezhao_dnd_proxy", False):
-        return True
+        return TkinterDnD is not None
 
-    app_module.tk = _TkModuleProxy(current_tk, TkinterDnD.Tk)
-    return True
+    app_module.tk = _TkModuleProxy(current_tk)
+    return TkinterDnD is not None
 
 
 def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
-    """Repair image/folder import and add Explorer/Finder drag-and-drop."""
+    """Repair image/folder import and add optional Explorer/Finder DnD."""
 
     if getattr(app_class, "_v055_import_drop_applied", False):
         return
@@ -73,10 +174,21 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
     def build_ui(self: Any) -> None:
         original_build_ui(self)
         self._drag_drop_enabled = False
+        self._drag_drop_error = getattr(self.root, "_ps_sezhao_dnd_error", None)
         self._install_drop_targets()
 
     def install_drop_targets(self: Any) -> None:
-        if DND_FILES is None or not hasattr(self.root, "drop_target_register"):
+        available = bool(getattr(self.root, "_ps_sezhao_dnd_available", False))
+        if (
+            DND_FILES is None
+            or not available
+            or not hasattr(self.root, "drop_target_register")
+        ):
+            self._drag_drop_enabled = False
+            self._drag_drop_error = getattr(self.root, "_ps_sezhao_dnd_error", None)
+            self.status.set(
+                "拖放组件不可用；程序仍可正常使用“添加图像”和“添加文件夹”。"
+            )
             return
 
         targets: list[Any] = []
@@ -89,17 +201,23 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
                 targets.append(widget)
 
         installed = False
+        errors: list[str] = []
         for widget in targets:
             try:
                 widget.drop_target_register(DND_FILES)
                 widget.dnd_bind("<<Drop>>", self._on_external_drop)
                 installed = True
-            except Exception:
-                continue
+            except Exception as exc:
+                errors.append(f"{type(exc).__name__}: {exc}")
 
         self._drag_drop_enabled = installed
         if installed:
             self.status.set("可点击添加图像/文件夹，也可从资源管理器或 Finder 拖入。")
+        else:
+            self._drag_drop_error = "; ".join(errors) or "无法注册拖放目标"
+            self.status.set(
+                "拖放组件加载后无法注册目标；请使用“添加图像”或“添加文件夹”。"
+            )
 
     def parse_drop_paths(self: Any, raw_data: str) -> list[Path]:
         try:
@@ -115,11 +233,11 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
     ) -> int:
         files = collect_supported_paths(paths)
         existing = {
-            canonical_path(Path(item.path))
+            _canonical_path(Path(item.path))
             for item in self.items
             if getattr(item, "path", None) is not None
         }
-        new_files = [path for path in files if canonical_path(path) not in existing]
+        new_files = [path for path in files if _canonical_path(path) not in existing]
 
         if not new_files:
             self.status.set("拖入内容中没有新的可添加图片或 RAW 文件。")
@@ -164,12 +282,3 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
     app_class._open_dropped_paths = open_dropped_paths
     app_class._on_external_drop = on_external_drop
     app_class._v055_import_drop_applied = True
-
-
-__all__ = [
-    "SUPPORTED_SUFFIXES",
-    "apply_v055_import_drop_patch",
-    "collect_supported_paths",
-    "discover_supported_paths",
-    "install_drag_drop_root",
-]

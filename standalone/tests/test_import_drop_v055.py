@@ -53,7 +53,7 @@ class ImportDropPatchTests(unittest.TestCase):
             self.assertTrue(hasattr(FakeApp, name), name)
             self.assertEqual(getattr(instance, name)(), name)
 
-    def test_release_configuration_contains_v055_runtime(self) -> None:
+    def test_release_configuration_contains_safe_drag_drop_runtime(self) -> None:
         project_root = Path(__file__).resolve().parents[2]
         version = (project_root / "VERSION").read_text(encoding="utf-8").strip()
         package = json.loads((project_root / "package.json").read_text(encoding="utf-8"))
@@ -64,6 +64,7 @@ class ImportDropPatchTests(unittest.TestCase):
         bootstrap = (project_root / "standalone/ps_sezhao/bootstrap.py").read_text(encoding="utf-8")
         requirements = (project_root / "standalone/requirements.txt").read_text(encoding="utf-8")
         workflow = (project_root / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        hook = (project_root / "hook-tkinterdnd2.py").read_text(encoding="utf-8")
 
         self.assertEqual(package["version"], version)
         self.assertEqual(manifest["version"], version)
@@ -76,8 +77,11 @@ class ImportDropPatchTests(unittest.TestCase):
         )
         self.assertIn("apply_v055_import_drop_patch", bootstrap)
         self.assertIn("install_drag_drop_root", bootstrap)
-        self.assertIn("tkinterdnd2>=0.4.3,<0.5", requirements)
+        self.assertIn("requested_gui_smoke", bootstrap)
+        self.assertIn("tkinterdnd2>=0.6.2,<0.7", requirements)
         self.assertGreaterEqual(workflow.count("--collect-all tkinterdnd2"), 2)
+        self.assertIn("--gui-smoke-test --require-dnd", workflow)
+        self.assertIn("collect_data_files", hook)
 
 
 def _resolved(path: Path) -> str:

@@ -22,12 +22,7 @@ _configured = False
 
 
 def integration_steps() -> tuple[IntegrationStep, ...]:
-    """Return the ordered standalone integration plan.
-
-    The order is an explicit compatibility contract. Engine behavior is
-    installed first, runtime bindings second, UI integrations third, and the
-    drag-and-drop root last so it is ready before ``app.main`` creates Tk.
-    """
+    """Return the ordered standalone integration plan."""
 
     from . import app as app_module
     from . import app_v052_source_crop_patch as source_crop_module
@@ -47,6 +42,7 @@ def integration_steps() -> tuple[IntegrationStep, ...]:
     from .app_v061_resizable_layout_patch import apply_v061_resizable_layout_patch
     from .engine_style_v060_patch import apply_style_engine_patch
     from .engine_v053_patch import apply_engine_patch
+    from .services.project_session import apply_project_session
     from .services.runtime_service import install_runtime_bindings
 
     app_class = app_module.SezhaoApp
@@ -72,6 +68,7 @@ def integration_steps() -> tuple[IntegrationStep, ...]:
         IntegrationStep("ui.rotate_output", lambda: apply_v057_rotate_output_patch(app_class)),
         IntegrationStep("ui.styles", lambda: apply_v060_style_library_patch(app_class)),
         IntegrationStep("ui.resizable_layout", lambda: apply_v061_resizable_layout_patch(app_class)),
+        IntegrationStep("storage.project_session", lambda: apply_project_session(app_class)),
         IntegrationStep("runtime.drag_drop_root", lambda: install_drag_drop_root(app_module)),
     )
 
@@ -93,9 +90,13 @@ def configure_application() -> BootstrapReport:
 
 
 def run_application(argv: list[str] | None = None) -> int:
-    """Configure and run the standalone command-line or desktop entry point."""
+    """Configure and run the desktop, batch or packaged GUI-test entry point."""
 
     configure_application()
     from . import app as app_module
+    from .gui_smoke import requested_gui_smoke, run_gui_smoke
 
+    smoke_requested, require_dnd = requested_gui_smoke(argv)
+    if smoke_requested:
+        return run_gui_smoke(app_module, require_dnd=require_dnd)
     return app_module.main(argv)

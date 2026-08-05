@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 MATH_CONTRACT_VERSION = 1
 RAW_DECODE_CONTRACT_VERSION = 1
-PROJECT_SCHEMA_VERSION = 1
+PROJECT_SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
