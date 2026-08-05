@@ -137,6 +137,7 @@ class RollProjectSessionTests(unittest.TestCase):
                         first_root,
                         initial_files=[str(path) for path in image_paths],
                     )
+                    first_root.update_idletasks()
                     project_id = first_app.roll_project_store.create_project(
                         "Family Roll",
                         shared=RollProjectSettings(
@@ -164,6 +165,10 @@ class RollProjectSessionTests(unittest.TestCase):
                     first_app.vars["exposure"].set(0.65)
                     first_app._store_current_state()
                     first_app._save_project_session_now()
+                    stored = first_app.roll_project_store.load_project(project_id)
+                    self.assertIsNotNone(stored)
+                    self.assertEqual(stored.items[0].frame_number, "F-001")
+                    self.assertEqual(stored.items[1].frame_number, "F-002")
                 finally:
                     first_root.destroy()
 
@@ -186,7 +191,8 @@ class RollProjectSessionTests(unittest.TestCase):
     def test_bootstrap_wires_roll_projects_after_workspace_storage(self) -> None:
         names = tuple(step.name for step in integration_steps())
         self.assertLess(names.index("storage.project_session"), names.index("storage.roll_projects"))
-        self.assertLess(names.index("storage.roll_projects"), names.index("runtime.drag_drop_root"))
+        self.assertLess(names.index("storage.roll_projects"), names.index("storage.roll_project_state"))
+        self.assertLess(names.index("storage.roll_project_state"), names.index("runtime.drag_drop_root"))
 
 
 if __name__ == "__main__":
