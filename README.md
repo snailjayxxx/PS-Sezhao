@@ -5,13 +5,13 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 - **Photoshop 版**：UXP `.ccx` 插件，直接读取和写入 Photoshop 图层。
 - **Photoshop 开发者加载版**：完整 UXP 插件目录。
 - **Lightroom Classic 版**：原生直接转正、高精度 16 位 TIFF、恢复快照。
-- **独立桌面版**：不依赖 Adobe，支持相机 RAW 直读、多图、缩放、裁切和批量输出。
+- **独立桌面版**：不依赖 Adobe，支持相机 RAW 直读、多图、缩放、裁切、拖放和批量输出。
 
 照片只在本机处理，不上传服务器。
 
 ## 当前版本
 
-统一版本：**v0.5.4**
+统一版本：**v0.5.5**
 
 - Photoshop 2024（25.0）或更高版本
 - Lightroom Classic 15.4 或更高版本
@@ -22,36 +22,53 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 | 使用场景 | 下载文件 |
 |---|---|
-| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.5.4.ccx` |
-| Photoshop 开发者加载 | `PS-Sezhao-Photoshop-Developer-v0.5.4.zip` |
-| Lightroom Classic · Apple Silicon | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.4.zip` |
-| Lightroom Classic · Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.4.zip` |
-| 独立桌面版 · Apple Silicon | `PS-Sezhao-Standalone-macOS-arm64-v0.5.4.zip` |
-| 独立桌面版 · Windows x64 | `PS-Sezhao-Standalone-Windows-x64-v0.5.4.zip` |
+| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.5.5.ccx` |
+| Photoshop 开发者加载 | `PS-Sezhao-Photoshop-Developer-v0.5.5.zip` |
+| Lightroom Classic · Apple Silicon | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.5.zip` |
+| Lightroom Classic · Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.5.zip` |
+| 独立桌面版 · Apple Silicon | `PS-Sezhao-Standalone-macOS-arm64-v0.5.5.zip` |
+| 独立桌面版 · Windows x64 | `PS-Sezhao-Standalone-Windows-x64-v0.5.5.zip` |
 
-## v0.5.4：撤销、重做与直接基底数值
+## v0.5.5：修复导入并增加系统拖放
 
-独立版、Lightroom 高精度窗口和 Photoshop 面板都增加撤销与重做：
+v0.5.4 中，撤销/重做补丁注册了 `_history_for` 等内部方法，但首次加载图片时调用了不存在的 `history_for`。在无控制台的 Windows/macOS 发行版中，这个异常不会显示，所以“添加图像”和“添加文件夹”在完成选择后看起来完全没有反应。
+
+v0.5.5 修复全部方法别名，并让导入异常在状态栏和弹窗中明确显示，不再静默失败。
+
+独立版和 Lightroom 高精度窗口新增系统拖放：
+
+- 从 Windows 资源管理器或 macOS Finder 拖入一张或多张图片；
+- 拖入 TIFF、JPEG、PNG、BMP、WebP 或相机 RAW；
+- 拖入一个或多个文件夹；
+- 文件夹会递归查找支持的图片和 RAW；
+- 自动去重并显示实际新增数量；
+- 支持带空格、中文和其他 Unicode 字符的路径。
+
+拖放可以落在整个窗口、中央图片区或左侧图片列表。
+
+## 撤销、重做与直接基底数值
+
+独立版、Lightroom 高精度窗口和 Photoshop 面板都支持：
 
 ```text
 撤销：Ctrl/Cmd + Z
 重做：Ctrl/Cmd + Y 或 Ctrl/Cmd + Shift + Z
 ```
 
-可恢复曝光、色彩、RGB 增益、胶片基底、自动分析、吸管结果和裁切。独立版按每张照片分别保存最多 60 项历史，不会把一张照片的历史套到另一张照片。
+可恢复曝光、色彩、RGB 增益、胶片基底、自动分析、吸管结果和裁切。独立版按每张照片分别保存最多 60 项历史。
 
-胶片基底不再显示“识别值上的加减偏移”，而是直接编辑最终使用的 R/G/B：
+胶片基底直接编辑最终使用的 R/G/B：
 
 ```text
 识别值：212 / 143 / 82
 最终使用：212 / 143 / 82
 ```
 
-独立版保留识别值作为参考，滑块和数字框直接修改“最终使用值”；“恢复为识别值”可回到吸管或自动分析结果。Photoshop 版使用 0～255 的直接数值。
+“恢复为识别值”可以回到吸管或自动分析结果。
 
 ## 中性灰吸管修改什么
 
-中性灰吸管不会重新改变胶片基底，也不会直接改写色温或色调。它会计算并修改：
+中性灰吸管不会重新改变胶片基底，也不会直接改写色温或色调。它修改：
 
 ```text
 红色输出增益
@@ -59,7 +76,7 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 蓝色输出增益
 ```
 
-目标是让点击区域经过当前转正处理后满足 R≈G≈B。`1.00` 表示该通道不额外校正。v0.5.4 会明确显示这三个数值，允许数字输入、滑块和 `− / +` 微调，并提供“中性灰增益恢复 1.00”。
+目标是让点击区域经过当前转正处理后满足 `R≈G≈B`。`1.00` 表示该通道不额外校正。三个值均可手动输入、拖动滑块或使用 `− / +` 微调。
 
 ## 原图吸管
 
@@ -82,7 +99,7 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 ## 相机 RAW 直读
 
-独立版可直接加入常见 RAW：
+独立版可直接加入：
 
 ```text
 CR2 / CR3 / NEF / NRW / ARW / RAF / RW2 / ORF / PEF / SRW / DNG
@@ -99,7 +116,7 @@ CR2 / CR3 / NEF / NRW / ARW / RAF / RW2 / ORF / PEF / SRW / DNG
 → PS-Sezhao：原生直接转正所选照片（默认）
 ```
 
-直接写入 Lightroom 非破坏性调整，不生成新文件，并默认创建恢复快照。该模式的撤销继续使用 Lightroom 历史记录和插件恢复快照。
+直接写入 Lightroom 非破坏性调整，不生成新文件，并默认创建恢复快照。
 
 ### 高精度 16 位 TIFF
 
@@ -108,11 +125,11 @@ CR2 / CR3 / NEF / NRW / ARW / RAF / RW2 / ORF / PEF / SRW / DNG
 → PS-Sezhao：高精度 16 位 TIFF
 ```
 
-Lightroom 先渲染 16 位 ProPhoto RGB TIFF，再打开与独立版相同的多图窗口，因此撤销/重做、直接基底数值、中性灰增益、原图吸管、裁切和侧栏滚轮均可使用。
+Lightroom 先渲染 16 位 ProPhoto RGB TIFF，再打开与独立版相同的多图窗口，因此拖放之外的桌面功能均可使用。Lightroom 传入的任务照片仍由插件自动载入。
 
 ## Photoshop
 
-相机 RAW 先通过 Camera Raw 打开，再使用 PS-Sezhao。Photoshop 版保留点击吸管、实时画布预览、大图预览、数字输入和完整分辨率输出，并增加插件参数撤销/重做。
+相机 RAW 先通过 Camera Raw 打开，再使用 PS-Sezhao。Photoshop 版保留点击吸管、实时画布预览、大图预览、数字输入、撤销/重做和完整分辨率输出。
 
 ## 开发检查
 
@@ -125,8 +142,8 @@ bash scripts/build-release.sh
 
 ## 第三方组件
 
-- rawpy：LibRaw 的 Python 封装，用于相机 RAW 解码。
-- LibRaw：随 rawpy 平台包提供的 RAW 解码运行库。
+- rawpy / LibRaw：相机 RAW 解码。
+- TkinterDnD2 / TkDnD：Windows、macOS 和 Linux/X11 系统文件拖放。
 - Compact ICC Profiles：内置 `ProPhoto-v2-micro.icc`，按 CC0 发布。
 
 ## 许可证
