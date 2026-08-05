@@ -35,19 +35,27 @@ class WorkspaceTests(unittest.TestCase):
     def test_crop_to_pixels_never_returns_empty_region(self) -> None:
         self.assertEqual(crop_to_pixels((3, 4, 3), (1, 1, 1, 1)), (0, 0, 4, 3))
 
-    def test_discover_images_filters_and_sorts(self) -> None:
+    def test_discover_images_includes_raw_and_sorts(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "b.JPG").write_bytes(b"x")
             (root / "a.tif").write_bytes(b"x")
+            (root / "camera.NEF").write_bytes(b"x")
+            (root / "negative.cr3").write_bytes(b"x")
             (root / "ignore.txt").write_text("x", encoding="utf-8")
             nested = root / "nested"
             nested.mkdir()
-            (nested / "c.png").write_bytes(b"x")
+            (nested / "scan.dng").write_bytes(b"x")
             direct = discover_images(root)
             recursive = discover_images(root, recursive=True)
-            self.assertEqual([path.name for path in direct], ["a.tif", "b.JPG"])
-            self.assertEqual([path.name for path in recursive], ["a.tif", "b.JPG", "c.png"])
+            self.assertEqual(
+                [path.name for path in direct],
+                ["a.tif", "b.JPG", "camera.NEF", "negative.cr3"],
+            )
+            self.assertEqual(
+                [path.name for path in recursive],
+                ["a.tif", "b.JPG", "camera.NEF", "negative.cr3", "scan.dng"],
+            )
 
     def test_photo_state_reports_crop_label(self) -> None:
         state = PhotoState(Path("sample.tif"), crop=(0.1, 0.2, 0.9, 0.8))
