@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from typing import Any, Type
 
+from ..core.geometry import GeometrySettings
+
 
 def apply_geometry_history_guard(app_class: Type[Any]) -> None:
-    """Prevent transient geometry refreshes from creating undo entries."""
+    """Protect undo history and transient perspective editing state."""
 
     if getattr(app_class, "_geometry_history_guard_applied", False):
         return
 
-    original_refresh = app_class._refresh_geometry_preview
+    original_load_index = app_class.load_index
     original_restore = getattr(app_class, "restore_snapshot", None)
     original_rotate = getattr(app_class, "rotate_current", None)
     original_cancel_perspective = app_class._cancel_perspective_mode
@@ -29,6 +31,30 @@ def apply_geometry_history_guard(app_class: Type[Any]) -> None:
         self.load_index(index)
         if hasattr(self, "_schedule_project_save"):
             self._schedule_project_save()
+
+    def load_index(self: Any, index: int) -> None:
+        if (
+            bool(getattr(self, "_perspective_editing", False))
+            and self.current_index is not None
+            and index != self.current_index
+        ):
+            item = self.current_item()
+            if item is not None:
+                geometry = GeometrySettings.from_dict(item.geometry)
+                item.geometry = GeometrySettings(
+                    straighten=geometry.straighten,
+                    flip_horizontal=geometry.flip_horizontal,
+                    flip_vertical=geometry.flip_vertical,
+                    perspective=getattr(self, "_perspective_original", geometry.perspective),
+                    detection_confidence=geometry.detection_confidence,
+                    detection_method=geometry.detection_method,
+                ).to_dict()
+            self._perspective_editing = False
+            self._perspective_points = []
+            self.interaction_mode.set("pan")
+            if getattr(self, "perspective_button", None) is not None:
+                self.perspective_button.configure(text="四角透视")
+        original_load_index(self, index)
 
     def restore_snapshot(self: Any, snapshot: dict[str, Any]) -> None:
         self._suppress_geometry_history = True
@@ -53,6 +79,7 @@ def apply_geometry_history_guard(app_class: Type[Any]) -> None:
         finally:
             self._suppress_geometry_history = False
 
+    app_class.load_index = load_index
     app_class._refresh_geometry_preview = refresh_geometry_preview
     if original_restore is not None:
         app_class.restore_snapshot = restore_snapshot
