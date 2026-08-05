@@ -34,6 +34,12 @@ def apply_roll_project_state_guard(app_class: Type[Any]) -> None:
             self._apply_output_settings_to_ui(current.output_settings)
 
     def store_current_state(self: Any) -> None:
+        # Project restoration first creates list rows and then replaces their
+        # temporary defaults with database states. A same-index load performed
+        # during that interval must never write the temporary UI values back
+        # over the restored controls.
+        if getattr(self, "_roll_project_loading", False):
+            return
         # Older output layers write the visible controls first. Complete any
         # missing project metadata afterwards so an empty frame-number control
         # cannot erase the number assigned by the active roll project.
