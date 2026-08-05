@@ -5,8 +5,6 @@ from typing import Any, Type
 
 from tkinter import messagebox
 
-from .workspace import discover_images
-
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
 except ImportError:  # pragma: no cover - drag/drop remains optional in source mode
@@ -105,6 +103,16 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
             values = (raw_data,)
         return [Path(str(value)) for value in values if str(value).strip()]
 
+    def discover_dropped_folder(self: Any, folder: Path) -> list[Path]:
+        found: list[Path] = []
+        try:
+            for candidate in folder.rglob("*"):
+                if candidate.is_file() and candidate.suffix.lower() in SUPPORTED_SUFFIXES:
+                    found.append(candidate)
+        except OSError:
+            return found
+        return sorted(found, key=lambda path: str(path).lower())
+
     def on_external_drop(self: Any, event: Any) -> str:
         dropped = self._parse_drop_paths(getattr(event, "data", ""))
         files: list[Path] = []
@@ -114,7 +122,7 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
             try:
                 if path.is_dir():
                     folder_count += 1
-                    files.extend(discover_images(path, recursive=True))
+                    files.extend(self._discover_dropped_folder(path))
                 elif path.is_file() and path.suffix.lower() in SUPPORTED_SUFFIXES:
                     files.append(path)
             except OSError:
@@ -145,5 +153,6 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
     app_class._build_ui = build_ui
     app_class._install_drop_targets = install_drop_targets
     app_class._parse_drop_paths = parse_drop_paths
+    app_class._discover_dropped_folder = discover_dropped_folder
     app_class._on_external_drop = on_external_drop
     app_class._v055_import_drop_applied = True
