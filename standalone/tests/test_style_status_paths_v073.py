@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import tkinter as tk
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -11,7 +12,7 @@ from ps_sezhao.ui import create_application, create_root
 
 
 class StyleStatusAndMacPathsV073Tests(unittest.TestCase):
-    def test_style_popup_uses_right_pane_width_and_status_uses_top_panel(self) -> None:
+    def test_style_list_is_embedded_beside_label_and_status_uses_top_panel(self) -> None:
         root = create_root()
         root.geometry("1500x900")
         try:
@@ -20,23 +21,41 @@ class StyleStatusAndMacPathsV073Tests(unittest.TestCase):
             self.assertTrue(app._v073_style_status_applied)
             self.assertTrue(app._v073_top_status_panel.winfo_exists())
 
-            app._v073_open_style_popup(app.film_profile_box)
-            root.update_idletasks()
-            popup = app._v073_style_popup
-            self.assertIsNotNone(popup)
+            scanner = app._v073_inline_style_lists["scanner"]
+            film = app._v073_inline_style_lists["film"]
+            self.assertIs(scanner["block"].master, app.style_library_frame)
+            self.assertIs(film["block"].master, app.style_library_frame)
             self.assertGreaterEqual(
-                popup.winfo_width(),
-                app.style_library_frame.winfo_width() - 8,
+                film["entry"].winfo_width(),
+                app.style_library_frame.winfo_width() - 145,
             )
-            self.assertGreaterEqual(popup.winfo_rootx(), app.style_library_frame.winfo_rootx())
-            self.assertLessEqual(
-                popup.winfo_rootx() + popup.winfo_width(),
-                root.winfo_rootx() + root.winfo_width() + 2,
+
+            top_levels_before = [
+                widget for widget in root.winfo_children() if isinstance(widget, tk.Toplevel)
+            ]
+            app._v073_toggle_inline_style_list("film")
+            root.update_idletasks()
+            self.assertEqual(film["options"].winfo_manager(), "grid")
+            self.assertGreater(film["listbox"].size(), 5)
+            self.assertGreaterEqual(
+                film["options"].winfo_width(),
+                film["entry"].winfo_width() - 6,
             )
+            top_levels_after = [
+                widget for widget in root.winfo_children() if isinstance(widget, tk.Toplevel)
+            ]
+            self.assertEqual(top_levels_after, top_levels_before)
+
+            film["listbox"].selection_clear(0, "end")
+            film["listbox"].selection_set(1)
+            selected = str(film["listbox"].get(1))
+            app._v073_choose_inline_style("film")
+            root.update_idletasks()
+            self.assertEqual(app.film_profile_box.get(), selected)
+            self.assertEqual(film["options"].winfo_manager(), "")
 
             self.assertEqual(app._v072_crop_status_label.winfo_manager(), "")
             self.assertEqual(app._v072_geometry_status_label.winfo_manager(), "")
-            app._v073_close_style_popup()
         finally:
             root.destroy()
 
