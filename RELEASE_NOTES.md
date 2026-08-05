@@ -1,39 +1,44 @@
-# PS-Sezhao v0.5.5
+# PS-Sezhao v0.5.6
 
-本版本修复独立程序无法通过“添加图像”或“添加文件夹”导入素材的问题，并加入从 Windows 资源管理器或 macOS Finder 直接拖入图片、RAW 文件和文件夹的功能。
+本版本是 v0.5.5 的启动崩溃热修复版。
 
-## 修复添加图像和文件夹
+## 修复 Windows 启动递归崩溃
 
-v0.5.4 的历史记录补丁只把若干方法注册成带下划线的内部名称，但导入流程调用的是公开名称。首次读取当前控制参数时会触发 `AttributeError`，Tkinter 回调又没有把错误显示在界面上，因此表现为点击按钮后没有反应。
+v0.5.5 为启用拖放功能，直接把全局 `tkinter.Tk` 替换成了 `TkinterDnD.Tk`。但 `TkinterDnD.Tk.__init__()` 内部仍会调用 `tkinter.Tk.__init__()`，因此启动时不断调用自身，最终出现：
 
-v0.5.5 重新发布这些方法，并让按钮导入、文件夹导入和拖放导入统一使用同一套路径处理。
+```text
+RecursionError: maximum recursion depth exceeded
+```
 
-## 拖放添加
+v0.5.6 不再修改系统级 `tkinter.Tk`。程序改用一个仅对 PS-Sezhao 启动模块生效的轻量代理：
 
-独立版现在支持把以下内容拖到主窗口、图像预览区域或文件列表：
+- PS-Sezhao 创建窗口时使用 `TkinterDnD.Tk`；
+- `tkinterdnd2` 内部仍能调用原始 `tkinter.Tk`；
+- 其他 Canvas、StringVar、Frame 等 tkinter 组件保持原样；
+- 重复初始化拖放模块也不会形成嵌套代理。
 
-- 单张或多张常规图片；
-- 单张或多张 RAW 文件；
-- 包含图片和 RAW 的文件夹；
-- 同时拖入文件和文件夹。
+## 回归测试
 
-文件夹会递归查找支持的素材，重复路径不会再次添加。支持格式包括 TIFF、JPEG、PNG、BMP、WebP、DNG、CR2、CR3、NEF、ARW、RAF、RW2、ORF、PEF 和 SRW。
+新增专门测试确认：
 
-## 打包修复
+- 启用拖放前后的全局 `tkinter.Tk` 完全相同；
+- PS-Sezhao 自己的根窗口使用 `TkinterDnD.Tk`；
+- 其他 tkinter 类仍由原始模块提供；
+- 连续安装两次拖放根窗口配置不会递归。
 
-Windows 和 macOS 构建现在都会显式收集 `tkinterdnd2` 与 TkDND 运行库。自动构建同时检查：
+同时保留 v0.5.5 的功能：
 
-- Photoshop、Lightroom、独立版和 package.json 的版本号均为 0.5.5；
-- 导入所需的 v0.5.4 方法别名已经恢复；
-- 文件夹能够识别常规图片和 RAW；
-- Windows/macOS 安装包包含拖放运行库；
-- 原有 RAW、历史记录、裁切和调色测试继续通过。
+- 修复“添加图像”和“添加文件夹”无响应；
+- 支持拖入单张、多张图片和 RAW；
+- 支持拖入文件夹并递归查找图片和 RAW；
+- 自动去除重复路径；
+- Windows 和 macOS 安装包包含 TkDND 运行库。
 
 ## 发行文件
 
-- `PS-Sezhao-Photoshop-v0.5.5.ccx`
-- `PS-Sezhao-Photoshop-Developer-v0.5.5.zip`
-- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.5.zip`
-- `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.5.zip`
-- `PS-Sezhao-Standalone-macOS-arm64-v0.5.5.zip`
-- `PS-Sezhao-Standalone-Windows-x64-v0.5.5.zip`
+- `PS-Sezhao-Photoshop-v0.5.6.ccx`
+- `PS-Sezhao-Photoshop-Developer-v0.5.6.zip`
+- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.6.zip`
+- `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.6.zip`
+- `PS-Sezhao-Standalone-macOS-arm64-v0.5.6.zip`
+- `PS-Sezhao-Standalone-Windows-x64-v0.5.6.zip`
