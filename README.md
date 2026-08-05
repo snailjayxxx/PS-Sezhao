@@ -1,86 +1,91 @@
 # PS-Sezhao 胶片去色罩
 
-PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目。同一个仓库同时发布：
+PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目。照片只在本机处理，不上传服务器。
 
-- **Photoshop 版**：UXP `.ccx` 插件，直接读取和写入 Photoshop 图层。
-- **Photoshop 开发者加载版**：完整 UXP 插件目录。
-- **Lightroom Classic 版**：原生直接转正、高精度 16 位 TIFF、恢复快照。
-- **独立桌面版**：不依赖 Adobe，支持相机 RAW 直读、多图、缩放、裁切和批量输出。
+同一个仓库发布：
 
-照片只在本机处理，不上传服务器。
+- **Photoshop 版**：UXP `.ccx` 插件，直接读取和写入 Photoshop 图层；
+- **Photoshop 开发者加载版**：完整 UXP 插件目录；
+- **Lightroom Classic 版**：原生直接转正、高精度 16 位 TIFF、恢复快照；
+- **独立桌面版**：不依赖 Adobe，支持相机 RAW、整卷项目、几何校正、用户 LUT 和批量输出。
 
 ## 当前版本
 
-统一版本：**v0.5.4**
+统一测试版本：**v0.7.0-beta.3**
 
-- Photoshop 2024（25.0）或更高版本
-- Lightroom Classic 15.4 或更高版本
-- macOS Apple Silicon
-- Windows x64
+Latest 稳定版继续保留为 **v0.6.3**。
+
+支持环境：
+
+- Photoshop 2024（25.0）或更高版本；
+- Lightroom Classic 15.4 或更高版本；
+- macOS Apple Silicon；
+- Windows x64。
 
 ## Release 文件
 
 | 使用场景 | 下载文件 |
 |---|---|
-| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.5.4.ccx` |
-| Photoshop 开发者加载 | `PS-Sezhao-Photoshop-Developer-v0.5.4.zip` |
-| Lightroom Classic · Apple Silicon | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.4.zip` |
-| Lightroom Classic · Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.4.zip` |
-| 独立桌面版 · Apple Silicon | `PS-Sezhao-Standalone-macOS-arm64-v0.5.4.zip` |
-| 独立桌面版 · Windows x64 | `PS-Sezhao-Standalone-Windows-x64-v0.5.4.zip` |
+| macOS 独立版安装器 | `PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.3.dmg` |
+| Windows 独立版安装器 | `PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.3.exe` |
+| macOS 独立版便携包 | `PS-Sezhao-Standalone-macOS-arm64-v0.7.0-beta.3.zip` |
+| Windows 独立版便携包 | `PS-Sezhao-Standalone-Windows-x64-v0.7.0-beta.3.zip` |
+| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.7.0-beta.3.ccx` |
+| Photoshop 开发者加载 | `PS-Sezhao-Photoshop-Developer-v0.7.0-beta.3.zip` |
+| Lightroom Classic · Apple Silicon | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.0-beta.3.zip` |
+| Lightroom Classic · Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.7.0-beta.3.zip` |
+| Lightroom 插件源码 | `PS-Sezhao-LightroomClassic-Source-v0.7.0-beta.3.zip` |
 
-## v0.5.4：撤销、重做与直接基底数值
+完整安装步骤见 [`INSTALL.md`](INSTALL.md)。
 
-独立版、Lightroom 高精度窗口和 Photoshop 面板都增加撤销与重做：
+## 独立版目录结构
 
-```text
-撤销：Ctrl/Cmd + Z
-重做：Ctrl/Cmd + Y 或 Ctrl/Cmd + Shift + Z
-```
-
-可恢复曝光、色彩、RGB 增益、胶片基底、自动分析、吸管结果和裁切。独立版按每张照片分别保存最多 60 项历史，不会把一张照片的历史套到另一张照片。
-
-胶片基底不再显示“识别值上的加减偏移”，而是直接编辑最终使用的 R/G/B：
+安装版和便携版都使用应用同级数据目录：
 
 ```text
-识别值：212 / 143 / 82
-最终使用：212 / 143 / 82
+PS-Sezhao/
+├── PS-Sezhao.app 或 PS-Sezhao.exe
+├── project/
+│   └── workspace.sqlite3
+├── lut/
+├── 安装说明.html
+└── .ps-sezhao-portable
 ```
 
-独立版保留识别值作为参考，滑块和数字框直接修改“最终使用值”；“恢复为识别值”可回到吸管或自动分析结果。Photoshop 版使用 0～255 的直接数值。
+`project/workspace.sqlite3` 保存普通工作区、多个胶卷项目、每张图片参数和输出预设。Beta 3 首次启动会从旧位置自动复制数据库，旧文件继续保留。
 
-## 中性灰吸管修改什么
+## 用户 Cube LUT
 
-中性灰吸管不会重新改变胶片基底，也不会直接改写色温或色调。它会计算并修改：
+独立版右侧“胶卷风格”区域支持导入标准 `.cube` LUT：
 
-```text
-红色输出增益
-绿色输出增益
-蓝色输出增益
-```
+- 支持 1D 和 3D Cube LUT；
+- 导入时验证尺寸、数据行数和 Domain；
+- 3D LUT 使用三线性插值；
+- LUT 文件复制到同级 `lut` 文件夹；
+- 使用“胶卷强度”控制混合比例；
+- LUT 缺失时项目仍可打开，不会损坏项目数据。
 
-目标是让点击区域经过当前转正处理后满足 R≈G≈B。`1.00` 表示该通道不额外校正。v0.5.4 会明确显示这三个数值，允许数字输入、滑块和 `− / +` 微调，并提供“中性灰增益恢复 1.00”。
+## 整卷项目与输出
 
-## 原图吸管
+- 多个胶卷项目和跨会话恢复；
+- 图片顺序、当前图片和项目级元数据；
+- 每张图片独立保存转正、RAW、裁切、旋转、拉直、翻转、透视和输出参数；
+- 缩略图、编辑代理和完整分辨率输出三级读取；
+- 可取消的后台输出队列；
+- 16 位 TIFF、8 位 TIFF、PNG、JPEG；
+- ICC、尺寸调整、最终锐化、命名模板和重名策略；
+- 接触印样和 `.psszproj` 项目归档。
 
-胶片基底吸管不从转正或调色后的预览读取颜色：
+## 风格与手动校正
 
-- 独立版始终从未修改的输入图像取样；
-- 裁切后点击可见画面时，坐标会映射回完整原图；
-- Photoshop 从记录的原始负片图层读取像素，不读取临时预览图层；
-- 基底确定后，色调范围使用当前裁切区域重新计算。
+- 扫描仪风格与胶卷风格独立选择；
+- 胶片基底自动分析和原图吸管；
+- 中性灰吸管修改 RGB 输出增益；
+- 曝光、对比度、中间调、饱和度、色温、色调、RGB 增益、黑白点、阴影和高光；
+- 每张照片独立撤销与重做；
+- 裁切、旋转、自动范围、拉直、翻转和四角透视均为非破坏处理。
 
-## 侧栏滚轮和裁切
-
-- 鼠标位于右侧参数栏时，滚轮上下浏览参数；
-- 鼠标位于左侧图片列表时，滚轮上下浏览图片；
-- 中间图片预览区滚轮继续用于缩放；
-- 平时只显示裁切后保留的画面；
-- 点击“裁切”后显示完整照片和当前裁切框；
-- 自动分析边框只分析裁切后的区域；
-- 裁切是非破坏性的，只在导出时应用。
-
-## 相机 RAW 直读
+## 相机 RAW
 
 独立版可直接加入常见 RAW：
 
@@ -88,31 +93,7 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 CR2 / CR3 / NEF / NRW / ARW / RAF / RW2 / ORF / PEF / SRW / DNG
 ```
 
-完整解码固定采用 16 位、线性 Gamma、关闭自动提亮和 ProPhoto RGB。具体相机与压缩方式支持范围取决于发行包内的 rawpy / LibRaw。
-
-## Lightroom Classic
-
-### 原生直接转正（默认）
-
-```text
-图库 → 增效工具额外功能
-→ PS-Sezhao：原生直接转正所选照片（默认）
-```
-
-直接写入 Lightroom 非破坏性调整，不生成新文件，并默认创建恢复快照。该模式的撤销继续使用 Lightroom 历史记录和插件恢复快照。
-
-### 高精度 16 位 TIFF
-
-```text
-图库 → 增效工具额外功能
-→ PS-Sezhao：高精度 16 位 TIFF
-```
-
-Lightroom 先渲染 16 位 ProPhoto RGB TIFF，再打开与独立版相同的多图窗口，因此撤销/重做、直接基底数值、中性灰增益、原图吸管、裁切和侧栏滚轮均可使用。
-
-## Photoshop
-
-相机 RAW 先通过 Camera Raw 打开，再使用 PS-Sezhao。Photoshop 版保留点击吸管、实时画布预览、大图预览、数字输入和完整分辨率输出，并增加插件参数撤销/重做。
+完整解码采用 16 位、线性 Gamma、关闭自动提亮和 ProPhoto RGB。具体相机及压缩格式支持范围取决于发行包内的 rawpy / LibRaw。
 
 ## 开发检查
 
@@ -123,10 +104,19 @@ PYTHONPATH=standalone python -m unittest discover -s standalone/tests -v
 bash scripts/build-release.sh
 ```
 
+GitHub Actions 还会验证：
+
+- Linux 虚拟显示器中的真实 Tk 窗口；
+- macOS Apple Silicon 打包后窗口；
+- Windows x64 打包后窗口；
+- macOS DMG 结构；
+- Windows 安装器静默安装后的目录和真实窗口；
+- RAW、拖放、项目迁移、Cube LUT、Photoshop 和 Lightroom 功能。
+
 ## 第三方组件
 
-- rawpy：LibRaw 的 Python 封装，用于相机 RAW 解码。
-- LibRaw：随 rawpy 平台包提供的 RAW 解码运行库。
+- rawpy：LibRaw 的 Python 封装，用于相机 RAW 解码；
+- LibRaw：随 rawpy 平台包提供的 RAW 解码运行库；
 - Compact ICC Profiles：内置 `ProPhoto-v2-micro.icc`，按 CC0 发布。
 
 ## 许可证

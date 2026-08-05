@@ -14,7 +14,7 @@ return {
         local available = LrFileUtils.exists(path)
         return {
             {
-                title = 'PS-Sezhao 0.7.0-beta.2',
+                title = 'PS-Sezhao 0.7.0-beta.3',
                 f:row {
                     spacing = f:control_spacing(),
                     f:static_text { title = '适配版本：' },
@@ -31,7 +31,7 @@ return {
                     f:static_text { title = available and '本地处理器可用' or '处理器缺失，请重新安装对应平台安装包' },
                 },
                 f:static_text {
-                    title = 'Beta 2 修复桌面端中文文字截断、胶卷项目按钮压缩以及工具栏跨栏重叠。原始图片不会被覆盖。',
+                    title = 'Beta 3 新增桌面安装包、应用同级 project/lut 数据目录、用户 Cube LUT，以及更清楚的工具分组。原始图片不会被覆盖。',
                     width_in_chars = 65,
                     height_in_lines = 3,
                 },
