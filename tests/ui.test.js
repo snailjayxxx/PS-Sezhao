@@ -20,6 +20,8 @@ const engine = fs.readFileSync(path.join(root, "plugin/engine.js"), "utf8");
 const standaloneApp = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app.py"), "utf8");
 const standaloneWorkspace = fs.readFileSync(path.join(root, "standalone/ps_sezhao/workspace.py"), "utf8");
 const standaloneJobs = fs.readFileSync(path.join(root, "standalone/ps_sezhao/jobs.py"), "utf8");
+const rawIo = fs.readFileSync(path.join(root, "standalone/ps_sezhao/raw_io.py"), "utf8");
+const rawPatch = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app_v051_raw_patch.py"), "utf8");
 const lrRoot = path.join(root, "lightroom-classic/PS-Sezhao.lrplugin");
 const lrInfo = fs.readFileSync(path.join(lrRoot, "Info.lua"), "utf8");
 const lrNative = fs.readFileSync(path.join(lrRoot, "ApplyNative.lua"), "utf8");
@@ -31,12 +33,12 @@ const buildScript = fs.readFileSync(path.join(root, "scripts/build-release.sh"),
 const developerGuide = fs.readFileSync(path.join(root, "PHOTOSHOP_DEVELOPER_LOAD.md"), "utf8");
 
 test("unified release supports Photoshop 2024 and Lightroom Classic 15.4", function () {
-  assert.equal(manifest.version, "0.5.0");
+  assert.equal(manifest.version, "0.5.1");
   assert.equal(manifest.host.minVersion, "25.0.0");
-  assert.match(runtime, /const VERSION = "0\.5\.0"/);
-  assert.match(finalOps, /const VERSION = "0\.5\.0"/);
+  assert.match(runtime, /const VERSION = "0\.5\.1"/);
+  assert.match(finalOps, /const VERSION = "0\.5\.1"/);
   assert.match(lrInfo, /LrSdkMinimumVersion = 15\.4/);
-  assert.match(lrInfo, /major = 0, minor = 5, revision = 0/);
+  assert.match(lrInfo, /major = 0, minor = 5, revision = 1/);
 });
 
 test("Lightroom presents native mode first and retains high precision mode", function () {
@@ -153,6 +155,16 @@ test("standalone sliders support entry and plus-minus micro adjustment", functio
   assert.match(standaloneApp, /text="\+"/);
 });
 
+test("standalone v0.5.1 directly decodes camera RAW", function () {
+  assert.match(rawIo, /class RawDecodeSettings/);
+  assert.match(rawIo, /output_bps": 16/);
+  assert.match(rawIo, /ColorSpace\.ProPhoto/);
+  assert.match(rawIo, /extract_thumb\(\)/);
+  assert.match(rawPatch, /重新解码当前 RAW/);
+  assert.match(rawPatch, /自定义通道倍率/);
+  assert.match(standaloneWorkspace, /RAW_EXTENSIONS/);
+});
+
 test("Photoshop final render preserves depth, profile and original source", function () {
   assert.match(common, /componentSize:\s*-1/);
   assert.match(common, /resolveColorProfile/);
@@ -161,7 +173,7 @@ test("Photoshop final render preserves depth, profile and original source", func
   assert.match(finalOps, /sourceLayerId/);
 });
 
-test("release workflow builds Photoshop, Lightroom and standalone assets", function () {
+test("release workflow builds Photoshop, Lightroom and RAW-capable standalone assets", function () {
   assert.match(buildScript, /PS-Sezhao-Photoshop-v\$\{VERSION\}\.ccx/);
   assert.match(buildScript, /unzip -Z1/);
   assert.match(buildScript, /PS-Sezhao-Photoshop-Developer-v\$\{VERSION\}\.zip/);
@@ -170,5 +182,6 @@ test("release workflow builds Photoshop, Lightroom and standalone assets", funct
   assert.match(workflow, /LightroomClassic-Windows-x64/);
   assert.match(workflow, /Standalone-macOS-arm64/);
   assert.match(workflow, /Standalone-Windows-x64/);
+  assert.equal((workflow.match(/--collect-all rawpy/g) || []).length, 2);
   assert.match(workflow, /pyinstaller/);
 });
