@@ -1,84 +1,39 @@
-# PS-Sezhao v0.5.4
+# PS-Sezhao v0.5.5
 
-本版本加入撤销/重做，将胶片基底改为直接编辑最终 R/G/B，并明确中性灰吸管所修改的参数。
+本版本修复独立程序无法通过“添加图像”或“添加文件夹”导入素材的问题，并加入从 Windows 资源管理器或 macOS Finder 直接拖入图片、RAW 文件和文件夹的功能。
 
-## 撤销和重做
+## 修复添加图像和文件夹
 
-独立版、Lightroom 高精度窗口和 Photoshop 面板新增：
+v0.5.4 的历史记录补丁只把若干方法注册成带下划线的内部名称，但导入流程调用的是公开名称。首次读取当前控制参数时会触发 `AttributeError`，Tkinter 回调又没有把错误显示在界面上，因此表现为点击按钮后没有反应。
 
-```text
-↶ 撤销
-↷ 重做
-```
+v0.5.5 重新发布这些方法，并让按钮导入、文件夹导入和拖放导入统一使用同一套路径处理。
 
-快捷键支持：
+## 拖放添加
 
-```text
-Ctrl/Cmd + Z
-Ctrl/Cmd + Y
-Ctrl/Cmd + Shift + Z
-```
+独立版现在支持把以下内容拖到主窗口、图像预览区域或文件列表：
 
-独立版按每张照片分别保存最多60项历史，可恢复：
+- 单张或多张常规图片；
+- 单张或多张 RAW 文件；
+- 包含图片和 RAW 的文件夹；
+- 同时拖入文件和文件夹。
 
-- 曝光、对比度、中间调和饱和度；
-- 色温、色调和 RGB 输出增益；
-- 胶片基底直接值；
-- 自动分析和两种吸管结果；
-- 裁切范围；
-- 参数或裁切同步。
+文件夹会递归查找支持的素材，重复路径不会再次添加。支持格式包括 TIFF、JPEG、PNG、BMP、WebP、DNG、CR2、CR3、NEF、ARW、RAF、RW2、ORF、PEF 和 SRW。
 
-Photoshop 面板保存插件参数和胶片分析历史。Lightroom 原生直接转正继续依靠 Lightroom 自身历史记录和插件恢复快照。
+## 打包修复
 
-## 胶片基底改为直接数值
+Windows 和 macOS 构建现在都会显式收集 `tkinterdnd2` 与 TkDND 运行库。自动构建同时检查：
 
-旧版本显示的是：
-
-```text
-识别值 + 手动偏移
-```
-
-v0.5.4 改为：
-
-```text
-原图识别 R/G/B：212 / 143 / 82
-最终使用：212 / 143 / 82
-```
-
-用户直接修改最终使用值，不再换算偏移量。吸管或自动分析后，三个输入框自动填入识别值；“恢复为识别值”可以回到原始分析结果。
-
-Photoshop 使用 0～255 的8位直接值。独立版保留扩展上限以兼容极端素材，常规胶片仍主要使用 0～255。
-
-## 中性灰吸管和可编辑参数
-
-中性灰吸管修改的是：
-
-- 红色输出增益；
-- 绿色输出增益；
-- 蓝色输出增益。
-
-算法先用当前胶片基底和调色参数计算点击区域的转正结果，再调整三个输出增益，使该区域趋向 `R = G = B`。它不会重新改变胶片基底，也不会直接改变色温或色调。
-
-v0.5.4 新增明确的“中性灰校正（RGB 输出增益）”区域，三个值可以直接输入或用 `− / +` 微调；`1.000` 表示不额外校正，并提供恢复按钮。
-
-## 继续保留
-
-- 原图胶片基底吸管；
-- 左右侧栏滚轮；
-- 多图、每图独立参数和批量导出；
-- 裁切完成后只显示保留范围；
-- 裁切范围内自动分析；
-- 相机 RAW 直读和16位线性 ProPhoto 解码；
-- Lightroom 原生直接转正和高精度16位TIFF；
-- Photoshop 2024+。
+- Photoshop、Lightroom、独立版和 package.json 的版本号均为 0.5.5；
+- 导入所需的 v0.5.4 方法别名已经恢复；
+- 文件夹能够识别常规图片和 RAW；
+- Windows/macOS 安装包包含拖放运行库；
+- 原有 RAW、历史记录、裁切和调色测试继续通过。
 
 ## 发行文件
 
-- `PS-Sezhao-Photoshop-v0.5.4.ccx`
-- `PS-Sezhao-Photoshop-Developer-v0.5.4.zip`
-- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.4.zip`
-- `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.4.zip`
-- `PS-Sezhao-Standalone-macOS-arm64-v0.5.4.zip`
-- `PS-Sezhao-Standalone-Windows-x64-v0.5.4.zip`
-
-自动测试覆盖历史栈、重做分支清理、连续滑块合并、直接胶片基底映射、中性灰增益显示、Photoshop键盘快捷键以及原有RAW、Lightroom和跨平台打包流程。
+- `PS-Sezhao-Photoshop-v0.5.5.ccx`
+- `PS-Sezhao-Photoshop-Developer-v0.5.5.zip`
+- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.5.zip`
+- `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.5.zip`
+- `PS-Sezhao-Standalone-macOS-arm64-v0.5.5.zip`
+- `PS-Sezhao-Standalone-Windows-x64-v0.5.5.zip`

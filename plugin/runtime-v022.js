@@ -16,7 +16,7 @@ const {
   schedulePreview, resetControls
 } = c;
 
-const VERSION = "0.5.4";
+const VERSION = "0.5.5";
 const V022_UI_IDS = [
   "pickBase", "pickNeutral", "cancelPicker", "sampleSize",
   "panelPreviewStage", "panelPreviewImage", "panelPreviewPlaceholder",
