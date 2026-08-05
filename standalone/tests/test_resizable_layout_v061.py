@@ -34,7 +34,7 @@ class ResizableLayoutV061Tests(unittest.TestCase):
         patch = (
             root / "standalone/ps_sezhao/app_v061_resizable_layout_patch.py"
         ).read_text(encoding="utf-8")
-        bootstrap = (root / "standalone/ps_sezhao/bootstrap.py").read_text(encoding="utf-8")
+        groups = (root / "standalone/ps_sezhao/integration_groups.py").read_text(encoding="utf-8")
 
         for token in (
             "_configure_existing_three_pane_layout",
@@ -50,7 +50,7 @@ class ResizableLayoutV061Tests(unittest.TestCase):
 
         self.assertNotIn("old_body.destroy()", patch)
         self.assertNotIn("self._build_controls_panel(controls_outer)", patch)
-        self.assertIn("apply_v061_resizable_layout_patch", bootstrap)
+        self.assertIn("apply_v061_resizable_layout_patch", groups)
 
 
 if __name__ == "__main__":
