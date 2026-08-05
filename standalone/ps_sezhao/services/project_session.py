@@ -36,7 +36,12 @@ def apply_project_session(app_class: Type[Any]) -> None:
         original_init(self, root, lr_job=lr_job, initial_files=initial_files)
         self.root.protocol("WM_DELETE_WINDOW", self._close_with_project_save)
 
-        if self._project_persistence_enabled and not initial_files and not self.items:
+        if (
+            self._project_persistence_enabled
+            and not initial_files
+            and not self.items
+            and not getattr(self, "_roll_restore_pending", False)
+        ):
             self._restore_project_session()
 
     def store_current_state(self: Any) -> None:
@@ -44,7 +49,7 @@ def apply_project_session(app_class: Type[Any]) -> None:
         self._schedule_project_save()
 
     def load_index(self: Any, index: int) -> None:
-        if 0 <= index < len(self.items):
+        if 0 <= index < len(self.items) and not getattr(self, "_roll_project_loading", False):
             item = self.items[index]
             key = normalized_file_path(item.path)
             if key not in self._project_loaded_paths:
