@@ -34,7 +34,7 @@ class ResizableLayoutV061Tests(unittest.TestCase):
         patch = (
             root / "standalone/ps_sezhao/app_v061_resizable_layout_patch.py"
         ).read_text(encoding="utf-8")
-        launcher = (root / "standalone/main.py").read_text(encoding="utf-8")
+        bootstrap = (root / "standalone/ps_sezhao/bootstrap.py").read_text(encoding="utf-8")
 
         for token in (
             "_configure_existing_three_pane_layout",
@@ -48,11 +48,9 @@ class ResizableLayoutV061Tests(unittest.TestCase):
         ):
             self.assertIn(token, patch)
 
-        # Regression for v0.6.1 startup crash: destroying/rebuilding the body
-        # invalidated RAW white-balance Entry references kept by older patches.
         self.assertNotIn("old_body.destroy()", patch)
         self.assertNotIn("self._build_controls_panel(controls_outer)", patch)
-        self.assertIn("apply_v061_resizable_layout_patch", launcher)
+        self.assertIn("apply_v061_resizable_layout_patch", bootstrap)
 
 
 if __name__ == "__main__":

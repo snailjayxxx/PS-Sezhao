@@ -69,7 +69,7 @@ class RotationAndOutputV057Tests(unittest.TestCase):
         package = json.loads((root / "package.json").read_text(encoding="utf-8"))
         manifest = json.loads((root / "plugin/manifest.json").read_text(encoding="utf-8"))
         patch = (root / "standalone/ps_sezhao/app_v057_rotate_output_patch.py").read_text(encoding="utf-8")
-        launcher = (root / "standalone/main.py").read_text(encoding="utf-8")
+        bootstrap = (root / "standalone/ps_sezhao/bootstrap.py").read_text(encoding="utf-8")
         jobs = (root / "standalone/ps_sezhao/jobs.py").read_text(encoding="utf-8")
 
         self.assertEqual(version, "0.6.2")
@@ -86,7 +86,7 @@ class RotationAndOutputV057Tests(unittest.TestCase):
             "jpeg_quality=quality",
         ):
             self.assertIn(token, patch)
-        self.assertIn("apply_v057_rotate_output_patch", launcher)
+        self.assertIn("apply_v057_rotate_output_patch", bootstrap)
         self.assertLess(jobs.index("rotate_array(image"), jobs.index("crop_array(image"))
 
 

@@ -61,7 +61,7 @@ class ImportDropPatchTests(unittest.TestCase):
         runtime_entry = (project_root / "plugin/runtime-v022.js").read_text(encoding="utf-8")
         runtime_final = (project_root / "plugin/runtime-final.js").read_text(encoding="utf-8")
         lightroom_info = (project_root / "lightroom-classic/PS-Sezhao.lrplugin/Info.lua").read_text(encoding="utf-8")
-        launcher = (project_root / "standalone/main.py").read_text(encoding="utf-8")
+        bootstrap = (project_root / "standalone/ps_sezhao/bootstrap.py").read_text(encoding="utf-8")
         requirements = (project_root / "standalone/requirements.txt").read_text(encoding="utf-8")
         workflow = (project_root / ".github/workflows/release.yml").read_text(encoding="utf-8")
 
@@ -74,8 +74,8 @@ class ImportDropPatchTests(unittest.TestCase):
             f"major = {major}, minor = {minor}, revision = {revision}",
             lightroom_info,
         )
-        self.assertIn("apply_v055_import_drop_patch", launcher)
-        self.assertIn("install_drag_drop_root", launcher)
+        self.assertIn("apply_v055_import_drop_patch", bootstrap)
+        self.assertIn("install_drag_drop_root", bootstrap)
         self.assertIn("tkinterdnd2>=0.4.3,<0.5", requirements)
         self.assertGreaterEqual(workflow.count("--collect-all tkinterdnd2"), 2)
 

@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 import sqlite3
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterator, Mapping
 
 from ..core.contracts import (
     MATH_CONTRACT_VERSION,
@@ -61,8 +62,17 @@ class ProjectStore:
         connection.execute("PRAGMA busy_timeout=5000")
         return connection
 
+    @contextmanager
+    def session(self) -> Iterator[sqlite3.Connection]:
+        connection = self.connect()
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
+
     def initialize(self) -> None:
-        with self.connect() as connection:
+        with self.session() as connection:
             connection.executescript(SCHEMA_SQL)
             connection.execute(
                 "INSERT INTO metadata(key, value) VALUES('schema_version', ?) "
@@ -86,7 +96,7 @@ class ProjectStore:
         if len(normalized_crop) != 4:
             raise ValueError("crop must contain four normalized values")
 
-        with self.connect() as connection:
+        with self.session() as connection:
             connection.execute(
                 """
                 INSERT INTO image_states(
@@ -124,7 +134,7 @@ class ProjectStore:
 
     def load_image_state(self, file_path: str | Path) -> StoredImageState | None:
         self.initialize()
-        with self.connect() as connection:
+        with self.session() as connection:
             row = connection.execute(
                 "SELECT * FROM image_states WHERE file_path = ?",
                 (str(Path(file_path)),),
