@@ -1,22 +1,31 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 from PIL import Image, ImageOps
 import tifffile
 
+from .raw_io import RAW_EXTENSIONS, RawDecodeSettings, decode_raw, is_raw_path
+
 TIFF_EXTENSIONS = {".tif", ".tiff"}
 PIL_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+SUPPORTED_EXTENSIONS = TIFF_EXTENSIONS | PIL_EXTENSIONS | RAW_EXTENSIONS
 
 
-def load_image(path: str | Path) -> tuple[np.ndarray, dict[str, Any]]:
+def load_image(
+    path: str | Path,
+    raw_settings: RawDecodeSettings | Mapping[str, Any] | None = None,
+) -> tuple[np.ndarray, dict[str, Any]]:
     source = Path(path)
     if not source.exists():
         raise FileNotFoundError(f"找不到图像：{source}")
     suffix = source.suffix.lower()
     metadata: dict[str, Any] = {"path": str(source), "icc_profile": None, "source_dtype": None}
+
+    if is_raw_path(source):
+        return decode_raw(source, raw_settings)
 
     if suffix in TIFF_EXTENSIONS:
         with tifffile.TiffFile(source) as tif:
@@ -38,7 +47,8 @@ def load_image(path: str | Path) -> tuple[np.ndarray, dict[str, Any]]:
         return result, metadata
 
     if suffix not in PIL_EXTENSIONS:
-        raise ValueError("当前独立版支持 TIFF、JPEG、PNG、BMP 和 WebP；RAW 请先导出为 16 位 TIFF。")
+        supported = "TIFF、JPEG、PNG、BMP、WebP 和相机 RAW"
+        raise ValueError(f"当前独立版支持 {supported}；无法识别扩展名：{suffix or '无扩展名'}。")
 
     with Image.open(source) as image:
         image = ImageOps.exif_transpose(image)
@@ -94,12 +104,16 @@ def save_image(
 
 
 def make_preview(image: np.ndarray, max_edge: int = 1800) -> np.ndarray:
+    """Downsample while keeping float precision for 16-bit TIFF/RAW analysis."""
+
     rgb = np.clip(np.asarray(image, dtype=np.float32), 0.0, 1.0)
     height, width, _ = rgb.shape
     if max(height, width) <= max_edge:
         return rgb.copy()
     scale = max_edge / float(max(height, width))
     target = (max(1, round(width * scale)), max(1, round(height * scale)))
-    data8 = np.round(rgb * 255.0).astype(np.uint8)
-    resized = Image.fromarray(data8, mode="RGB").resize(target, Image.Resampling.LANCZOS)
-    return np.asarray(resized, dtype=np.float32) / 255.0
+    channels: list[np.ndarray] = []
+    for index in range(3):
+        channel = Image.fromarray(rgb[..., index], mode="F").resize(target, Image.Resampling.LANCZOS)
+        channels.append(np.asarray(channel, dtype=np.float32))
+    return np.clip(np.stack(channels, axis=2), 0.0, 1.0)
