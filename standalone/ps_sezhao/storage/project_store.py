@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS image_states (
     analysis_json TEXT,
     crop_json TEXT NOT NULL,
     rotation INTEGER NOT NULL DEFAULT 0,
+    geometry_json TEXT NOT NULL DEFAULT '{}',
+    raw_settings_json TEXT NOT NULL DEFAULT '{}',
+    output_settings_json TEXT NOT NULL DEFAULT '{}',
     math_version INTEGER NOT NULL,
     raw_decode_version INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
@@ -46,6 +49,9 @@ class StoredImageState:
     analysis: dict[str, Any] | None
     crop: tuple[float, float, float, float]
     rotation: int
+    geometry: dict[str, Any]
+    raw_settings: dict[str, Any]
+    output_settings: dict[str, Any]
     math_version: int
     raw_decode_version: int
     updated_at: int
@@ -89,7 +95,22 @@ class ProjectStore:
     def initialize(self) -> None:
         with self.session() as connection:
             connection.executescript(SCHEMA_SQL)
+            self._ensure_image_state_columns(connection)
             self._set_metadata(connection, "schema_version", str(PROJECT_SCHEMA_VERSION))
+
+    def _ensure_image_state_columns(self, connection: sqlite3.Connection) -> None:
+        columns = {
+            str(row["name"])
+            for row in connection.execute("PRAGMA table_info(image_states)").fetchall()
+        }
+        additions = {
+            "geometry_json": "TEXT NOT NULL DEFAULT '{}'",
+            "raw_settings_json": "TEXT NOT NULL DEFAULT '{}'",
+            "output_settings_json": "TEXT NOT NULL DEFAULT '{}'",
+        }
+        for name, definition in additions.items():
+            if name not in columns:
+                connection.execute(f"ALTER TABLE image_states ADD COLUMN {name} {definition}")
 
     def _set_metadata(self, connection: sqlite3.Connection, key: str, value: str) -> None:
         connection.execute(
@@ -114,6 +135,9 @@ class ProjectStore:
         analysis: Mapping[str, Any] | None,
         crop: Iterable[float],
         rotation: int,
+        geometry: Mapping[str, Any] | None,
+        raw_settings: Mapping[str, Any] | None,
+        output_settings: Mapping[str, Any] | None,
         updated_at: int,
     ) -> None:
         normalized_crop = tuple(float(value) for value in crop)
@@ -128,15 +152,21 @@ class ProjectStore:
                 analysis_json,
                 crop_json,
                 rotation,
+                geometry_json,
+                raw_settings_json,
+                output_settings_json,
                 math_version,
                 raw_decode_version,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(file_path) DO UPDATE SET
                 controls_json=excluded.controls_json,
                 analysis_json=excluded.analysis_json,
                 crop_json=excluded.crop_json,
                 rotation=excluded.rotation,
+                geometry_json=excluded.geometry_json,
+                raw_settings_json=excluded.raw_settings_json,
+                output_settings_json=excluded.output_settings_json,
                 math_version=excluded.math_version,
                 raw_decode_version=excluded.raw_decode_version,
                 updated_at=excluded.updated_at
@@ -149,6 +179,9 @@ class ProjectStore:
                 else json.dumps(dict(analysis), ensure_ascii=False, sort_keys=True),
                 json.dumps(normalized_crop),
                 int(rotation) % 360,
+                json.dumps(dict(geometry or {}), ensure_ascii=False, sort_keys=True),
+                json.dumps(dict(raw_settings or {}), ensure_ascii=False, sort_keys=True),
+                json.dumps(dict(output_settings or {}), ensure_ascii=False, sort_keys=True),
                 MATH_CONTRACT_VERSION,
                 RAW_DECODE_CONTRACT_VERSION,
                 int(updated_at),
@@ -163,6 +196,9 @@ class ProjectStore:
         analysis: Mapping[str, Any] | None,
         crop: Iterable[float],
         rotation: int,
+        geometry: Mapping[str, Any] | None = None,
+        raw_settings: Mapping[str, Any] | None = None,
+        output_settings: Mapping[str, Any] | None = None,
         updated_at: int | None = None,
     ) -> None:
         self.initialize()
@@ -175,6 +211,9 @@ class ProjectStore:
                 analysis=analysis,
                 crop=crop,
                 rotation=rotation,
+                geometry=geometry,
+                raw_settings=raw_settings,
+                output_settings=output_settings,
                 updated_at=timestamp,
             )
 
@@ -210,6 +249,9 @@ class ProjectStore:
                     analysis=state.get("analysis"),
                     crop=state.get("crop") or (0.0, 0.0, 1.0, 1.0),
                     rotation=int(state.get("rotation") or 0),
+                    geometry=state.get("geometry") or {},
+                    raw_settings=state.get("raw_settings") or {},
+                    output_settings=state.get("output_settings") or {},
                     updated_at=timestamp,
                 )
 
@@ -233,6 +275,9 @@ class ProjectStore:
             analysis=None if analysis_payload is None else dict(json.loads(analysis_payload)),
             crop=(crop[0], crop[1], crop[2], crop[3]),
             rotation=int(row["rotation"]),
+            geometry=dict(json.loads(row["geometry_json"] or "{}")),
+            raw_settings=dict(json.loads(row["raw_settings_json"] or "{}")),
+            output_settings=dict(json.loads(row["output_settings_json"] or "{}")),
             math_version=int(row["math_version"]),
             raw_decode_version=int(row["raw_decode_version"]),
             updated_at=int(row["updated_at"]),
