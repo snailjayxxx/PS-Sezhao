@@ -34,10 +34,6 @@ def apply_v073_style_status_patch(app_class: Type[Any]) -> None:
         if frame is None or scanner_box is None or film_box is None:
             return
 
-        # The right control pane must own the available width. The original
-        # comboboxes remain as hidden data/event adapters so existing LUT and
-        # history code can continue to configure values and receive the normal
-        # <<ComboboxSelected>> event.
         try:
             self.controls.columnconfigure(0, weight=1)
             frame.grid_configure(sticky="ew")
@@ -188,6 +184,14 @@ def apply_v073_style_status_patch(app_class: Type[Any]) -> None:
         listbox.focus_set()
         return "break"
 
+    def open_style_popup(self: Any, box: ttk.Combobox) -> str:
+        """Compatibility entry point; no top-level popup is created."""
+
+        pane_width = int(getattr(self, "style_library_frame").winfo_width())
+        _ = pane_width
+        kind = "film" if box is getattr(self, "film_profile_box", None) else "scanner"
+        return self._v073_toggle_inline_style_list(kind)
+
     def choose_inline_style(self: Any, kind: str) -> str:
         item = self._v073_inline_style_lists.get(kind)
         if item is None:
@@ -284,6 +288,7 @@ def apply_v073_style_status_patch(app_class: Type[Any]) -> None:
     app_class._v073_configure_style_selectors = configure_style_selectors
     app_class._v073_build_inline_selector = build_inline_selector
     app_class._v073_toggle_inline_style_list = toggle_inline_style_list
+    app_class._v073_open_style_popup = open_style_popup
     app_class._v073_choose_inline_style = choose_inline_style
     app_class._v073_close_inline_style_lists = close_inline_style_lists
     app_class._v073_hide_local_status_labels = hide_local_status_labels
