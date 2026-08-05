@@ -4,6 +4,16 @@ from dataclasses import dataclass
 from threading import RLock
 from typing import Callable
 
+from .integration_groups import (
+    build_context,
+    install_drag_drop_group,
+    install_engine_group,
+    install_legacy_ui_group,
+    install_persistence_service_group,
+    install_processing_service_group,
+    install_runtime_binding_group,
+)
+
 
 @dataclass(frozen=True)
 class IntegrationStep:
@@ -22,84 +32,19 @@ _configured = False
 
 
 def integration_steps() -> tuple[IntegrationStep, ...]:
-    """Return the ordered standalone integration plan."""
+    """Return the small, ordered standalone integration plan."""
 
-    from . import app as app_module
-    from . import app_v052_source_crop_patch as source_crop_module
-    from . import engine as engine_module
-    from .app_v050_patch import apply_patch
-    from .app_v051_raw_patch import apply_raw_patch
-    from .app_v052_source_crop_patch import apply_source_crop_patch
-    from .app_v053_scroll_patch import apply_scroll_patch
-    from .app_v054_history_direct_patch import apply_v054_patch
-    from .app_v054_sync_patch import apply_v054_sync_patch
-    from .app_v055_import_drop_patch import (
-        apply_v055_import_drop_patch,
-        install_drag_drop_root,
-    )
-    from .app_v057_rotate_output_patch import apply_v057_rotate_output_patch
-    from .app_v060_style_library_patch import apply_v060_style_library_patch
-    from .app_v061_resizable_layout_patch import apply_v061_resizable_layout_patch
-    from .engine_style_v060_patch import apply_style_engine_patch
-    from .engine_v053_patch import apply_engine_patch
-    from .services.complete_output_pipeline import apply_complete_output_pipeline
-    from .services.geometry_history import apply_geometry_history_guard
-    from .services.geometry_pipeline import apply_geometry_pipeline
-    from .services.lightroom_job_pipeline import apply_lightroom_job_pipeline
-    from .services.output_defaults import apply_safe_output_defaults
-    from .services.output_pipeline import apply_output_pipeline
-    from .services.output_queue_compat import apply_output_queue_compatibility
-    from .services.output_sync_extension import apply_output_sync_extension
-    from .services.project_archive_pipeline import apply_project_archive_pipeline
-    from .services.project_archive_platform_guard import apply_project_archive_platform_guard
-    from .services.project_session import apply_project_session
-    from .services.proxy_pipeline import apply_proxy_pipeline
-    from .services.roll_project_pipeline import apply_roll_project_pipeline
-    from .services.roll_project_state import apply_roll_project_state_guard
-    from .services.runtime_service import install_runtime_bindings
-    from .services.sync_pipeline import apply_sync_pipeline
-    from .services.sync_transaction import apply_sync_transaction_guard
+    from .services.lifecycle_facade import apply_lifecycle_facade
 
-    app_class = app_module.SezhaoApp
-
+    context = build_context()
     return (
-        IntegrationStep("engine.base", apply_engine_patch),
-        IntegrationStep("engine.styles", apply_style_engine_patch),
-        IntegrationStep(
-            "runtime.bindings",
-            lambda: install_runtime_bindings(
-                app_module=app_module,
-                source_crop_module=source_crop_module,
-                engine_module=engine_module,
-            ),
-        ),
-        IntegrationStep("ui.controls", lambda: apply_patch(app_class)),
-        IntegrationStep("ui.raw", lambda: apply_raw_patch(app_class)),
-        IntegrationStep("ui.crop", lambda: apply_source_crop_patch(app_class)),
-        IntegrationStep("ui.scroll", lambda: apply_scroll_patch(app_class)),
-        IntegrationStep("ui.history", lambda: apply_v054_patch(app_class)),
-        IntegrationStep("ui.multi_image_legacy", lambda: apply_v054_sync_patch(app_class)),
-        IntegrationStep("ui.import_drop", lambda: apply_v055_import_drop_patch(app_class)),
-        IntegrationStep("ui.rotate_output", lambda: apply_v057_rotate_output_patch(app_class)),
-        IntegrationStep("ui.styles", lambda: apply_v060_style_library_patch(app_class)),
-        IntegrationStep("ui.resizable_layout", lambda: apply_v061_resizable_layout_patch(app_class)),
-        IntegrationStep("services.preview_proxy", lambda: apply_proxy_pipeline(app_class)),
-        IntegrationStep("services.geometry", lambda: apply_geometry_pipeline(app_class)),
-        IntegrationStep("services.geometry_history", lambda: apply_geometry_history_guard(app_class)),
-        IntegrationStep("services.output_queue", lambda: apply_output_pipeline(app_class)),
-        IntegrationStep("services.complete_output", lambda: apply_complete_output_pipeline(app_class)),
-        IntegrationStep("services.output_queue_compat", apply_output_queue_compatibility),
-        IntegrationStep("services.module_sync", lambda: apply_sync_pipeline(app_class)),
-        IntegrationStep("services.output_sync", lambda: apply_output_sync_extension(app_class)),
-        IntegrationStep("services.output_defaults", lambda: apply_safe_output_defaults(app_class)),
-        IntegrationStep("services.module_sync_transaction", lambda: apply_sync_transaction_guard(app_class)),
-        IntegrationStep("services.lightroom_jobs", lambda: apply_lightroom_job_pipeline(app_class)),
-        IntegrationStep("storage.project_session", lambda: apply_project_session(app_class)),
-        IntegrationStep("storage.roll_projects", lambda: apply_roll_project_pipeline(app_class)),
-        IntegrationStep("storage.roll_project_state", lambda: apply_roll_project_state_guard(app_class)),
-        IntegrationStep("storage.project_archive", lambda: apply_project_archive_pipeline(app_class)),
-        IntegrationStep("storage.project_archive_platform", lambda: apply_project_archive_platform_guard(app_class)),
-        IntegrationStep("runtime.drag_drop_root", lambda: install_drag_drop_root(app_module)),
+        IntegrationStep("engine.processing", lambda: install_engine_group(context)),
+        IntegrationStep("runtime.bindings", lambda: install_runtime_binding_group(context)),
+        IntegrationStep("ui.compatibility", lambda: install_legacy_ui_group(context)),
+        IntegrationStep("services.processing", lambda: install_processing_service_group(context)),
+        IntegrationStep("services.persistence", lambda: install_persistence_service_group(context)),
+        IntegrationStep("lifecycle.facade", lambda: apply_lifecycle_facade(context.app_class)),
+        IntegrationStep("runtime.drag_drop_root", lambda: install_drag_drop_group(context)),
     )
 
 
