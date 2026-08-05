@@ -9,7 +9,7 @@ const {
   deletePreviewInsideModal, tileHeightFor, ROLL_KEY, FINAL_LAYER_PREFIX,
   DEFAULT_CONTROLS
 } = c;
-const VERSION = "0.5.7";
+const VERSION = "0.6.0";
 
 async function convert() {
   if (state.operation || state.previewRendering) return;
@@ -102,11 +102,11 @@ function saveRoll() {
   try {
     if (!state.analysis) throw new Error("请先完成胶片基底分析，再保存本卷参数。");
     localStorage.setItem(ROLL_KEY, JSON.stringify({
-      version: 2,
+      version: 3,
       analysis: state.analysis,
       controls: currentControls()
     }));
-    setStatus("本卷分析与全部校色参数已保存。", "ok");
+    setStatus("本卷分析、扫描仪风格、胶卷风格与全部校色参数已保存。", "ok");
   } catch (error) { reportError(error, false); }
 }
 

@@ -12,11 +12,11 @@
       <div class="content-stack">
         <header class="hero">
           <div>
-            <div class="eyebrow">PS-SEZHAO · 0.4.0</div>
+            <div class="eyebrow">PS-SEZHAO · 0.6.0</div>
             <h1>胶片去色罩</h1>
-            <p>点击式吸管、大图预览与连续画布调色。</p>
+            <p>点击式吸管、大图预览、扫描仪风格与胶卷风格。</p>
           </div>
-          <span class="badge">V4</span>
+          <span class="badge">V6</span>
         </header>
 
         <section class="card">
@@ -100,18 +100,46 @@
         </section>
 
         <section class="card">
-          <h2>4. 基础转正</h2>
+          <h2>4. 扫描仪与胶卷风格</h2>
+          <p class="hint">扫描仪风格与胶卷风格是两个独立选项，可分别调整强度后再继续手动调色。</p>
           <label class="field select-field">
-            <span>胶片起始配置</span>
-            <select id="profile">
-              <option value="generic">通用 C-41（中性）</option>
-              <option value="portra">Kodak Portra 起始风格</option>
-              <option value="gold">Kodak Gold 起始风格</option>
-              <option value="fuji">Fujifilm C-41 起始风格</option>
-              <option value="ecn2">ECN-2 低反差起始风格</option>
+            <span>扫描仪风格</span>
+            <select id="scannerProfile">
+              <option value="neutral_lab">中性实验室 · 干净扫描</option>
+              <option value="hasselblad_flextight_x5">Hasselblad Flextight X5 · 高端扫描风格参考</option>
+              <option value="noritsu_hs1800">Noritsu HS-1800 · 日系冲扫风格参考</option>
+              <option value="frontier_sp3000_soft">Fujifilm Frontier SP-3000 · 柔和风格参考</option>
+              <option value="frontier_sp3000_vivid">Fujifilm Frontier SP-3000 · 浓郁风格参考</option>
+              <option value="archive_flatbed">Archive Flatbed · 档案平板扫描</option>
             </select>
           </label>
-          <label class="field"><span>风格强度 <output id="styleStrengthValue">100%</output></span><input id="styleStrength" type="range" min="0" max="200" step="1" value="100" /></label>
+          <label class="field"><span>扫描仪风格强度 <output id="scannerStrengthValue">100%</output></span><input id="scannerStrength" type="range" min="0" max="200" step="1" value="100" /></label>
+          <div class="divider"></div>
+          <label class="field select-field">
+            <span>胶卷风格</span>
+            <select id="profile">
+              <option value="generic">无胶卷风格 · 中性转正</option>
+              <option value="kodak_portra_160">Kodak Portra 160 · 细腻低饱和</option>
+              <option value="kodak_portra_400">Kodak Portra 400 · 柔和人像</option>
+              <option value="kodak_portra_800">Kodak Portra 800 · 暖调高感</option>
+              <option value="kodak_gold_200">Kodak Gold 200 · 暖色复古</option>
+              <option value="kodak_ektar_100">Kodak Ektar 100 · 高饱和风光</option>
+              <option value="kodak_ultramax_400">Kodak Ultramax 400 · 通用日常</option>
+              <option value="fujifilm_pro_400h">Fujifilm Pro 400H · 清淡粉绿</option>
+              <option value="fujifilm_superia_400">Fujifilm Superia X-TRA 400 · 清爽日常</option>
+              <option value="fujifilm_c200">Fujifilm C200 · 轻复古日常</option>
+              <option value="cinestill_50d">CineStill 50D · 日光电影感</option>
+              <option value="cinestill_800t">CineStill 800T · 钨丝霓虹</option>
+              <option value="kodak_vision3_250d">Kodak Vision3 250D · 电影日光</option>
+              <option value="kodak_vision3_500t">Kodak Vision3 500T · 电影夜景</option>
+              <option value="ilford_hp5_plus_400">Ilford HP5 Plus 400 · 经典黑白</option>
+              <option value="kodak_trix_400">Kodak Tri-X 400 · 纪实黑白</option>
+            </select>
+          </label>
+          <label class="field"><span>胶卷风格强度 <output id="styleStrengthValue">100%</output></span><input id="styleStrength" type="range" min="0" max="200" step="1" value="100" /></label>
+          <p id="styleDescription" class="microcopy" style="white-space: pre-line;">扫描：中性反差和色彩。\n胶卷：不附加胶卷色彩。</p>
+          <p class="microcopy">名称用于帮助识别常见观感；均为 PS-Sezhao 的非官方风格参考，并非厂商 ICC、DCP 或官方 LUT。</p>
+          <div class="divider"></div>
           <label class="field"><span>曝光 <output id="exposureValue">0.00 EV</output></span><input id="exposure" type="range" min="-300" max="300" step="5" value="0" /></label>
           <label class="field"><span>对比度 <output id="contrastValue">1.00</output></span><input id="contrast" type="range" min="50" max="200" step="1" value="100" /></label>
           <label class="field"><span>中间调 <output id="gammaValue">1.00</output></span><input id="gamma" type="range" min="50" max="200" step="1" value="100" /></label>

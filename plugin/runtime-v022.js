@@ -3,6 +3,9 @@
 const { entrypoints } = require("uxp");
 const c = require("./runtime-common.js");
 require("./runtime-engine-v053.js").apply(c.engine);
+require("./runtime-engine-style-v060.js").apply(c.engine);
+const styleLibrary = require("./runtime-style-v060.js");
+styleLibrary.applyCommon(c);
 const history = require("./runtime-history-v054.js");
 history.applyCommon(c);
 const preview = require("./runtime-preview.js");
@@ -16,7 +19,7 @@ const {
   schedulePreview, resetControls
 } = c;
 
-const VERSION = "0.5.7";
+const VERSION = "0.6.0";
 const V022_UI_IDS = [
   "pickBase", "pickNeutral", "cancelPicker", "sampleSize",
   "panelPreviewStage", "panelPreviewImage", "panelPreviewPlaceholder",
@@ -27,11 +30,13 @@ const V022_UI_IDS = [
 function bindClick(id, handler) { byId(id).addEventListener("click", handler); }
 function onAdjustmentInput() {
   refreshOutputs();
+  styleLibrary.refreshDescription(c);
   schedulePreview();
   history.record("control", false);
 }
 function onAdjustmentChange() {
   refreshOutputs();
+  styleLibrary.refreshDescription(c);
   schedulePreview(0);
   history.record("control", true);
 }
@@ -39,7 +44,7 @@ function updateVersionLabels() {
   const eyebrow = document.querySelector(".eyebrow");
   const badge = document.querySelector(".badge");
   if (eyebrow) eyebrow.textContent = "PS-SEZHAO · " + VERSION;
-  if (badge) badge.textContent = "V5";
+  if (badge) badge.textContent = "V6";
 }
 function configureDirectBaseRanges() {
   ["baseAdjustR", "baseAdjustG", "baseAdjustB"].forEach(function (id) {
@@ -60,8 +65,11 @@ function initializeUI() {
     byId(id).addEventListener("input", onAdjustmentInput);
     byId(id).addEventListener("change", onAdjustmentChange);
   });
-  byId("profile").addEventListener("change", function () {
-    onAdjustmentChange();
+  ["profile", "scannerProfile"].forEach(function (id) {
+    byId(id).addEventListener("change", function () {
+      styleLibrary.refreshDescription(c);
+      onAdjustmentChange();
+    });
   });
   byId("previewEdge").addEventListener("change", function () {
     state.previewCache = null;
@@ -97,11 +105,12 @@ function initializeUI() {
   numericControls.initializeNumericControls();
   panelPreview.initialize();
   sampler.initialize();
+  styleLibrary.initializeUI(c);
   applyControls(DEFAULT_CONTROLS);
   refreshOutputs();
   history.initialize();
   updateReadiness();
-  setStatus("准备就绪。胶片基底 R/G/B 现在直接填写最终数值；中性灰吸管修改 RGB 输出增益。", "");
+  setStatus("准备就绪。扫描仪风格与胶卷风格可独立选择和调整强度。", "");
   return true;
 }
 function scheduleInitialize() {
