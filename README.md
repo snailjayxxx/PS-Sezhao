@@ -11,7 +11,7 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 ## 当前版本
 
-统一版本：**v0.5.3**
+统一版本：**v0.5.4**
 
 - Photoshop 2024（25.0）或更高版本
 - Lightroom Classic 15.4 或更高版本
@@ -22,29 +22,44 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 | 使用场景 | 下载文件 |
 |---|---|
-| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.5.3.ccx` |
-| Photoshop 开发者加载 | `PS-Sezhao-Photoshop-Developer-v0.5.3.zip` |
-| Lightroom Classic · Apple Silicon | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.3.zip` |
-| Lightroom Classic · Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.3.zip` |
-| 独立桌面版 · Apple Silicon | `PS-Sezhao-Standalone-macOS-arm64-v0.5.3.zip` |
-| 独立桌面版 · Windows x64 | `PS-Sezhao-Standalone-Windows-x64-v0.5.3.zip` |
+| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.5.4.ccx` |
+| Photoshop 开发者加载 | `PS-Sezhao-Photoshop-Developer-v0.5.4.zip` |
+| Lightroom Classic · Apple Silicon | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.4.zip` |
+| Lightroom Classic · Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.4.zip` |
+| 独立桌面版 · Apple Silicon | `PS-Sezhao-Standalone-macOS-arm64-v0.5.4.zip` |
+| 独立桌面版 · Windows x64 | `PS-Sezhao-Standalone-Windows-x64-v0.5.4.zip` |
 
-## v0.5.3：宽范围基底微调与侧栏滚轮
+## v0.5.4：撤销、重做与直接基底数值
 
-胶片基底 R/G/B 的8位等效偏移范围由 `-64～+64` 扩大为：
+独立版、Lightroom 高精度窗口和 Photoshop 面板都增加撤销与重做：
 
 ```text
--255 ～ +255
+撤销：Ctrl/Cmd + Z
+重做：Ctrl/Cmd + Y 或 Ctrl/Cmd + Shift + Z
 ```
 
-滑块、数字输入、`− / +`按钮和上下方向键都使用新范围。独立版、Lightroom 高精度窗口和 Photoshop 像素引擎同步放宽内部限制。
+可恢复曝光、色彩、RGB 增益、胶片基底、自动分析、吸管结果和裁切。独立版按每张照片分别保存最多 60 项历史，不会把一张照片的历史套到另一张照片。
 
-独立版和 Lightroom 高精度窗口还修复了侧栏滚动：
+胶片基底不再显示“识别值上的加减偏移”，而是直接编辑最终使用的 R/G/B：
 
-- 鼠标位于右侧参数栏时，滚轮上下浏览参数；
-- 鼠标位于左侧图片列表时，滚轮上下浏览图片；
-- 支持 Windows 鼠标、Windows 触控板、macOS 鼠标/触控板和 X11 滚轮事件；
-- 中间图片预览区的滚轮继续用于缩放。
+```text
+识别值：212 / 143 / 82
+最终使用：212 / 143 / 82
+```
+
+独立版保留识别值作为参考，滑块和数字框直接修改“最终使用值”；“恢复为识别值”可回到吸管或自动分析结果。Photoshop 版使用 0～255 的直接数值。
+
+## 中性灰吸管修改什么
+
+中性灰吸管不会重新改变胶片基底，也不会直接改写色温或色调。它会计算并修改：
+
+```text
+红色输出增益
+绿色输出增益
+蓝色输出增益
+```
+
+目标是让点击区域经过当前转正处理后满足 R≈G≈B。`1.00` 表示该通道不额外校正。v0.5.4 会明确显示这三个数值，允许数字输入、滑块和 `− / +` 微调，并提供“中性灰增益恢复 1.00”。
 
 ## 原图吸管
 
@@ -55,13 +70,14 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 - Photoshop 从记录的原始负片图层读取像素，不读取临时预览图层；
 - 基底确定后，色调范围使用当前裁切区域重新计算。
 
-## 裁切
+## 侧栏滚轮和裁切
 
+- 鼠标位于右侧参数栏时，滚轮上下浏览参数；
+- 鼠标位于左侧图片列表时，滚轮上下浏览图片；
+- 中间图片预览区滚轮继续用于缩放；
 - 平时只显示裁切后保留的画面；
 - 点击“裁切”后显示完整照片和当前裁切框；
-- 可拖动四角、四边中点、整个框，也可重新拖出范围；
-- 点击“完成裁切”后重新只显示保留范围；
-- “自动分析边框”只分析裁切后的区域；
+- 自动分析边框只分析裁切后的区域；
 - 裁切是非破坏性的，只在导出时应用。
 
 ## 相机 RAW 直读
@@ -72,7 +88,7 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 CR2 / CR3 / NEF / NRW / ARW / RAF / RW2 / ORF / PEF / SRW / DNG
 ```
 
-完整解码固定采用16位、线性Gamma、关闭自动提亮和ProPhoto RGB。具体相机与压缩方式支持范围取决于发行包内的 rawpy / LibRaw。
+完整解码固定采用 16 位、线性 Gamma、关闭自动提亮和 ProPhoto RGB。具体相机与压缩方式支持范围取决于发行包内的 rawpy / LibRaw。
 
 ## Lightroom Classic
 
@@ -83,7 +99,7 @@ CR2 / CR3 / NEF / NRW / ARW / RAF / RW2 / ORF / PEF / SRW / DNG
 → PS-Sezhao：原生直接转正所选照片（默认）
 ```
 
-直接写入 Lightroom 非破坏性调整，不生成新文件，并默认创建恢复快照。
+直接写入 Lightroom 非破坏性调整，不生成新文件，并默认创建恢复快照。该模式的撤销继续使用 Lightroom 历史记录和插件恢复快照。
 
 ### 高精度 16 位 TIFF
 
@@ -92,11 +108,11 @@ CR2 / CR3 / NEF / NRW / ARW / RAF / RW2 / ORF / PEF / SRW / DNG
 → PS-Sezhao：高精度 16 位 TIFF
 ```
 
-Lightroom 先渲染16位ProPhoto RGB TIFF，再打开与独立版相同的多图窗口。因此原图吸管、宽范围基底微调、新裁切和侧栏滚轮均可使用。
+Lightroom 先渲染 16 位 ProPhoto RGB TIFF，再打开与独立版相同的多图窗口，因此撤销/重做、直接基底数值、中性灰增益、原图吸管、裁切和侧栏滚轮均可使用。
 
 ## Photoshop
 
-相机 RAW 先通过 Camera Raw 打开，再使用 PS-Sezhao。Photoshop 版保留点击吸管、实时画布预览、大图预览、宽范围基底微调、数字输入和完整分辨率输出。
+相机 RAW 先通过 Camera Raw 打开，再使用 PS-Sezhao。Photoshop 版保留点击吸管、实时画布预览、大图预览、数字输入和完整分辨率输出，并增加插件参数撤销/重做。
 
 ## 开发检查
 
