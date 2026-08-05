@@ -12,6 +12,7 @@ ENV_DATA_ROOT = "PS_SEZHAO_DATA_ROOT"
 PORTABLE_MARKER = ".ps-sezhao-portable"
 PROJECT_DIRECTORY_NAME = "project"
 LUT_DIRECTORY_NAME = "lut"
+LOG_DIRECTORY_NAME = "logs"
 DATABASE_FILENAME = "workspace.sqlite3"
 
 
@@ -25,9 +26,6 @@ def application_container() -> Path:
                 if parent.suffix.lower() == ".app":
                     return parent.parent
         return executable.parent
-
-    # Source runs use the repository root as the portable container. The file
-    # lives at standalone/ps_sezhao/storage/paths.py.
     return Path(__file__).resolve(strict=False).parents[3]
 
 
@@ -51,8 +49,6 @@ def legacy_project_database_path() -> Path:
 def _fallback_data_root() -> Path:
     home = Path.home()
     if sys.platform == "darwin":
-        # Standard installed macOS apps keep mutable data outside the signed
-        # .app bundle in the user's Application Support directory.
         return _legacy_data_root()
     if os.name == "nt":
         local_app_data = os.environ.get("LOCALAPPDATA")
@@ -90,7 +86,7 @@ def _uses_macos_application_support_layout() -> bool:
 
 
 def default_data_root() -> Path:
-    """Resolve the writable root shared by the app, project and LUT folders."""
+    """Resolve the writable root shared by project, LUT and diagnostic data."""
 
     override = os.environ.get(ENV_DATA_ROOT)
     if override:
@@ -103,36 +99,77 @@ def default_data_root() -> Path:
     return _fallback_data_root()
 
 
+def _write_directory_note(directory: Path, filename: str, text: str) -> None:
+    note = directory / filename
+    if note.exists():
+        return
+    try:
+        note.write_text(text, encoding="utf-8")
+    except OSError:
+        pass
+
+
 def ensure_data_layout() -> Path:
+    """Create the writable first-run directory structure.
+
+    Standard macOS installs keep the database at its historical location while
+    creating visible project, LUT and log folders below Application Support.
+    Portable builds keep the same folders beside the executable/app.
+    """
+
     root = default_data_root()
     root.mkdir(parents=True, exist_ok=True)
-    if _uses_macos_application_support_layout():
-        (root / LUT_DIRECTORY_NAME).mkdir(parents=True, exist_ok=True)
-        return root
+    project = root / PROJECT_DIRECTORY_NAME
+    lut = root / LUT_DIRECTORY_NAME
+    logs = root / LOG_DIRECTORY_NAME
+    project.mkdir(parents=True, exist_ok=True)
+    lut.mkdir(parents=True, exist_ok=True)
+    logs.mkdir(parents=True, exist_ok=True)
 
-    (root / PROJECT_DIRECTORY_NAME).mkdir(parents=True, exist_ok=True)
-    (root / LUT_DIRECTORY_NAME).mkdir(parents=True, exist_ok=True)
-    marker = root / PORTABLE_MARKER
-    if not marker.exists():
-        try:
-            marker.write_text(
-                "PS-Sezhao portable data root. Keep project and lut beside the application.\n",
-                encoding="utf-8",
-            )
-        except OSError:
-            pass
+    _write_directory_note(
+        project,
+        "README.txt",
+        "此文件夹用于 PS-Sezhao 项目归档、数据库备份和迁移文件。\n"
+        "标准 macOS 安装版的 workspace.sqlite3 为兼容旧版本仍保存在上一级目录。\n",
+    )
+    _write_directory_note(
+        lut,
+        "README.txt",
+        "将标准 1D 或 3D .cube LUT 文件放入此文件夹。\n",
+    )
+    _write_directory_note(
+        logs,
+        "README.txt",
+        "startup.log 记录程序启动和崩溃诊断信息。\n",
+    )
+
+    if not _uses_macos_application_support_layout():
+        marker = root / PORTABLE_MARKER
+        if not marker.exists():
+            try:
+                marker.write_text(
+                    "PS-Sezhao portable data root. Keep project, lut and logs beside the application.\n",
+                    encoding="utf-8",
+                )
+            except OSError:
+                pass
     return root
 
 
 def default_project_directory() -> Path:
-    root = ensure_data_layout()
-    if _uses_macos_application_support_layout():
-        return root
-    return root / PROJECT_DIRECTORY_NAME
+    return ensure_data_layout() / PROJECT_DIRECTORY_NAME
 
 
 def default_lut_directory() -> Path:
     return ensure_data_layout() / LUT_DIRECTORY_NAME
+
+
+def default_log_directory() -> Path:
+    return ensure_data_layout() / LOG_DIRECTORY_NAME
+
+
+def default_startup_log_path() -> Path:
+    return default_log_directory() / "startup.log"
 
 
 def _migrate_legacy_database(target: Path) -> None:
@@ -168,12 +205,16 @@ def _migrate_legacy_database(target: Path) -> None:
 
 
 def default_project_database_path() -> Path:
-    """Return the project database and migrate a previous location when needed."""
+    """Return the project database while preserving the macOS legacy location."""
 
     override = os.environ.get(ENV_PROJECT_DATABASE)
     if override:
         return Path(override).expanduser().resolve(strict=False)
 
-    target = default_project_directory() / DATABASE_FILENAME
+    root = ensure_data_layout()
+    if _uses_macos_application_support_layout():
+        return root / DATABASE_FILENAME
+
+    target = root / PROJECT_DIRECTORY_NAME / DATABASE_FILENAME
     _migrate_legacy_database(target)
     return target

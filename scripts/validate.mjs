@@ -67,6 +67,7 @@ const requiredFiles = [
   "standalone/main.py",
   "standalone/ps_sezhao/__init__.py",
   "standalone/ps_sezhao/bootstrap.py",
+  "standalone/ps_sezhao/startup_guard.py",
   "standalone/ps_sezhao/integration_groups.py",
   "standalone/ps_sezhao/app_v071_text_layout_patch.py",
   "standalone/ps_sezhao/app_v072_workspace_lut_layout_patch.py",
@@ -87,6 +88,7 @@ const requiredFiles = [
   "standalone/tests/test_lut_paths_v072.py",
   "standalone/tests/test_ui_layout_v072.py",
   "standalone/tests/test_startup_close_policy_v073.py",
+  "standalone/tests/test_startup_guard_v074.py",
   "standalone/installer/INSTALL.zh-CN.html",
   "standalone/installer/PS-Sezhao.iss",
   "scripts/validate-real-roll.py",
@@ -123,9 +125,20 @@ const standaloneInit = read("standalone/ps_sezhao/__init__.py");
 requireToken(standaloneInit, `__version__ = "${version}"`, "Standalone version is stale");
 const standaloneMain = read("standalone/main.py");
 requireToken(standaloneMain, "run_application", "Standalone launcher must use the unified entrypoint");
+requireToken(standaloneMain, "run_guarded", "Standalone launcher must initialize first-run diagnostics");
 for (const forbidden of ["apply_patch", "apply_raw_patch", "app_v050_patch"]) {
   if (standaloneMain.includes(forbidden)) throw new Error(`Standalone launcher still wires a patch: ${forbidden}`);
 }
+
+const startupGuard = read("standalone/ps_sezhao/startup_guard.py");
+for (const token of [
+  "initialize_startup_environment",
+  "RotatingFileHandler",
+  "default_startup_log_path",
+  "Uncaught exception",
+  "fatal startup failure",
+  "/usr/bin/osascript",
+]) requireToken(startupGuard, token, `Startup diagnostics are incomplete: ${token}`);
 
 const bootstrap = read("standalone/ps_sezhao/bootstrap.py");
 const groups = read("standalone/ps_sezhao/integration_groups.py");
@@ -174,7 +187,7 @@ for (const token of [
   "rotation_status",
   "crop_status",
   "geometry_status",
-]) requireToken(styleStatus, token, `Beta 4 style/status UI is incomplete: ${token}`);
+]) requireToken(styleStatus, token, `Beta style/status UI is incomplete: ${token}`);
 
 const startupClose = read("standalone/ps_sezhao/services/startup_close_policy.py");
 for (const token of [
@@ -198,10 +211,13 @@ const storagePaths = read("standalone/ps_sezhao/storage/paths.py");
 for (const token of [
   'PROJECT_DIRECTORY_NAME = "project"',
   'LUT_DIRECTORY_NAME = "lut"',
+  'LOG_DIRECTORY_NAME = "logs"',
   'PORTABLE_MARKER = ".ps-sezhao-portable"',
   "_uses_macos_application_support_layout",
-  "Application Support",
-  "legacy_project_database_path",
+  "default_project_directory",
+  "default_log_directory",
+  "default_startup_log_path",
+  "workspace.sqlite3",
 ]) requireToken(storagePaths, token, `Project storage is incomplete: ${token}`);
 
 const lrInfo = read("lightroom-classic/PS-Sezhao.lrplugin/Info.lua");
@@ -234,10 +250,12 @@ const macBuildScript = read("scripts/build-macos-release.sh");
 for (const token of [
   "APPLE_CERTIFICATE_P12_BASE64",
   "codesign --force --deep --options runtime",
+  "codesign --force --deep --sign -",
   "xcrun notarytool submit",
   "xcrun stapler staple",
   "ln -s /Applications",
-  "The macOS build will remain unsigned",
+  "Applying an ad-hoc signature",
+  "portable-stage/PS-Sezhao/logs",
 ]) requireToken(macBuildScript, token, `macOS release/signing flow is incomplete: ${token}`);
 
 const workflow = read(".github/workflows/release.yml");
@@ -262,7 +280,10 @@ for (const token of [
 const installHtml = read("standalone/installer/INSTALL.zh-CN.html");
 for (const token of [
   "Applications",
-  "Library/Application Support/PS-Sezhao/workspace.sqlite3",
+  "Library/Application Support/PS-Sezhao",
+  "project/",
+  "logs/",
+  "startup.log",
   "%LOCALAPPDATA%\\Programs\\PS-Sezhao\\",
   "是否保存本次胶卷项目",
   ".cube",

@@ -14,7 +14,7 @@ return {
         local available = LrFileUtils.exists(path)
         return {
             {
-                title = 'PS-Sezhao 0.7.0-beta.4',
+                title = 'PS-Sezhao 0.7.0-beta.5',
                 f:row {
                     spacing = f:control_spacing(),
                     f:static_text { title = '适配版本：' },
@@ -31,7 +31,7 @@ return {
                     f:static_text { title = available and '本地处理器可用' or '处理器缺失，请重新安装对应平台安装包' },
                 },
                 f:static_text {
-                    title = 'Beta 4 调整桌面端启动和关闭流程、完整宽度风格列表、顶部状态区域与标准 macOS DMG 安装。原始图片不会被覆盖。',
+                    title = 'Beta 5 修复 macOS 拖拽安装后的首次启动目录初始化，并增加启动失败日志。原始图片不会被覆盖。',
                     width_in_chars = 65,
                     height_in_lines = 3,
                 },
