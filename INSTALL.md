@@ -1,20 +1,20 @@
-# PS-Sezhao v0.5.1 安装与使用说明
+# PS-Sezhao v0.5.2 安装与使用说明
 
 ## Photoshop 2024（25.0）或更高版本
 
 ### CCX 安装
 
-1. 下载 `PS-Sezhao-Photoshop-v0.5.1.ccx`。
+1. 下载 `PS-Sezhao-Photoshop-v0.5.2.ccx`。
 2. 完全退出 Photoshop。
 3. 双击 CCX，通过 Creative Cloud Desktop 安装。
 4. 重新打开 Photoshop，从 `插件 → 胶片去色罩` 启动。
-5. 确认顶部显示 `PS-SEZHAO · 0.5.1`。
+5. 确认顶部显示 `PS-SEZHAO · 0.5.2`。
 
-主要滑块提供 `− / 数字输入框 / +`。可直接输入后按 Enter，也可通过按钮或上下方向键微调。
+胶片基底吸管显示的虽然可以是转正预览，但实际读取的是被记录的原始负片图层。面板下方“胶片基底微调”可手动调整 R/G/B，并支持数字输入和 `− / +`。
 
 ### UXP Developer Tool 加载
 
-1. 下载并解压 `PS-Sezhao-Photoshop-Developer-v0.5.1.zip`。
+1. 下载并解压 `PS-Sezhao-Photoshop-Developer-v0.5.2.zip`。
 2. 启动 Photoshop 2024 或更高版本。
 3. 启动 Adobe UXP Developer Tool 并启用 Developer Mode。
 4. 点击 `Add Plugin`，选择解压目录中的 `manifest.json`。
@@ -26,24 +26,16 @@
 
 ### 安装
 
-Apple Silicon Mac 下载：
+Apple Silicon Mac 下载 `PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.2.zip`。
 
-```text
-PS-Sezhao-LightroomClassic-macOS-arm64-v0.5.1.zip
-```
-
-Windows x64 下载：
-
-```text
-PS-Sezhao-LightroomClassic-Windows-x64-v0.5.1.zip
-```
+Windows x64 下载 `PS-Sezhao-LightroomClassic-Windows-x64-v0.5.2.zip`。
 
 1. 完全退出 Lightroom Classic。
 2. 删除或移走旧的 `PS-Sezhao.lrplugin`，不要覆盖旧目录。
 3. 解压新版，重新打开 Lightroom Classic。
 4. 进入 `文件 → 增效工具管理器`，移除旧条目。
 5. 点击“添加”，选择新的 `PS-Sezhao.lrplugin`。
-6. 确认显示 `PS-Sezhao 0.5.1`。
+6. 确认显示 `PS-Sezhao 0.5.2`。
 
 ### 原生直接转正
 
@@ -52,7 +44,7 @@ PS-Sezhao-LightroomClassic-Windows-x64-v0.5.1.zip
 → PS-Sezhao：原生直接转正所选照片（默认）
 ```
 
-该模式直接写入 Lightroom 非破坏性调整，不生成新文件。建议保持“应用前创建恢复快照”开启。
+该模式直接写入 Lightroom 非破坏性调整，不生成新文件。建议保持“应用前创建恢复快照”开启。该模式没有独立调色窗口，因此不提供吸管或手动基底面板。
 
 ### 高精度 16 位 TIFF
 
@@ -61,13 +53,13 @@ PS-Sezhao-LightroomClassic-Windows-x64-v0.5.1.zip
 → PS-Sezhao：高精度 16 位 TIFF
 ```
 
-Lightroom 先将当前照片渲染为 16 位 ProPhoto RGB TIFF，再打开多图窗口。支持逐张参数、缩放、平移、裁切和批量导回。Lightroom 中的 RAW 仍由 Lightroom 解码，不使用独立版 RAW 设置。
+Lightroom 先将照片渲染为16位ProPhoto RGB TIFF，再打开与独立版相同的多图窗口。原图吸管、基底 R/G/B 手动微调、新裁切方式和批量导回均可使用。
 
 ## 独立桌面版
 
 ### macOS Apple Silicon
 
-1. 下载并解压 `PS-Sezhao-Standalone-macOS-arm64-v0.5.1.zip`。
+1. 下载并解压 `PS-Sezhao-Standalone-macOS-arm64-v0.5.2.zip`。
 2. 将 `PS-Sezhao.app` 移到“应用程序”。
 3. 首次启动若提示无法验证开发者，在 Finder 中右键应用，选择“打开”，再确认“打开”。
 4. 新版 macOS 仍阻止时，进入 `系统设置 → 隐私与安全性`，在安全区域找到 PS-Sezhao，点击“仍要打开”。
@@ -75,59 +67,82 @@ Lightroom 先将当前照片渲染为 16 位 ProPhoto RGB TIFF，再打开多图
 
 ### Windows x64
 
-1. 下载并解压 `PS-Sezhao-Standalone-Windows-x64-v0.5.1.zip`。
+1. 下载并解压 `PS-Sezhao-Standalone-Windows-x64-v0.5.2.zip`。
 2. 运行 `PS-Sezhao.exe`。
 3. Windows SmartScreen 出现时，先确认文件来自本仓库 Release，再选择“更多信息 → 仍要运行”。
 
-独立版不要求安装 Photoshop、Lightroom、Creative Cloud、Python、rawpy 或 LibRaw；所需 RAW 运行库已包含在发行包内。
+独立版不要求安装 Photoshop、Lightroom、Creative Cloud、Python、rawpy 或 LibRaw。
 
-## 直接打开相机 RAW
+## 胶片基底吸管
 
-点击“添加图像”或“添加文件夹”，可加入常见 RAW：
+1. 点击“吸管：胶片基底”。
+2. 点击未曝光的橙色胶片边框。
+3. 程序把当前可见位置换算到完整原图坐标。
+4. 取样读取未调色、未转正的原始输入像素。
+5. 黑白范围按当前裁切区域重新计算。
+
+曝光、色温、RGB增益、风格和预览效果不会改变吸管读取的基底颜色。
+
+## 手动修改胶片基底
+
+右侧滚动到“胶片基底手动微调 · v0.5.2”。
+
+- R、G、B 各有滑块；
+- 数字框可直接输入 `-64` 到 `64`；
+- `− / +` 每次调整1个8位等效单位；
+- 输入框内按上下方向键也可微调；
+- 顶部会显示原图识别值和当前实际使用值；
+- “重置胶片基底微调”将三通道恢复为0。
+
+## 新裁切流程
+
+### 应用状态
+
+平时只显示裁切后保留的画面，不显示裁切框、遮罩或被裁掉的部分。
+
+### 编辑状态
+
+1. 点击预览上方的“裁切”。
+2. 程序显示完整照片和当前裁切框。
+3. 拖动四个角调整宽高。
+4. 拖动四边中点只调整一条边。
+5. 拖动框内区域移动整个裁切框。
+6. 在框外按下并拖动，可重新建立裁切范围。
+7. 点击“完成裁切”。
+8. 程序重新只显示裁切后的画面。
+
+再次点击“裁切”，会重新显示完整照片和上一次的裁切框。“重置裁切”恢复完整画面。
+
+## 自动分析边框
+
+“自动分析边框”只使用当前裁切范围。完成裁切或重置裁切后：
+
+- 自动分析得到的基底会按新范围重新计算；
+- 吸管取得的原图基底颜色会保留，只重新计算新范围内的黑白点；
+- 批量处理中没有保存分析结果的照片，也会先裁切再分析。
+
+裁切区域没有未曝光胶片边框时，自动分析可能失败，此时应使用胶片基底吸管。
+
+## 相机 RAW
+
+“添加图像”或“添加文件夹”可加入常见 RAW：
 
 ```text
 CR2 / CR3 / NEF / NRW / ARW / RAF / RW2 / ORF / PEF / SRW / DNG
 ```
 
-### RAW 设置
+右侧 RAW 设置提供相机、日光、自动和自定义白平衡，高光处理、去马赛克方式、内嵌预览优先和重新解码。完整解码固定为16位、线性Gamma、ProPhoto RGB并关闭自动提亮。
 
-右侧“相机 RAW 解码 · v0.5.1”区域包含：
+若 LibRaw 不支持相机或压缩方式，可先用 Lightroom Classic、Camera Raw 或相机厂商软件导出16位TIFF。
 
-- **相机拍摄白平衡**：使用相机写入的白平衡，默认选择；
-- **日光白平衡**：适合固定灯箱、统一翻拍条件；
-- **自动白平衡**：由 LibRaw 估算；
-- **自定义通道倍率**：输入 R、G、B、G2 四通道倍率；
-- **高光处理**：混合、直接裁切或重建；
-- **去马赛克**：AHD、线性、VNG 或 PPG；
-- **优先读取内嵌预览**：切换图片时先快速显示；
-- **半尺寸快速预览**：没有内嵌预览时降低等待时间；
-- **重新解码当前 RAW**：修改解码设置后重新处理当前照片。
+## 多图和导出
 
-完整解码固定为16位、线性Gamma、ProPhoto RGB并关闭自动提亮。预览完成后仍会在后台加载完整RAW；最终导出不会使用内嵌JPEG预览。
-
-### 不支持的 RAW
-
-若安装包内的 LibRaw 不支持某个相机、压缩方式或多帧结构，程序会显示：
-
-- 文件名；
-- rawpy 与 LibRaw 版本；
-- 可能的原因；
-- 先导出16位TIFF的替代办法。
-
-此时可使用 Lightroom Classic、Camera Raw或相机厂商软件导出16位TIFF，再加入PS-Sezhao。
-
-## 多图、缩放、裁切和导出
-
-- “添加图像”可一次选择多张；
-- “添加文件夹”可扫描整个文件夹及子文件夹；
-- 左侧列表支持多选、上一张和下一张；
-- 每张图片保存自己的分析、参数和裁切；
-- 滚轮缩放，平移模式拖动画面；
-- 裁切模式拖出非破坏性矩形；
+- “添加图像”一次选择多张；
+- “添加文件夹”扫描文件夹及可选子文件夹；
+- 每张图片保存自己的分析、基底微调、调色参数和裁切；
 - 参数和裁切可同步到选中照片；
-- 可保存当前、导出选中或导出全部。
-
-RAW 批量导出会逐张完整解码、处理、保存和释放内存。默认输出16位TIFF并嵌入ProPhoto ICC。
+- 可保存当前、导出选中或导出全部；
+- RAW 批量导出逐张解码、处理、保存和释放内存。
 
 ## 关于第三方修改版 Adobe 软件
 
