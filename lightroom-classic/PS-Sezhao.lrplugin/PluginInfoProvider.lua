@@ -14,7 +14,7 @@ return {
         local available = LrFileUtils.exists(path)
         return {
             {
-                title = 'PS-Sezhao 0.5.1',
+                title = 'PS-Sezhao 0.5.2',
                 f:row {
                     spacing = f:control_spacing(),
                     f:static_text { title = '适配版本：' },
@@ -31,7 +31,7 @@ return {
                     f:static_text { title = available and '本地处理器可用' or '处理器缺失，请重新安装对应平台安装包' },
                 },
                 f:static_text {
-                    title = 'Lightroom 中的 RAW 继续由 Lightroom 解码。v0.5.1 的 RAW 直读主要用于独立桌面版。',
+                    title = '高精度窗口支持原图吸管、胶片基底 R/G/B 手动微调，以及完成后仅显示保留范围的新裁切方式。',
                     width_in_chars = 65,
                     height_in_lines = 3,
                 },
