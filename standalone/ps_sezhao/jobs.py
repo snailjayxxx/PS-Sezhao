@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
+from .core.geometry import GeometrySettings, apply_photo_geometry
 from .engine import Analysis, Controls, analyze_image
 from .io_utils import load_image, make_preview, save_image
 from .processing import process_image_tiled
@@ -25,6 +26,7 @@ def run_job(job_path: str | Path, progress: ProgressCallback | None = None) -> l
     default_analysis = settings.get("analysis")
     default_crop = clamp_crop(settings.get("crop"))
     default_rotation = normalize_rotation(settings.get("rotation", 0))
+    default_geometry = GeometrySettings.from_dict(settings.get("geometry"))
     default_raw = RawDecodeSettings.from_dict(settings.get("raw_decode"))
     output_paths: list[str] = []
 
@@ -36,6 +38,8 @@ def run_job(job_path: str | Path, progress: ProgressCallback | None = None) -> l
         raw_settings = RawDecodeSettings.from_dict(item.get("raw_decode") or default_raw.to_dict())
         image, metadata = load_image(input_path, raw_settings=raw_settings)
         image = rotate_array(image, item.get("rotation", default_rotation))
+        geometry = GeometrySettings.from_dict(item.get("geometry") or default_geometry.to_dict())
+        image = apply_photo_geometry(image, geometry)
         item_analysis = item.get("analysis", default_analysis)
         item_controls = item.get("controls")
         controls = Controls.from_dict(item_controls) if item_controls else default_controls
