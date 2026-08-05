@@ -1,93 +1,81 @@
-# PS-Sezhao v0.7.0-beta.3
+# PS-Sezhao v0.7.0-beta.4
 
-本版本继续改善独立版界面，并加入应用同级项目目录、用户 Cube LUT、macOS DMG 和 Windows 图形化安装器。v0.6.3 继续保留为 Latest 稳定版。
+本版本调整独立版启动与关闭流程，修复风格列表和状态文字在 macOS 下仍然显示不完整的问题，并把 macOS 安装方式改为标准 Applications DMG。v0.6.3 继续保留为 Latest 稳定版。
 
-## 风格选择区域
+## 启动和关闭
 
-- “扫描仪风格”和“胶卷风格”的下拉框直接跟随各自文字标签，并使用右侧剩余宽度；
-- 不再请求固定 31 字符宽度，避免右侧栏较窄时控件左侧或文字被截断；
-- 下拉列表根据最长项目自动增加宽度；
-- 靠近窗口右边缘时，下拉列表会向左调整，而不是突出应用窗口；
-- 内置扫描仪和胶卷名称可在展开列表中完整显示。
+- 普通启动时不再自动打开上次关闭时的照片；
+- 上次临时工作区的照片列表会在干净启动时清除；
+- 已保存胶卷项目仍保留在数据库中，可通过左侧“打开”手动恢复；
+- 关闭且当前有照片时，弹出“是 / 否 / 取消”询问；
+- 选择“是”保存本次胶卷项目后退出；
+- 临时工作区选择保存时，会要求输入胶卷项目名称；
+- 选择“否”直接关闭并清除临时照片列表；
+- 选择“取消”返回程序，不关闭窗口。
 
-## 工具与几何分组
+## 风格完整宽度列表
 
-- 预览工具重组为“裁切工具、缩放、旋转”三个有边框的固定组；
-- 几何校正重组为“范围、拉直、变换”三个有边框的固定组；
-- 同组按钮之间的间距不再随窗口宽度拉伸；
-- 仅工具组右侧空白区域参与伸缩；
-- 保留原有裁切、缩放、旋转、拉直、翻转、自动范围和四角透视功能。
+- 扫描仪风格和胶卷风格不再使用 macOS 原生窄弹出列表；
+- 点击后会在右侧风格栏内部展开完整宽度列表；
+- 列表左边缘与风格区域对齐，右边缘不会越出程序窗口；
+- 最多显示 14 行并提供滚动条；
+- 用户 LUT 会在打开胶卷列表前自动刷新；
+- 选择后继续触发现有预览、历史和项目保存流程。
 
-## project 与 lut 同级目录
+## 顶部状态空间
 
-安装版和便携版现在使用统一结构：
+- 右上角空白区域改为“当前状态”面板；
+- 程序状态、旋转状态、裁切状态和几何状态集中显示；
+- 旋转工具组不再因为状态文字过长而被截断；
+- 裁切和几何工具栏只保留实际工具，按钮间距保持固定。
+
+## macOS 标准安装
+
+- DMG 改为标准拖拽安装：把 `PS-Sezhao.app` 拖到 `Applications`；
+- 不再包含或执行 `.command` 安装脚本；
+- App 会直接显示在 Finder 的“应用程序”窗口；
+- macOS 标准安装版数据库恢复为原位置：`~/Library/Application Support/PS-Sezhao/workspace.sqlite3`；
+- 用户 LUT 位于 `~/Library/Application Support/PS-Sezhao/lut/`；
+- 便携 ZIP 仍保留应用同级 `project` 和 `lut` 结构。
+
+## Apple 签名与公证
+
+- 构建流程新增 Developer ID 签名和 Apple 公证支持；
+- 配置完整 Apple 证书与公证 Secrets 时，自动签名 App、提交公证、装订票据、签名并公证 DMG；
+- 未配置凭据时仍生成未签名测试包，并在 Actions 中明确显示警告；
+- 未签名包仍需要用户在 macOS“隐私与安全性”中手动确认，这无法通过普通脚本安全绕过。
+
+需要配置的仓库 Secrets：
 
 ```text
-PS-Sezhao/
-├── PS-Sezhao.app 或 PS-Sezhao.exe
-├── project/
-│   └── workspace.sqlite3
-├── lut/
-├── 安装说明.html
-└── .ps-sezhao-portable
+APPLE_CERTIFICATE_P12_BASE64
+APPLE_CERTIFICATE_PASSWORD
+APPLE_SIGNING_IDENTITY
+APPLE_ID
+APPLE_APP_SPECIFIC_PASSWORD
+APPLE_TEAM_ID
 ```
-
-- 普通工作区、多个胶卷项目、每张图片参数和输出预设都保存在 `project/workspace.sqlite3`；
-- 左侧胶卷项目区域增加“打开 project 文件夹”；
-- 右侧风格区域增加“打开 LUT 文件夹”；
-- 首次启动会从旧位置自动复制数据库；
-- 旧数据库不会删除，新目录会生成 `MIGRATED_FROM.txt` 记录迁移来源；
-- 单独把 `.app` 放进不可写的系统 `/Applications` 时，数据会安全回退到 `~/Documents/PS-Sezhao`。
-
-## 用户 Cube LUT
-
-- 胶卷风格区域新增“添加 LUT…”；
-- 支持标准 `.cube` 文件，包括 1D 和 3D LUT；
-- 导入时检查尺寸、数据行数、数值范围和 Domain；
-- 3D LUT 使用三线性插值；
-- LUT 应用于基础转正、扫描仪风格和内置胶卷处理之后；
-- 使用现有“胶卷强度”控制 LUT 混合比例；
-- 项目只保存 LUT 文件名，缺失或损坏的 LUT 不会阻止项目打开；
-- 跨电脑迁移时需要同时复制 `project` 和 `lut` 文件夹。
-
-## 安装包
-
-### macOS Apple Silicon
-
-- 新增 `PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.3.dmg`；
-- DMG 内包含“安装到用户应用程序.command”；
-- 默认安装到 `~/Applications/PS-Sezhao/`，不需要管理员权限；
-- 更新只替换 App，不删除 `project` 和 `lut`；
-- 同时继续提供可直接解压使用的便携 ZIP。
-
-### Windows x64
-
-- 新增 `PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.3.exe`；
-- 默认安装到 `%LOCALAPPDATA%\Programs\PS-Sezhao\`，不需要管理员权限；
-- 支持开始菜单、可选桌面快捷方式和系统卸载入口；
-- 卸载程序默认保留 `project` 和 `lut`；
-- 同时继续提供便携 ZIP。
 
 ## 自动验证
 
-构建流程会检查：
-
-- Cube LUT 解析、1D 插值、3D 三线性插值和参数保存；
-- 旧数据库迁移、旧文件保留和同级目录创建；
-- 风格下拉框、工具边框分组和固定间距；
-- macOS DMG、便携目录和打包后的真实窗口启动；
-- Windows 安装器静默安装后的目录结构和真实窗口启动；
-- Photoshop、Lightroom、RAW、项目归档和完整输出的既有功能。
+- 普通启动为空白工作区；
+- 已保存胶卷项目不会自动打开，但可手动恢复；
+- 关闭保存、不保存和取消三条路径；
+- 临时工作区保存为命名胶卷项目；
+- 风格完整宽度弹窗和顶部状态面板；
+- macOS 标准 DMG 中存在 Applications 链接且不含 `.command`；
+- Windows 安装器、便携目录和安装后真实窗口；
+- Photoshop、Lightroom、RAW、用户 LUT、输出和项目归档既有功能。
 
 ## 发行文件
 
-- `PS-Sezhao-Photoshop-v0.7.0-beta.3.ccx`
-- `PS-Sezhao-Photoshop-Developer-v0.7.0-beta.3.zip`
-- `PS-Sezhao-LightroomClassic-Source-v0.7.0-beta.3.zip`
-- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.0-beta.3.zip`
-- `PS-Sezhao-LightroomClassic-Windows-x64-v0.7.0-beta.3.zip`
-- `PS-Sezhao-Standalone-macOS-arm64-v0.7.0-beta.3.zip`
-- `PS-Sezhao-Standalone-Windows-x64-v0.7.0-beta.3.zip`
-- `PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.3.dmg`
-- `PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.3.exe`
+- `PS-Sezhao-Photoshop-v0.7.0-beta.4.ccx`
+- `PS-Sezhao-Photoshop-Developer-v0.7.0-beta.4.zip`
+- `PS-Sezhao-LightroomClassic-Source-v0.7.0-beta.4.zip`
+- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.0-beta.4.zip`
+- `PS-Sezhao-LightroomClassic-Windows-x64-v0.7.0-beta.4.zip`
+- `PS-Sezhao-Standalone-macOS-arm64-v0.7.0-beta.4.zip`
+- `PS-Sezhao-Standalone-Windows-x64-v0.7.0-beta.4.zip`
+- `PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.4.dmg`
+- `PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.4.exe`
 - `CHECKSUMS.txt`
