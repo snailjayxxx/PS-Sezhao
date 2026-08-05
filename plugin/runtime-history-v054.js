@@ -6,6 +6,7 @@ let redoItems = [];
 let restoring = false;
 let lastKind = "";
 let lastTime = 0;
+let lastAnalysisSignature = "";
 const LIMIT = 60;
 
 function clone(value) {
@@ -16,21 +17,89 @@ function same(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+function analysisSignature() {
+  if (!c || !c.state.analysis || !Array.isArray(c.state.analysis.base)) return "";
+  return JSON.stringify({
+    base: c.state.analysis.base,
+    black: c.state.analysis.black,
+    white: c.state.analysis.white,
+    method: c.state.analysis.method,
+    sourceDocumentId: c.state.sourceDocumentId,
+    sourceLayerId: c.state.sourceLayerId
+  });
+}
+
 function directBaseValue(index) {
   const id = ["baseAdjustR", "baseAdjustG", "baseAdjustB"][index];
   const input = c.byId(id);
   return input ? Number(input.value) / 255 : 0;
 }
 
+function ensureUi() {
+  if (typeof document === "undefined") return;
+
+  let undo = document.getElementById("undoEdit");
+  let redo = document.getElementById("redoEdit");
+  const actionMeta = document.querySelector(".action-meta");
+  if (actionMeta && !undo) {
+    undo = document.createElement("button");
+    undo.id = "undoEdit";
+    undo.className = "reset-button";
+    undo.textContent = "↶ 撤销";
+    actionMeta.insertBefore(undo, actionMeta.firstChild);
+  }
+  if (actionMeta && !redo) {
+    redo = document.createElement("button");
+    redo.id = "redoEdit";
+    redo.className = "reset-button";
+    redo.textContent = "↷ 重做";
+    if (undo && undo.nextSibling) actionMeta.insertBefore(redo, undo.nextSibling);
+    else actionMeta.insertBefore(redo, actionMeta.firstChild);
+  }
+
+  const colorCard = document.querySelector(".color-card");
+  if (colorCard) {
+    const heading = colorCard.querySelector("h2");
+    if (heading) heading.textContent = "5. 中性灰校正与色彩";
+    const microcopy = colorCard.querySelector(".microcopy");
+    if (microcopy) {
+      microcopy.textContent = "中性灰吸管修改的是下方红、绿、蓝输出增益；1.00 表示不校正，这三个数值可以继续手动修改。";
+    }
+    let resetNeutral = document.getElementById("resetNeutralGains");
+    if (!resetNeutral) {
+      resetNeutral = document.createElement("button");
+      resetNeutral.id = "resetNeutralGains";
+      resetNeutral.textContent = "中性灰增益恢复 1.00";
+      const row = colorCard.querySelector(".button-row.single-action");
+      if (row) row.appendChild(resetNeutral);
+      else colorCard.appendChild(resetNeutral);
+    }
+  }
+
+  const headings = document.querySelectorAll(".card h2");
+  for (let index = 0; index < headings.length; index++) {
+    const heading = headings[index];
+    if (String(heading.textContent).indexOf("7. 胶片基底") === 0) {
+      heading.textContent = "7. 胶片基底（直接 R/G/B）";
+      const card = heading.parentElement;
+      const copy = card && card.querySelector(".microcopy");
+      if (copy) copy.textContent = "这里直接填写最终使用的 8 位 R/G/B 数值，不再显示识别值的加减偏移。点击“恢复调整默认值”会回到识别值。";
+      break;
+    }
+  }
+}
+
 function applyCommon(common) {
   if (common._v054DirectBaseApplied) {
     c = common;
+    ensureUi();
     return common;
   }
   c = common;
   const originalCurrentControls = common.currentControls;
   const originalApplyControls = common.applyControls;
   const originalRefreshOutputs = common.refreshOutputs;
+  const originalSchedulePreview = common.schedulePreview;
 
   common.currentControls = function () {
     const controls = originalCurrentControls();
@@ -56,6 +125,7 @@ function applyCommon(common) {
       const direct = common.engine.clamp(Number(detected[index] || 0) + Number(offsets[index] || 0), 0, 1);
       input.value = String(Math.round(direct * 255));
     });
+    lastAnalysisSignature = analysisSignature();
     common.refreshOutputs();
   };
 
@@ -68,6 +138,16 @@ function applyCommon(common) {
     });
   };
 
+  common.schedulePreview = function (delay) {
+    const signature = analysisSignature();
+    if (signature && signature !== lastAnalysisSignature && !restoring) {
+      setDirectBaseFromAnalysis();
+      lastAnalysisSignature = signature;
+    }
+    originalSchedulePreview(delay);
+    if (!restoring) setTimeout(function () { record("preview-state", false); }, 0);
+  };
+
   common.resetControls = function () {
     common.applyControls(common.DEFAULT_CONTROLS);
     common.setStatus(common.state.analysis ? "调整已恢复默认，胶片基底恢复为识别值。" : "调整已恢复默认。", common.state.analysis ? "ok" : "");
@@ -76,6 +156,7 @@ function applyCommon(common) {
   };
 
   common._v054DirectBaseApplied = true;
+  ensureUi();
   return common;
 }
 
@@ -178,7 +259,7 @@ function redo() {
 }
 
 function setDirectBaseFromAnalysis() {
-  if (!c.state.analysis || !Array.isArray(c.state.analysis.base)) return;
+  if (!c || !c.state.analysis || !Array.isArray(c.state.analysis.base)) return;
   ["baseAdjustR", "baseAdjustG", "baseAdjustB"].forEach(function (id, index) {
     const input = c.byId(id);
     if (input) input.value = String(Math.round(c.engine.clamp(c.state.analysis.base[index], 0, 1) * 255));
@@ -198,6 +279,7 @@ function resetNeutralGains() {
 }
 
 function initialize() {
+  ensureUi();
   const undoButton = c.byId("undoEdit");
   const redoButton = c.byId("redoEdit");
   const resetNeutral = c.byId("resetNeutralGains");
