@@ -12,6 +12,14 @@ def apply_ui_action_bindings(app_class: Type[Any]) -> None:
     if getattr(app_class, "_ui_action_bindings_applied", False):
         return
 
+    # The geometry service historically published the setter only under its
+    # private compatibility name while its own commands call the public name.
+    # Publish the final service method before any visible controls are built.
+    if not hasattr(app_class, "set_current_geometry") and hasattr(
+        app_class, "_set_current_geometry"
+    ):
+        app_class.set_current_geometry = app_class._set_current_geometry
+
     original_build_ui = app_class._build_ui
 
     def build_ui(self: Any) -> None:
