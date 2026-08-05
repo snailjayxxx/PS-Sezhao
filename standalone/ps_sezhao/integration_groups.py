@@ -113,11 +113,13 @@ def install_processing_service_group(context: IntegrationContext) -> None:
     from .services.proxy_pipeline import apply_proxy_pipeline
     from .services.sync_pipeline import apply_sync_pipeline
     from .services.sync_transaction import apply_sync_transaction_guard
+    from .services.ui_action_bindings import apply_ui_action_bindings
 
     app_class = context.app_class
     apply_proxy_pipeline(app_class)
     apply_geometry_pipeline(app_class)
     apply_geometry_history_guard(app_class)
+    apply_ui_action_bindings(app_class)
     apply_output_pipeline(app_class)
     apply_complete_output_pipeline(app_class)
     apply_output_queue_compatibility()
