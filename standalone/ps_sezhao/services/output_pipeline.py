@@ -6,6 +6,7 @@ from typing import Any, Iterator, Type
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
+from ..app_v057_rotate_output_patch import OUTPUT_FORMATS
 from ..engine import Analysis, Controls
 from .output_service import (
     ExportEvent,
@@ -235,8 +236,7 @@ def apply_output_pipeline(app_class: Type[Any]) -> None:
             }
         )
         format_label = str(output.get("format_label") or self.output_format_label.get())
-        formats = getattr(__import__("ps_sezhao.app_v057_rotate_output_patch", fromlist=["OUTPUT_FORMATS"]), "OUTPUT_FORMATS")
-        _extension, bit_depth, _format_name = formats.get(format_label, self._output_spec())
+        _extension, bit_depth, _format_name = OUTPUT_FORMATS.get(format_label, self._output_spec())
         try:
             quality = min(100, max(1, int(output.get("jpeg_quality", 95))))
         except (TypeError, ValueError):
@@ -271,8 +271,7 @@ def apply_output_pipeline(app_class: Type[Any]) -> None:
         self._store_current_state()
         output = self._output_settings_for_item(item) if hasattr(self, "_output_settings_for_item") else {}
         format_label = str(output.get("format_label") or self.output_format_label.get())
-        formats = getattr(__import__("ps_sezhao.app_v057_rotate_output_patch", fromlist=["OUTPUT_FORMATS"]), "OUTPUT_FORMATS")
-        extension, _bit_depth, format_name = formats.get(format_label, self._output_spec())
+        extension, _bit_depth, format_name = OUTPUT_FORMATS.get(format_label, self._output_spec())
         target = filedialog.asksaveasfilename(
             title="保存正片",
             initialfile=item.path.stem + "_PS-Sezhao" + extension,
@@ -297,14 +296,13 @@ def apply_output_pipeline(app_class: Type[Any]) -> None:
         output_dir = Path(destination)
         reserved: set[str] = set()
         tasks: list[ExportTask] = []
-        formats = getattr(__import__("ps_sezhao.app_v057_rotate_output_patch", fromlist=["OUTPUT_FORMATS"]), "OUTPUT_FORMATS")
         for index in indices:
             if index < 0 or index >= len(self.items):
                 continue
             item = self.items[index]
             output = self._output_settings_for_item(item) if hasattr(self, "_output_settings_for_item") else {}
             format_label = str(output.get("format_label") or self.output_format_label.get())
-            extension = formats.get(format_label, self._output_spec())[0]
+            extension = OUTPUT_FORMATS.get(format_label, self._output_spec())[0]
             requested = output_dir / f"{item.path.stem}_PS-Sezhao{extension}"
             target = reserve_unique_destination(requested, reserved)
             tasks.append(self._task_for_item(item, target))
