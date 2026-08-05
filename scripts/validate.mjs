@@ -69,14 +69,23 @@ const requiredFiles = [
   "standalone/ps_sezhao/bootstrap.py",
   "standalone/ps_sezhao/integration_groups.py",
   "standalone/ps_sezhao/app_v071_text_layout_patch.py",
+  "standalone/ps_sezhao/app_v072_workspace_lut_layout_patch.py",
+  "standalone/ps_sezhao/engine_lut_v072_patch.py",
+  "standalone/ps_sezhao/core/lut.py",
   "standalone/ps_sezhao/services/lifecycle_facade.py",
   "standalone/ps_sezhao/services/proxy_service.py",
   "standalone/ps_sezhao/services/output_service.py",
   "standalone/ps_sezhao/services/project_session.py",
   "standalone/ps_sezhao/services/roll_project_pipeline.py",
+  "standalone/ps_sezhao/storage/paths.py",
   "standalone/ps_sezhao/storage/project_archive.py",
   "standalone/ps_sezhao/validation/real_roll.py",
   "standalone/tests/test_text_layout_v071.py",
+  "standalone/tests/test_lut_paths_v072.py",
+  "standalone/tests/test_ui_layout_v072.py",
+  "standalone/installer/INSTALL.zh-CN.html",
+  "standalone/installer/install-macos-user.command",
+  "standalone/installer/PS-Sezhao.iss",
   "scripts/validate-real-roll.py",
   "scripts/build-release.sh",
   "hook-tkinterdnd2.py",
@@ -141,6 +150,8 @@ for (const installer of [
   "apply_v055_import_drop_patch",
   "apply_v061_resizable_layout_patch",
   "apply_v071_text_layout_patch",
+  "apply_v072_workspace_lut_layout_patch",
+  "apply_user_lut_engine_patch",
   "apply_proxy_pipeline",
   "apply_output_pipeline",
   "apply_complete_output_pipeline",
@@ -160,6 +171,45 @@ for (const token of [
   "_reflow_geometry_toolbar",
   "_reflow_roll_project_header",
 ]) requireToken(textLayout, token, `Desktop text layout is incomplete: ${token}`);
+
+const workspaceLutLayout = read("standalone/ps_sezhao/app_v072_workspace_lut_layout_patch.py");
+for (const token of [
+  "_configure_style_selector_layout",
+  "_resize_combobox_popup",
+  "_rebuild_framed_preview_toolbar",
+  "_rebuild_framed_geometry_toolbar",
+  "_add_user_lut",
+  "_open_project_directory",
+  "default_lut_directory",
+]) requireToken(workspaceLutLayout, token, `Beta 3 desktop layout/LUT UI is incomplete: ${token}`);
+
+const lutCore = read("standalone/ps_sezhao/core/lut.py");
+for (const token of [
+  "LUT_1D_SIZE",
+  "LUT_3D_SIZE",
+  "DOMAIN_MIN",
+  "DOMAIN_MAX",
+  "_apply_3d",
+  "apply_cube_lut",
+]) requireToken(lutCore, token, `Cube LUT core is incomplete: ${token}`);
+
+const lutEngine = read("standalone/ps_sezhao/engine_lut_v072_patch.py");
+for (const token of [
+  'payload["user_lut"]',
+  "resolve_user_lut",
+  "apply_cube_lut",
+  "processing.process_image = process_image",
+]) requireToken(lutEngine, token, `User LUT engine integration is incomplete: ${token}`);
+
+const storagePaths = read("standalone/ps_sezhao/storage/paths.py");
+for (const token of [
+  'PROJECT_DIRECTORY_NAME = "project"',
+  'LUT_DIRECTORY_NAME = "lut"',
+  'PORTABLE_MARKER = ".ps-sezhao-portable"',
+  "legacy_project_database_path",
+  "source.backup(destination)",
+  "MIGRATED_FROM.txt",
+]) requireToken(storagePaths, token, `Portable project storage is incomplete: ${token}`);
 
 const lrInfo = read("lightroom-classic/PS-Sezhao.lrplugin/Info.lua");
 const lrVersionPattern = new RegExp(
@@ -189,12 +239,41 @@ for (const token of [
   "PS-Sezhao-LightroomClassic-Source-v${VERSION}.zip",
   "unzip -Z1",
 ]) requireToken(buildScript, token, `Release build is missing: ${token}`);
+
 const workflow = read(".github/workflows/release.yml");
 if ((workflow.match(/--collect-all rawpy/g) || []).length < 2) throw new Error("Both desktop packages must collect rawpy");
 if ((workflow.match(/--collect-all tkinterdnd2/g) || []).length < 2) throw new Error("Both desktop packages must collect TkDND");
-requireToken(workflow, "--gui-smoke-test --require-dnd", "Packaged GUI smoke testing is missing");
-requireToken(workflow, "--prerelease", "Prerelease publication handling is missing");
-requireToken(workflow, "--latest=false", "Prerelease must not replace the latest stable release");
+for (const token of [
+  "--gui-smoke-test --require-dnd",
+  "PS-Sezhao-Installer-macOS-arm64-v${VERSION}.dmg",
+  "PS-Sezhao-Installer-Windows-x64-v$version.exe",
+  "install-macos-user.command",
+  "choco install innosetup",
+  "PS-Sezhao.iss",
+  "portable-stage/PS-Sezhao/project",
+  "portable-stage/PS-Sezhao/lut",
+  "Installed Windows GUI smoke test",
+  "--prerelease",
+  "--latest=false",
+]) requireToken(workflow, token, `Release workflow is missing: ${token}`);
+
+const installHtml = read("standalone/installer/INSTALL.zh-CN.html");
+for (const token of [
+  "~/Applications/PS-Sezhao/",
+  "%LOCALAPPDATA%\\Programs\\PS-Sezhao\\",
+  "project/",
+  "lut/",
+  ".cube",
+  "MIGRATED_FROM.txt",
+]) requireToken(installHtml, token, `Installation documentation is incomplete: ${token}`);
+
+const innoSetup = read("standalone/installer/PS-Sezhao.iss");
+for (const token of [
+  "PrivilegesRequired=lowest",
+  "{localappdata}\\Programs\\PS-Sezhao",
+  "uninsneveruninstall",
+  ".ps-sezhao-portable",
+]) requireToken(innoSetup, token, `Windows installer is incomplete: ${token}`);
 
 for (const document of [read("docs/architecture-refactor-plan.md"), read("docs/project-archive-migration.md")]) {
   if (document.includes("NexFilm")) throw new Error("Internal documents contain an external project name");
