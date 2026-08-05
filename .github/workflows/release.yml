@@ -3,6 +3,8 @@ name: Test, build and release all editions
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -139,6 +141,7 @@ jobs:
           path: release-assets/*
 
   release:
+    if: github.event_name != 'pull_request'
     needs: [build-common, build-macos, build-windows]
     runs-on: ubuntu-latest
     steps:
@@ -175,7 +178,7 @@ jobs:
           fi
 
   report:
-    if: always()
+    if: always() && github.event_name != 'pull_request'
     needs: [validate, build-common, build-macos, build-windows, release]
     runs-on: ubuntu-latest
     steps:
