@@ -2,7 +2,19 @@
 
 该目录包含不依赖 Adobe 的 GUI 程序，同时也是 Lightroom Classic 高精度模式调用的本地图像引擎。
 
-## v0.5.1 输入格式
+## v0.5.5 导入方式
+
+支持三种导入方式：
+
+1. 点击“添加图像”选择一张或多张；
+2. 点击“添加文件夹”扫描目录；
+3. 从 Windows 资源管理器或 macOS Finder 将文件/文件夹拖入窗口、预览区或图片列表。
+
+拖入文件夹时会递归查找支持的文件并自动去重。路径中可以包含空格、中文和其他 Unicode 字符。
+
+v0.5.5 修复了 v0.5.4 首次加载时历史方法名称不一致导致的静默异常。导入链路现在还有外层错误提示，失败时会显示具体原因。
+
+## 输入格式
 
 常规图像：
 
@@ -18,6 +30,8 @@ CR2 / CR3 / NEF / NRW / ARW / RAF / RW2 / ORF / PEF / SRW / DNG 等
 
 RAW 通过 rawpy / LibRaw 解码。完整处理固定使用16位、线性Gamma、ProPhoto RGB，并关闭自动提亮。RAW面板可选择白平衡、高光方式、去马赛克算法和预览策略。
 
+系统拖放使用 TkinterDnD2 / TkDnD。发行包由 PyInstaller hook 收集相应平台的 Tcl 脚本和共享库，用户不需要另外安装。
+
 ## 开发运行
 
 ```bash
@@ -25,10 +39,22 @@ python -m pip install -r requirements.txt
 PYTHONPATH=. python main.py
 ```
 
-确认 RAW 运行时：
+确认 RAW 和拖放依赖：
 
 ```bash
-PYTHONPATH=. python -c "import rawpy; print(rawpy.__version__, rawpy.libraw_version)"
+PYTHONPATH=. python -c "import rawpy; from tkinterdnd2 import DND_FILES, TkinterDnD; print(rawpy.__version__, rawpy.libraw_version, DND_FILES, TkinterDnD.Tk)"
+```
+
+## PyInstaller
+
+项目在 `standalone/hooks/hook-tkinterdnd2.py` 提供 TkDnD 数据收集 hook：
+
+```bash
+pyinstaller --noconfirm --clean --windowed \
+  --paths standalone \
+  --additional-hooks-dir standalone/hooks \
+  --collect-all rawpy \
+  standalone/main.py
 ```
 
 ## 无界面任务
