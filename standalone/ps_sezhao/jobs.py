@@ -8,7 +8,7 @@ from typing import Any, Callable
 from .core.geometry import GeometrySettings, apply_photo_geometry
 from .core.output import OutputSettings, prepare_output, save_output_file
 from .engine import Analysis, Controls, analyze_image
-from .io_utils import load_image, make_preview
+from .io_utils import load_image, make_preview, save_image
 from .processing import process_image_tiled
 from .raw_io import RawDecodeSettings, prepare_save_output
 from .workspace import clamp_crop, crop_array, normalize_rotation, rotate_array
