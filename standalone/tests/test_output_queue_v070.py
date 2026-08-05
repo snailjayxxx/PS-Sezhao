@@ -173,18 +173,19 @@ class OutputQueueV070Tests(unittest.TestCase):
             self.assertEqual(second.name, "scan_PS-Sezhao_3.tif")
             self.assertEqual(existing.read_bytes(), b"existing")
 
-    def test_ui_pipeline_is_wired_after_preview_proxy(self) -> None:
+    def test_ui_pipeline_is_wired_inside_processing_group(self) -> None:
         root = Path(__file__).resolve().parents[2]
         bootstrap = (root / "standalone/ps_sezhao/bootstrap.py").read_text(encoding="utf-8")
+        groups = (root / "standalone/ps_sezhao/integration_groups.py").read_text(encoding="utf-8")
         pipeline = (
             root / "standalone/ps_sezhao/services/output_pipeline.py"
         ).read_text(encoding="utf-8")
         document = (root / "docs/architecture-refactor-plan.md").read_text(encoding="utf-8")
 
-        self.assertIn('IntegrationStep("services.output_queue"', bootstrap)
+        self.assertIn('IntegrationStep("services.processing"', bootstrap)
         self.assertLess(
-            bootstrap.index('IntegrationStep("services.preview_proxy"'),
-            bootstrap.index('IntegrationStep("services.output_queue"'),
+            groups.index("apply_proxy_pipeline(app_class)"),
+            groups.index("apply_output_pipeline(app_class)"),
         )
         for token in (
             "取消导出",
