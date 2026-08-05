@@ -16,7 +16,7 @@
 从 GitHub Release 下载：
 
 ```text
-PS-Sezhao-Photoshop-Developer-v0.5.2.zip
+PS-Sezhao-Photoshop-Developer-v0.5.3.zip
 ```
 
 解压后选择其中的 `manifest.json`。
@@ -31,14 +31,16 @@ PS-Sezhao-Photoshop-Developer-v0.5.2.zip
 6. 选择解压目录中的 `manifest.json`。
 7. 在插件右侧菜单中选择 `Load`。
 8. 回到 Photoshop，打开 `插件 → 胶片去色罩`。
-9. 确认顶部显示 `PS-SEZHAO · 0.5.2`。
+9. 确认顶部显示 `PS-SEZHAO · 0.5.3`。
 
-## v0.5.2 吸管与胶片基底
+## v0.5.3 胶片基底
 
 - 胶片基底吸管从记录的原始负片图层读取像素；
 - 即使画布顶部显示临时转正预览，也不会读取预览图层颜色；
 - 插件内大图点击会先换算到文档坐标，再读取原始负片图层；
-- 面板“胶片基底微调”提供 R/G/B 滑块、数字输入和 `− / +` 微调；
+- “胶片基底微调”提供 R/G/B 滑块、数字输入和 `− / +`；
+- 三通道8位等效偏移范围扩大为 `-255～+255`；
+- Photoshop 像素引擎同步放宽内部限制，不会只改变界面而不改变实际结果；
 - 相机 RAW 仍先通过 Camera Raw 打开，再处理进入 Photoshop 的图层。
 
 ## 更新源码版本
