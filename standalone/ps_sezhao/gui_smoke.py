@@ -27,11 +27,15 @@ def run_gui_smoke(app_module: Any, *, require_dnd: bool = False) -> int:
             getattr(application, "canvas", None),
             getattr(application, "controls", None),
             getattr(application, "export_cancel_button", None),
+            getattr(application, "sync_settings_button", None),
+            getattr(application, "perspective_button", None),
         )
         if any(widget is None or not bool(widget.winfo_exists()) for widget in required_widgets):
             raise RuntimeError("GUI smoke test could not create all core widgets")
         if getattr(application, "_output_service", None) is None:
             raise RuntimeError("GUI smoke test could not initialize the output queue")
+        if not hasattr(application, "straighten_angle") or not hasattr(application, "geometry_status"):
+            raise RuntimeError("GUI smoke test could not create geometry controls")
 
         dnd_enabled = bool(getattr(root, "_ps_sezhao_dnd_available", False))
         dnd_error = getattr(root, "_ps_sezhao_dnd_error", None)
