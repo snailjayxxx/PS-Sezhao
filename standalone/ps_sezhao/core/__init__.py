@@ -6,6 +6,7 @@ from .contracts import (
     PROJECT_SCHEMA_VERSION,
     PROXY_CONTRACT_VERSION,
     RAW_DECODE_CONTRACT_VERSION,
+    ROLL_PROJECT_CONTRACT_VERSION,
     ProcessingContract,
 )
 from .output_color_conversion import install_output_color_conversion
@@ -20,6 +21,7 @@ __all__ = [
     "PROJECT_SCHEMA_VERSION",
     "PROXY_CONTRACT_VERSION",
     "RAW_DECODE_CONTRACT_VERSION",
+    "ROLL_PROJECT_CONTRACT_VERSION",
     "ProcessingContract",
     "install_output_color_conversion",
 ]
