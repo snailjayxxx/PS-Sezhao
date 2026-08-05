@@ -65,12 +65,19 @@ def apply_geometry_history_guard(app_class: Type[Any]) -> None:
             self._suppress_geometry_history = False
 
     def rotate_current(self: Any, clockwise_degrees: int) -> None:
+        recorder = getattr(self, "_record_history", None)
         self._suppress_geometry_history = True
+        if recorder is not None:
+            self._record_history = lambda *args, **kwargs: None
         try:
             if original_rotate is not None:
                 original_rotate(self, clockwise_degrees)
         finally:
+            if recorder is not None:
+                self._record_history = recorder
             self._suppress_geometry_history = False
+        if recorder is not None:
+            recorder(force=True, kind="rotation")
 
     def cancel_perspective_mode(self: Any, *, restore: bool) -> None:
         self._suppress_geometry_history = True
