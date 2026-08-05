@@ -14,7 +14,7 @@ return {
         local available = LrFileUtils.exists(path)
         return {
             {
-                title = 'PS-Sezhao 0.7.0-beta.5',
+                title = 'PS-Sezhao 0.7.0-beta.6',
                 f:row {
                     spacing = f:control_spacing(),
                     f:static_text { title = '适配版本：' },
@@ -31,7 +31,7 @@ return {
                     f:static_text { title = available and '本地处理器可用' or '处理器缺失，请重新安装对应平台安装包' },
                 },
                 f:static_text {
-                    title = 'Beta 5 修复 macOS 拖拽安装后的首次启动目录初始化，并增加启动失败日志。原始图片不会被覆盖。',
+                    title = 'Beta 6 修复 Windows 风格菜单跑到屏幕左上角的问题，并将扫描仪与胶卷选择器改为右栏内嵌完整宽度列表。原始图片不会被覆盖。',
                     width_in_chars = 65,
                     height_in_lines = 3,
                 },

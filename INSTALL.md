@@ -1,8 +1,8 @@
-# PS-Sezhao v0.7.0-beta.5 安装与使用说明
+# PS-Sezhao v0.7.0-beta.6 安装与使用说明
 
 ## macOS Apple Silicon
 
-1. 下载 `PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.5.dmg`。
+1. 下载 `PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.6.dmg`。
 2. 打开 DMG。
 3. 将 `PS-Sezhao.app` 拖到右侧 `Applications` 文件夹。
 4. 从 Finder 的“应用程序”中打开 PS-Sezhao。
@@ -34,7 +34,7 @@
 
 ## Windows x64
 
-1. 下载并运行 `PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.5.exe`。
+1. 下载并运行 `PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.6.exe`。
 2. 默认安装到 `%LOCALAPPDATA%\Programs\PS-Sezhao\`。
 3. 安装器会创建开始菜单快捷方式，并可选择创建桌面快捷方式。
 4. SmartScreen 出现时，确认文件来自本仓库 Release，再选择“更多信息 → 仍要运行”。
@@ -49,8 +49,8 @@ logs\
 
 ## 便携 ZIP
 
-- `PS-Sezhao-Standalone-macOS-arm64-v0.7.0-beta.5.zip`
-- `PS-Sezhao-Standalone-Windows-x64-v0.7.0-beta.5.zip`
+- `PS-Sezhao-Standalone-macOS-arm64-v0.7.0-beta.6.zip`
+- `PS-Sezhao-Standalone-Windows-x64-v0.7.0-beta.6.zip`
 
 便携版必须保留完整外层 `PS-Sezhao` 文件夹：
 
@@ -64,6 +64,21 @@ PS-Sezhao/
 ├── 安装说明.html
 └── .ps-sezhao-portable
 ```
+
+## 风格选择
+
+右侧“扫描仪与胶卷风格”区域现在使用内嵌选择器：
+
+```text
+扫描仪风格  [完整宽度选择框 ▼]
+胶卷风格    [完整宽度选择框 ▼]
+```
+
+- 选择框紧跟在标签后面并占满右侧剩余宽度；
+- 点击选择框或箭头后，候选列表直接在选择框下方展开；
+- 候选列表位于应用右侧栏内部，不会跑到屏幕左上角；
+- 用户 LUT 会自动加入胶卷风格列表；
+- 超过 12 个选项时使用滚动条。
 
 ## 启动与关闭
 
@@ -79,14 +94,14 @@ PS-Sezhao/
 
 ## Photoshop 2024（25.0）或更高版本
 
-1. 下载 `PS-Sezhao-Photoshop-v0.7.0-beta.5.ccx`。
+1. 下载 `PS-Sezhao-Photoshop-v0.7.0-beta.6.ccx`。
 2. 完全退出 Photoshop。
 3. 双击 CCX，通过 Creative Cloud Desktop 安装。
 4. 重新打开 Photoshop，从 `插件 → 胶片去色罩` 启动。
 
 ## Lightroom Classic 15.4+
 
-- Apple Silicon Mac：`PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.0-beta.5.zip`
-- Windows x64：`PS-Sezhao-LightroomClassic-Windows-x64-v0.7.0-beta.5.zip`
+- Apple Silicon Mac：`PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.0-beta.6.zip`
+- Windows x64：`PS-Sezhao-LightroomClassic-Windows-x64-v0.7.0-beta.6.zip`
 
 退出 Lightroom Classic，解压下载文件，在插件管理器中移除旧记录后，重新添加完整的 `PS-Sezhao.lrplugin` 文件夹。

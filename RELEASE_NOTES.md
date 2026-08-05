@@ -1,99 +1,65 @@
-# PS-Sezhao v0.7.0-beta.5
+# PS-Sezhao v0.7.0-beta.6
 
-本版本修复 macOS 标准拖拽安装后，`project`、`lut` 文件夹不会自动出现，以及窗口版启动失败时没有任何错误信息的问题。v0.6.3 继续保留为 Latest 稳定版。
+本版本修复 Windows 独立版中扫描仪风格与胶卷风格候选菜单跑到屏幕左上角的问题，并按照右侧栏的实际宽度重新设计风格选择区域。v0.6.3 继续保留为 Latest 稳定版。
 
-## macOS 首次启动目录
+## 风格选择器
 
-标准安装方式仍然是：
-
-```text
-打开 DMG → 将 PS-Sezhao.app 拖到 Applications → 从“应用程序”打开
-```
-
-首次成功启动时，程序会自动创建：
+风格区域现在采用明确的一行布局：
 
 ```text
-~/Library/Application Support/PS-Sezhao/
-├── workspace.sqlite3
-├── project/
-│   └── README.txt
-├── lut/
-│   └── README.txt
-└── logs/
-    ├── README.txt
-    └── startup.log
+扫描仪风格  [选择框占满本行剩余宽度 ▼]
+胶卷风格    [选择框占满本行剩余宽度 ▼]
 ```
 
-- `workspace.sqlite3` 保持旧版本原位置，不强制迁移；
-- `project` 用于项目归档、数据库备份和迁移文件；
-- `lut` 用于用户添加的 1D/3D `.cube` LUT；
-- `logs/startup.log` 用于启动和崩溃诊断；
-- 更新或替换 `/Applications/PS-Sezhao.app` 不会删除这些用户数据。
+- 标签保持固定宽度；
+- 选择框紧跟在“扫描仪风格”和“胶卷风格”文字后面；
+- 选择框使用右侧栏剩余的全部宽度；
+- 当前风格名称不会再被压缩到只显示前几个字；
+- 点击输入区域或箭头都可以展开选项。
 
-拖动安装本身只复制 `.app`，不能在 `/Applications` 旁边创建可写数据目录。因此目录初始化由 App 的首次启动完成。
+## 内嵌候选列表
 
-## 启动失败诊断
+- 删除依赖屏幕绝对坐标的独立 `Toplevel` 浮动菜单；
+- 候选列表直接嵌入右侧风格栏内部；
+- 列表出现在对应选择框正下方；
+- 列表宽度与选择框一致，不会越过应用窗口；
+- Windows 多显示器、缩放比例和窗口未完全显示时也不会跑到屏幕左上角；
+- 最多显示 12 行，更多项目通过滚动条查看；
+- 打开胶卷风格列表前自动刷新用户 LUT；
+- 选择项目后继续触发现有预览、撤销历史和项目自动保存。
 
-- 在 Tk 窗口创建之前先初始化数据目录和日志；
-- 记录版本、系统、Python、可执行文件、App 容器、数据库、项目目录和 LUT 目录；
-- 记录主线程与后台线程未捕获异常；
-- 启动阶段崩溃时，在 macOS 显示系统提示并给出日志路径；
-- 日志自动轮换，单个文件上限 2 MiB，保留最近 3 份。
+## 保留的 Beta 5 修复
 
-默认日志位置：
-
-```text
-~/Library/Application Support/PS-Sezhao/logs/startup.log
-```
-
-## 便携版
-
-便携 ZIP 继续使用 App/EXE 同级数据结构：
-
-```text
-PS-Sezhao/
-├── PS-Sezhao.app 或 PS-Sezhao.exe
-├── project/
-├── lut/
-├── logs/
-└── .ps-sezhao-portable
-```
-
-## macOS 安全提示
-
-当前仓库尚未配置 Apple Developer ID 签名和公证凭据，因此未签名测试包仍可能被 Gatekeeper 阻止。Beta 5 增加的启动日志只能记录 App 已经获准执行之后发生的程序错误，无法绕过 Gatekeeper。
-
-要让普通用户首次双击直接打开，仍需配置：
-
-```text
-APPLE_CERTIFICATE_P12_BASE64
-APPLE_CERTIFICATE_PASSWORD
-APPLE_SIGNING_IDENTITY
-APPLE_ID
-APPLE_APP_SPECIFIC_PASSWORD
-APPLE_TEAM_ID
-```
+- macOS 首次启动自动创建 `project`、`lut` 和 `logs`；
+- macOS 数据库保持在 `~/Library/Application Support/PS-Sezhao/workspace.sqlite3`；
+- 启动失败日志位于 `~/Library/Application Support/PS-Sezhao/logs/startup.log`；
+- 普通启动不恢复上次照片；
+- 关闭程序时询问是否保存本次胶卷项目；
+- 右上角显示程序、旋转、裁切和几何状态；
+- 用户 1D/3D `.cube` LUT；
+- 标准 macOS Applications DMG 与 Windows 安装器。
 
 ## 自动验证
 
-- macOS 安装版数据库保持原位置；
-- 首次启动创建 `project`、`lut`、`logs`；
-- 启动日志写入版本和目录信息；
-- 窗口创建前异常写入日志；
+- 风格选择框宽度必须覆盖右栏中标签后的剩余空间；
+- 展开风格列表时不得创建新的顶层窗口；
+- 候选列表必须位于右栏内部并与选择框等宽；
+- 选择内嵌列表项目后必须更新原有风格变量；
+- 顶部状态面板和本地状态标签继续保持正确；
 - Linux 真实 Tk 窗口；
 - macOS Apple Silicon 打包后窗口；
-- Windows 安装器实际安装与启动；
+- Windows x64 打包后窗口和安装器实际安装；
 - Photoshop、Lightroom、RAW、LUT、项目和输出既有测试。
 
 ## 发行文件
 
-- `PS-Sezhao-Photoshop-v0.7.0-beta.5.ccx`
-- `PS-Sezhao-Photoshop-Developer-v0.7.0-beta.5.zip`
-- `PS-Sezhao-LightroomClassic-Source-v0.7.0-beta.5.zip`
-- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.0-beta.5.zip`
-- `PS-Sezhao-LightroomClassic-Windows-x64-v0.7.0-beta.5.zip`
-- `PS-Sezhao-Standalone-macOS-arm64-v0.7.0-beta.5.zip`
-- `PS-Sezhao-Standalone-Windows-x64-v0.7.0-beta.5.zip`
-- `PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.5.dmg`
-- `PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.5.exe`
+- `PS-Sezhao-Photoshop-v0.7.0-beta.6.ccx`
+- `PS-Sezhao-Photoshop-Developer-v0.7.0-beta.6.zip`
+- `PS-Sezhao-LightroomClassic-Source-v0.7.0-beta.6.zip`
+- `PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.0-beta.6.zip`
+- `PS-Sezhao-LightroomClassic-Windows-x64-v0.7.0-beta.6.zip`
+- `PS-Sezhao-Standalone-macOS-arm64-v0.7.0-beta.6.zip`
+- `PS-Sezhao-Standalone-Windows-x64-v0.7.0-beta.6.zip`
+- `PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.6.dmg`
+- `PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.6.exe`
 - `CHECKSUMS.txt`

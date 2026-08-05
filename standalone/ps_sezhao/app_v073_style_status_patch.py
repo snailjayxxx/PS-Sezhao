@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any, Type
 
 import tkinter as tk
-from tkinter import font as tkfont
 from tkinter import ttk
 
 
@@ -15,7 +14,7 @@ def _textvariable(widget: tk.Misc) -> str:
 
 
 def apply_v073_style_status_patch(app_class: Type[Any]) -> None:
-    """Use full-pane style popups and move view state into the free top-right area."""
+    """Use in-pane style selectors and move view state into the free top-right area."""
 
     if getattr(app_class, "_v073_style_status_applied", False):
         return
@@ -24,125 +23,194 @@ def apply_v073_style_status_patch(app_class: Type[Any]) -> None:
 
     def build_ui(self: Any) -> None:
         original_build_ui(self)
-        self._v073_style_popup: tk.Toplevel | None = None
+        self._v073_inline_style_lists: dict[str, dict[str, Any]] = {}
         self._v073_configure_style_selectors()
         self._v073_build_top_status_panel()
 
     def configure_style_selectors(self: Any) -> None:
-        for box in (
-            getattr(self, "scanner_profile_box", None),
-            getattr(self, "film_profile_box", None),
-        ):
-            if box is None:
-                continue
-            box.configure(postcommand=lambda: None)
-            box.bind(
-                "<Button-1>",
-                lambda _event, target=box: self._v073_open_style_popup(target),
-                add=False,
-            )
-            box.bind(
-                "<Return>",
-                lambda _event, target=box: self._v073_open_style_popup(target),
-                add=False,
-            )
-            box.bind(
-                "<Down>",
-                lambda _event, target=box: self._v073_open_style_popup(target),
-                add=False,
-            )
-
-    def close_style_popup(self: Any) -> None:
-        popup = getattr(self, "_v073_style_popup", None)
-        self._v073_style_popup = None
-        if popup is not None:
-            try:
-                popup.destroy()
-            except tk.TclError:
-                pass
-
-    def open_style_popup(self: Any, box: ttk.Combobox) -> str:
-        self._v073_close_style_popup()
-        if box is getattr(self, "film_profile_box", None):
-            self._refresh_user_lut_library()
-
-        values = tuple(str(value) for value in box.cget("values"))
-        if not values:
-            return "break"
-
         frame = getattr(self, "style_library_frame", None)
-        if frame is None:
-            return "break"
+        scanner_box = getattr(self, "scanner_profile_box", None)
+        film_box = getattr(self, "film_profile_box", None)
+        if frame is None or scanner_box is None or film_box is None:
+            return
 
-        self.root.update_idletasks()
-        popup = tk.Toplevel(self.root)
-        popup.overrideredirect(True)
-        popup.transient(self.root)
-        popup.configure(borderwidth=1, relief="solid")
-        popup.attributes("-topmost", True)
-        self._v073_style_popup = popup
+        try:
+            self.controls.columnconfigure(0, weight=1)
+            frame.grid_configure(sticky="ew")
+            frame.columnconfigure(0, weight=1)
+            frame.columnconfigure(1, weight=1)
+        except tk.TclError:
+            pass
 
-        body = ttk.Frame(popup, padding=3)
-        body.pack(fill="both", expand=True)
-        body.rowconfigure(0, weight=1)
-        body.columnconfigure(0, weight=1)
+        for child in frame.winfo_children():
+            text = ""
+            try:
+                text = str(child.cget("text"))
+            except (AttributeError, tk.TclError):
+                pass
+            if child in (scanner_box, film_box) or text in ("扫描仪风格", "胶卷风格"):
+                child.grid_remove()
 
-        default_font = tkfont.nametofont("TkDefaultFont", root=self.root)
-        visible_rows = min(14, len(values))
+        self._v073_build_inline_selector(
+            frame,
+            kind="scanner",
+            row=0,
+            label="扫描仪风格",
+            variable=self.scanner_profile_label,
+            source_box=scanner_box,
+        )
+        self._v073_build_inline_selector(
+            frame,
+            kind="film",
+            row=3,
+            label="胶卷风格",
+            variable=self.film_profile_label,
+            source_box=film_box,
+        )
+
+    def build_inline_selector(
+        self: Any,
+        parent: ttk.LabelFrame,
+        *,
+        kind: str,
+        row: int,
+        label: str,
+        variable: tk.StringVar,
+        source_box: ttk.Combobox,
+    ) -> None:
+        block = ttk.Frame(parent)
+        block.grid(row=row, column=0, columnspan=2, sticky="ew")
+        block.columnconfigure(1, weight=1)
+
+        ttk.Label(block, text=label).grid(row=0, column=0, sticky="w", padx=(0, 7))
+        selector = ttk.Frame(block)
+        selector.grid(row=0, column=1, sticky="ew")
+        selector.columnconfigure(0, weight=1)
+
+        entry = ttk.Entry(selector, textvariable=variable, state="readonly")
+        entry.grid(row=0, column=0, sticky="ew")
+        toggle = ttk.Button(
+            selector,
+            text="▼",
+            width=3,
+            command=lambda selected_kind=kind: self._v073_toggle_inline_style_list(selected_kind),
+        )
+        toggle.grid(row=0, column=1, padx=(3, 0))
+        entry.bind(
+            "<Button-1>",
+            lambda _event, selected_kind=kind: self._v073_toggle_inline_style_list(selected_kind),
+        )
+        entry.bind(
+            "<Return>",
+            lambda _event, selected_kind=kind: self._v073_toggle_inline_style_list(selected_kind),
+        )
+        entry.bind(
+            "<Down>",
+            lambda _event, selected_kind=kind: self._v073_toggle_inline_style_list(selected_kind),
+        )
+
+        options = ttk.Frame(block, padding=(0, 3, 0, 2))
+        options.grid(row=1, column=1, sticky="ew")
+        options.columnconfigure(0, weight=1)
+        options.grid_remove()
+
         listbox = tk.Listbox(
-            body,
+            options,
             activestyle="none",
             exportselection=False,
-            font=default_font,
-            height=visible_rows,
-            borderwidth=0,
+            height=8,
+            borderwidth=1,
             highlightthickness=0,
             selectmode="browse",
         )
-        scrollbar = ttk.Scrollbar(body, orient="vertical", command=listbox.yview)
+        scrollbar = ttk.Scrollbar(options, orient="vertical", command=listbox.yview)
         listbox.configure(yscrollcommand=scrollbar.set)
-        listbox.grid(row=0, column=0, sticky="nsew")
+        listbox.grid(row=0, column=0, sticky="ew")
         scrollbar.grid(row=0, column=1, sticky="ns")
+        listbox.bind(
+            "<ButtonRelease-1>",
+            lambda _event, selected_kind=kind: self._v073_choose_inline_style(selected_kind),
+        )
+        listbox.bind(
+            "<Return>",
+            lambda _event, selected_kind=kind: self._v073_choose_inline_style(selected_kind),
+        )
+        listbox.bind("<Escape>", lambda _event: self._v073_close_inline_style_lists())
 
+        self._v073_inline_style_lists[kind] = {
+            "block": block,
+            "entry": entry,
+            "toggle": toggle,
+            "options": options,
+            "listbox": listbox,
+            "source_box": source_box,
+        }
+        if kind == "scanner":
+            self.scanner_style_selector = entry
+            self.scanner_style_options = options
+        else:
+            self.film_style_selector = entry
+            self.film_style_options = options
+
+    def toggle_inline_style_list(self: Any, kind: str) -> str:
+        item = self._v073_inline_style_lists.get(kind)
+        if item is None:
+            return "break"
+        options = item["options"]
+        was_open = bool(options.winfo_manager())
+        self._v073_close_inline_style_lists()
+        if was_open:
+            return "break"
+
+        if kind == "film":
+            self._refresh_user_lut_library()
+        source_box = item["source_box"]
+        values = tuple(str(value) for value in source_box.cget("values"))
+        listbox: tk.Listbox = item["listbox"]
+        listbox.delete(0, "end")
         for value in values:
             listbox.insert("end", value)
-        current = box.get()
+        listbox.configure(height=max(1, min(12, len(values))))
+
+        current = source_box.get()
         if current in values:
             index = values.index(current)
             listbox.selection_set(index)
             listbox.activate(index)
             listbox.see(index)
 
-        def choose(_event: tk.Event | None = None) -> str:
-            selection = listbox.curselection()
-            if selection:
-                box.set(values[int(selection[0])])
-                box.event_generate("<<ComboboxSelected>>")
-            self._v073_close_style_popup()
-            return "break"
-
-        listbox.bind("<ButtonRelease-1>", choose)
-        listbox.bind("<Return>", choose)
-        listbox.bind("<Escape>", lambda _event: (self._v073_close_style_popup(), "break")[1])
-        popup.bind("<Escape>", lambda _event: (self._v073_close_style_popup(), "break")[1])
-        popup.bind("<FocusOut>", lambda _event: self.root.after(80, self._v073_close_style_popup))
-
-        pane_left = int(frame.winfo_rootx())
-        pane_width = max(280, int(frame.winfo_width()))
-        root_left = int(self.root.winfo_rootx())
-        root_right = root_left + int(self.root.winfo_width())
-        pane_width = min(pane_width, max(280, root_right - pane_left - 8))
-
-        popup.update_idletasks()
-        requested_height = int(popup.winfo_reqheight())
-        below_y = int(box.winfo_rooty() + box.winfo_height())
-        root_bottom = int(self.root.winfo_rooty() + self.root.winfo_height())
-        y = below_y
-        if below_y + requested_height > root_bottom - 8:
-            y = max(int(self.root.winfo_rooty()) + 8, int(box.winfo_rooty()) - requested_height)
-        popup.geometry(f"{pane_width}x{requested_height}+{pane_left}+{y}")
-        popup.lift()
+        options.grid()
+        self.controls.update_idletasks()
         listbox.focus_set()
+        return "break"
+
+    def open_style_popup(self: Any, box: ttk.Combobox) -> str:
+        """Compatibility entry point; no top-level popup is created."""
+
+        pane_width = int(getattr(self, "style_library_frame").winfo_width())
+        _ = pane_width
+        kind = "film" if box is getattr(self, "film_profile_box", None) else "scanner"
+        return self._v073_toggle_inline_style_list(kind)
+
+    def choose_inline_style(self: Any, kind: str) -> str:
+        item = self._v073_inline_style_lists.get(kind)
+        if item is None:
+            return "break"
+        listbox: tk.Listbox = item["listbox"]
+        selection = listbox.curselection()
+        if selection:
+            source_box: ttk.Combobox = item["source_box"]
+            source_box.set(str(listbox.get(int(selection[0]))))
+            source_box.event_generate("<<ComboboxSelected>>")
+        self._v073_close_inline_style_lists()
+        return "break"
+
+    def close_inline_style_lists(self: Any) -> str:
+        for item in self._v073_inline_style_lists.values():
+            try:
+                item["options"].grid_remove()
+            except tk.TclError:
+                pass
         return "break"
 
     def hide_local_status_labels(self: Any) -> None:
@@ -218,8 +286,11 @@ def apply_v073_style_status_patch(app_class: Type[Any]) -> None:
 
     app_class._build_ui = build_ui
     app_class._v073_configure_style_selectors = configure_style_selectors
+    app_class._v073_build_inline_selector = build_inline_selector
+    app_class._v073_toggle_inline_style_list = toggle_inline_style_list
     app_class._v073_open_style_popup = open_style_popup
-    app_class._v073_close_style_popup = close_style_popup
+    app_class._v073_choose_inline_style = choose_inline_style
+    app_class._v073_close_inline_style_lists = close_inline_style_lists
     app_class._v073_hide_local_status_labels = hide_local_status_labels
     app_class._v073_build_top_status_panel = build_top_status_panel
     app_class._v073_style_status_applied = True
