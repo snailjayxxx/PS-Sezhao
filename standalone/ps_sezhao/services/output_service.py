@@ -7,6 +7,7 @@ import threading
 from typing import Any, Callable, Mapping, Sequence
 import uuid
 
+from ..core.geometry import GeometrySettings, apply_photo_geometry
 from ..engine import Analysis, Controls, analyze_image
 from ..io_utils import load_image, make_preview, save_image
 from ..processing import ProcessingCancelled, process_image_tiled
@@ -21,6 +22,7 @@ class ExportTask:
     controls: Controls
     crop: tuple[float, float, float, float]
     rotation: int = 0
+    geometry: GeometrySettings | Mapping[str, Any] | None = None
     analysis: Analysis | None = None
     raw_settings: RawDecodeSettings | Mapping[str, Any] | None = None
     bit_depth: int = 16
@@ -34,6 +36,9 @@ class ExportTask:
             controls=self.controls.sanitized(),
             crop=clamp_crop(self.crop),
             rotation=normalize_rotation(self.rotation),
+            geometry=GeometrySettings.from_dict(
+                self.geometry.to_dict() if isinstance(self.geometry, GeometrySettings) else self.geometry
+            ),
             analysis=self.analysis,
             raw_settings=self.raw_settings,
             bit_depth=16 if int(self.bit_depth) >= 16 else 8,
@@ -212,7 +217,6 @@ class OutputQueueService:
                         total=total,
                         task=task,
                         stage="cancelled",
-                        item_progress=0.0,
                         overall_progress=zero_index / total,
                         message=f"已取消：{task.label}",
                     ),
@@ -309,11 +313,12 @@ class OutputQueueService:
             index=index,
             total=total,
             stage="geometry",
-            item_progress=0.12,
-            message=f"应用旋转与裁切：{task.label}",
+            item_progress=0.08,
+            message=f"应用旋转、拉直、透视与裁切：{task.label}",
         )
         self._check_cancel(batch)
         image = rotate_array(image, task.rotation)
+        image = apply_photo_geometry(image, task.geometry)
         source = crop_array(image, task.crop)
         analysis = task.analysis
         if analysis is None:
