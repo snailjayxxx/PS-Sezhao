@@ -58,6 +58,9 @@ def apply_project_session(app_class: Type[Any]) -> None:
                     item.analysis = None if saved.analysis is None else dict(saved.analysis)
                     item.crop = tuple(saved.crop)
                     item.rotation = int(saved.rotation)
+                    item.geometry = dict(saved.geometry)
+                    item.raw_settings = dict(saved.raw_settings)
+                    item.output_settings = dict(saved.output_settings)
         original_load_index(self, index)
 
     def schedule_project_save(self: Any) -> None:
@@ -85,6 +88,9 @@ def apply_project_session(app_class: Type[Any]) -> None:
                 "analysis": None if item.analysis is None else dict(item.analysis),
                 "crop": tuple(item.crop),
                 "rotation": int(getattr(item, "rotation", 0)),
+                "geometry": dict(getattr(item, "geometry", {}) or {}),
+                "raw_settings": dict(getattr(item, "raw_settings", {}) or {}),
+                "output_settings": dict(getattr(item, "output_settings", {}) or {}),
             }
             for item in self.items
         ]
