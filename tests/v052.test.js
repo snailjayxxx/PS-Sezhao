@@ -6,13 +6,13 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const root = path.resolve(__dirname, "..");
-const main = fs.readFileSync(path.join(root, "standalone/main.py"), "utf8");
+const groups = fs.readFileSync(path.join(root, "standalone/ps_sezhao/integration_groups.py"), "utf8");
 const patch = fs.readFileSync(path.join(root, "standalone/ps_sezhao/app_v052_source_crop_patch.py"), "utf8");
 const sampler = fs.readFileSync(path.join(root, "plugin/runtime-sampler.js"), "utf8");
 
-test("standalone launcher applies v0.5.2 after RAW integration", function () {
-  const rawIndex = main.indexOf("apply_raw_patch(app_module.SezhaoApp)");
-  const cropIndex = main.indexOf("apply_source_crop_patch(app_module.SezhaoApp)");
+test("standalone grouped UI installs crop after RAW integration", function () {
+  const rawIndex = groups.indexOf("apply_raw_patch(app_class)");
+  const cropIndex = groups.indexOf("apply_source_crop_patch(app_class)");
   assert.ok(rawIndex >= 0);
   assert.ok(cropIndex > rawIndex);
 });
