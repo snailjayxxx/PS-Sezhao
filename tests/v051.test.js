@@ -54,5 +54,5 @@ test("batch processing keeps RAW decode and output color management", function (
 test("release packages include rawpy and LibRaw on both platforms", function () {
   assert.match(requirements, /rawpy>=0\.27,<0\.28/);
   assert.equal((workflow.match(/--collect-all rawpy/g) || []).length, 2);
-  assert.match(workflow, /Verify RAW runtime/);
+  assert.match(workflow, /Verify RAW and drag-drop runtimes/);
 });
