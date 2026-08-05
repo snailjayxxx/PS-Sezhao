@@ -74,9 +74,13 @@ def apply_output_pipeline(app_class: Type[Any]) -> None:
         if fixed is None:
             return
 
-        separator = ttk.Separator(fixed, orient="horizontal")
-        separator.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(8, 6))
-
+        ttk.Separator(fixed, orient="horizontal").grid(
+            row=3,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            pady=(8, 6),
+        )
         queue_frame = ttk.Frame(fixed)
         queue_frame.grid(row=4, column=0, columnspan=2, sticky="ew")
         queue_frame.columnconfigure(0, weight=1)
@@ -220,28 +224,43 @@ def apply_output_pipeline(app_class: Type[Any]) -> None:
             if self.export_cancel_button is not None:
                 self.export_cancel_button.configure(state="disabled")
 
-    def task_for_item(
-        self: Any,
-        item: Any,
-        destination: Path,
-    ) -> ExportTask:
+    def task_for_item(self: Any, item: Any, destination: Path) -> ExportTask:
         analysis = Analysis.from_dict(item.analysis) if item.analysis else None
+        output = (
+            self._output_settings_for_item(item)
+            if hasattr(self, "_output_settings_for_item")
+            else {
+                "format_label": self.output_format_label.get(),
+                "jpeg_quality": self._output_quality(),
+            }
+        )
+        format_label = str(output.get("format_label") or self.output_format_label.get())
+        formats = getattr(__import__("ps_sezhao.app_v057_rotate_output_patch", fromlist=["OUTPUT_FORMATS"]), "OUTPUT_FORMATS")
+        _extension, bit_depth, _format_name = formats.get(format_label, self._output_spec())
+        try:
+            quality = min(100, max(1, int(output.get("jpeg_quality", 95))))
+        except (TypeError, ValueError):
+            quality = 95
+        raw_settings = (
+            self._raw_settings_for_item(item)
+            if hasattr(self, "_raw_settings_for_item")
+            else self._raw_settings_snapshot(item)
+            if hasattr(self, "_raw_settings_snapshot")
+            else self.raw_settings_value()
+            if hasattr(self, "raw_settings_value")
+            else None
+        )
         return ExportTask(
             source=Path(item.path),
             destination=Path(destination),
             controls=Controls.from_dict(item.controls),
             crop=tuple(item.crop),
             rotation=int(getattr(item, "rotation", 0)),
+            geometry=dict(getattr(item, "geometry", {}) or {}),
             analysis=analysis,
-            raw_settings=self._raw_settings_snapshot()
-            if hasattr(self, "_raw_settings_snapshot")
-            else (
-                self.raw_settings_value()
-                if hasattr(self, "raw_settings_value")
-                else None
-            ),
-            bit_depth=self._output_spec()[1],
-            jpeg_quality=self._output_quality(),
+            raw_settings=raw_settings,
+            bit_depth=bit_depth,
+            jpeg_quality=quality,
             label=Path(item.path).name,
         )
 
@@ -250,7 +269,10 @@ def apply_output_pipeline(app_class: Type[Any]) -> None:
         if item is None:
             return
         self._store_current_state()
-        extension, _bit_depth, format_name = self._output_spec()
+        output = self._output_settings_for_item(item) if hasattr(self, "_output_settings_for_item") else {}
+        format_label = str(output.get("format_label") or self.output_format_label.get())
+        formats = getattr(__import__("ps_sezhao.app_v057_rotate_output_patch", fromlist=["OUTPUT_FORMATS"]), "OUTPUT_FORMATS")
+        extension, _bit_depth, format_name = formats.get(format_label, self._output_spec())
         target = filedialog.asksaveasfilename(
             title="保存正片",
             initialfile=item.path.stem + "_PS-Sezhao" + extension,
@@ -273,13 +295,16 @@ def apply_output_pipeline(app_class: Type[Any]) -> None:
             return
 
         output_dir = Path(destination)
-        extension, _bit_depth, _format_name = self._output_spec()
         reserved: set[str] = set()
         tasks: list[ExportTask] = []
+        formats = getattr(__import__("ps_sezhao.app_v057_rotate_output_patch", fromlist=["OUTPUT_FORMATS"]), "OUTPUT_FORMATS")
         for index in indices:
             if index < 0 or index >= len(self.items):
                 continue
             item = self.items[index]
+            output = self._output_settings_for_item(item) if hasattr(self, "_output_settings_for_item") else {}
+            format_label = str(output.get("format_label") or self.output_format_label.get())
+            extension = formats.get(format_label, self._output_spec())[0]
             requested = output_dir / f"{item.path.stem}_PS-Sezhao{extension}"
             target = reserve_unique_destination(requested, reserved)
             tasks.append(self._task_for_item(item, target))
