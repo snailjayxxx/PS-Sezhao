@@ -12,7 +12,7 @@ from ps_sezhao.ui import create_application, create_root
 
 
 class ProjectSessionV070Tests(unittest.TestCase):
-    def test_window_restores_last_files_parameters_crop_and_rotation(self) -> None:
+    def test_window_starts_empty_even_when_previous_workspace_exists(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root_path = Path(temporary_directory)
             database = root_path / "workspace.sqlite3"
@@ -32,6 +32,7 @@ class ProjectSessionV070Tests(unittest.TestCase):
                     first_app.current_item().rotation = 90
                     first_app._store_current_state()
                     first_app._save_project_session_now()
+                    self.assertEqual(len(first_app.project_store.load_workspace().file_paths), 1)
                 finally:
                     first_root.destroy()
 
@@ -40,12 +41,10 @@ class ProjectSessionV070Tests(unittest.TestCase):
                 try:
                     second_app = create_application(second_root)
                     second_root.update_idletasks()
-                    self.assertEqual(len(second_app.items), 1)
-                    self.assertEqual(second_app.items[0].path.resolve(), image_path.resolve())
-                    self.assertAlmostEqual(second_app.vars["exposure"].get(), 0.75)
-                    self.assertEqual(tuple(second_app.crop_norm), (0.1, 0.2, 0.85, 0.9))
-                    self.assertEqual(second_app.current_item().rotation, 90)
-                    self.assertIn("已恢复上次工作状态", second_app.status.get())
+                    self.assertEqual(second_app.items, [])
+                    self.assertIsNone(second_app.current_index)
+                    self.assertEqual(second_app.project_store.load_workspace().file_paths, ())
+                    self.assertIn("请选择图像", second_app.status.get())
                 finally:
                     second_root.destroy()
 
