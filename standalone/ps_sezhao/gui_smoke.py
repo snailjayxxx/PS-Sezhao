@@ -35,6 +35,7 @@ def run_gui_smoke(app_module: Any, *, require_dnd: bool = False) -> int:
             getattr(application, "roll_open_button", None),
             getattr(application, "roll_settings_button", None),
             getattr(application, "output_presets_button", None),
+            getattr(application, "project_tools_button", None),
         )
         if any(widget is None or not bool(widget.winfo_exists()) for widget in required_widgets):
             raise RuntimeError("GUI smoke test could not create all core widgets")
@@ -42,6 +43,8 @@ def run_gui_smoke(app_module: Any, *, require_dnd: bool = False) -> int:
             raise RuntimeError("GUI smoke test could not initialize the output queue")
         if getattr(application, "roll_project_store", None) is None:
             raise RuntimeError("GUI smoke test could not initialize roll project storage")
+        if not hasattr(application, "open_project_archive_tools"):
+            raise RuntimeError("GUI smoke test could not initialize project archive tools")
         if not hasattr(application, "straighten_angle") or not hasattr(application, "geometry_status"):
             raise RuntimeError("GUI smoke test could not create geometry controls")
         for attribute in (
