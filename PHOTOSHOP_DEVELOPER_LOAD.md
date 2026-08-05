@@ -16,7 +16,7 @@
 从 GitHub Release 下载：
 
 ```text
-PS-Sezhao-Photoshop-Developer-v0.5.0.zip
+PS-Sezhao-Photoshop-Developer-v0.5.1.zip
 ```
 
 解压后应看到：
@@ -55,10 +55,12 @@ PS-Sezhao-Photoshop-Developer/
 插件顶部应显示：
 
 ```text
-PS-SEZHAO · 0.5.0
+PS-SEZHAO · 0.5.1
 ```
 
-v0.5.0 中每个滑块下方会显示 `− / 数字输入框 / +`。数字可直接输入，按 Enter 生效；加减按钮按该参数的最小步长微调。
+每个主要滑块下方显示 `− / 数字输入框 / +`。数字可直接输入，按 Enter 生效；加减按钮按该参数的最小步长微调。
+
+v0.5.1 的相机 RAW 直读位于独立桌面版。Photoshop 中的 RAW 仍先通过 Camera Raw 打开，再由插件处理进入 Photoshop 的图层。
 
 ## 更新源码版本
 
@@ -75,7 +77,7 @@ v0.5.0 中每个滑块下方会显示 `− / 数字输入框 / +`。数字可直
 
 ### Host Application specified is not available
 
-确认 Photoshop 已经启动，并且版本不低于 25.0。Photoshop 2024 对应 25.x。
+确认 Photoshop 已经启动，并且版本不低于25.0。Photoshop 2024对应25.x。
 
 ### Plugin Load Failed
 
@@ -93,4 +95,4 @@ v0.5.0 中每个滑块下方会显示 `− / 数字输入框 / +`。数字可直
 
 ### 开发者模式能否代替 Photoshop 授权
 
-不能。UXP Developer Tool 只负责加载和调试插件，不负责 Photoshop 授权，也不保证第三方修改版宿主能够正常运行插件。
+不能。UXP Developer Tool只负责加载和调试插件，不负责Photoshop授权，也不保证第三方修改版宿主能够正常运行插件。
