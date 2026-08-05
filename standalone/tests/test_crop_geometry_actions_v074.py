@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 from tkinter import ttk
@@ -13,6 +14,10 @@ from ps_sezhao.workspace import FULL_CROP, PhotoState
 
 class CropGeometryActionBindingsTests(unittest.TestCase):
     def setUp(self) -> None:
+        self.error_dialog_patcher = patch(
+            "ps_sezhao.services.ui_action_bindings.messagebox.showerror"
+        )
+        self.error_dialog = self.error_dialog_patcher.start()
         self.root = create_root()
         self.root.geometry("1500x900")
         self.root.withdraw()
@@ -21,6 +26,7 @@ class CropGeometryActionBindingsTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.root.destroy()
+        self.error_dialog_patcher.stop()
 
     def test_crop_control_restores_the_complete_crop_entry(self) -> None:
         self.assertTrue(self.app._ui_action_bindings_applied)
@@ -47,6 +53,7 @@ class CropGeometryActionBindingsTests(unittest.TestCase):
         self.root.update_idletasks()
         self.app.draw_preview()
 
+        self.error_dialog.assert_not_called()
         self.assertTrue(self.app.crop_editing)
         self.assertEqual(self.app.interaction_mode.get(), "crop")
         self.assertEqual(str(self.app.crop_toggle_button.cget("text")), "完成裁切")
@@ -74,17 +81,20 @@ class CropGeometryActionBindingsTests(unittest.TestCase):
         self.app.schedule_render = lambda *args, **kwargs: None
 
         self.app.rotate_right_button.invoke()
+        self.error_dialog.assert_not_called()
         self.assertEqual(item.rotation, 90)
         self.assertEqual(self.app.preview_source.shape[:2], (5, 3))
         self.assertIn("90°", self.app.status.get())
 
         self.app.horizontal_flip_button.invoke()
+        self.error_dialog.assert_not_called()
         horizontal = GeometrySettings.from_dict(item.geometry)
         self.assertTrue(horizontal.flip_horizontal)
         self.assertFalse(horizontal.flip_vertical)
         self.assertIn("水平翻转", self.app.status.get())
 
         self.app.vertical_flip_button.invoke()
+        self.error_dialog.assert_not_called()
         both = GeometrySettings.from_dict(item.geometry)
         self.assertTrue(both.flip_horizontal)
         self.assertTrue(both.flip_vertical)
@@ -102,6 +112,7 @@ class CropGeometryActionBindingsTests(unittest.TestCase):
         self.app.horizontal_flip_button.invoke()
         self.app.vertical_flip_button.invoke()
 
+        self.error_dialog.assert_not_called()
         self.assertEqual(
             calls,
             [
