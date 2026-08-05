@@ -7,6 +7,7 @@ from typing import Any, Type
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
+from ..core.geometry import apply_photo_geometry
 from ..engine import Analysis, Controls
 from ..io_utils import load_image
 from ..raw_io import is_raw_path, prepare_display_output, raw_runtime_summary
@@ -51,7 +52,9 @@ def apply_proxy_pipeline(app_class: Type[Any]) -> None:
         self._proxy_generation += 1
         self._proxy_service.shutdown()
 
-    def raw_settings_snapshot(self: Any) -> Any:
+    def raw_settings_snapshot(self: Any, item: Any | None = None) -> Any:
+        if item is not None and hasattr(self, "_raw_settings_for_item"):
+            return self._raw_settings_for_item(item)
         return self.raw_settings_value() if hasattr(self, "raw_settings_value") else None
 
     def dispatch_future(
@@ -81,14 +84,16 @@ def apply_proxy_pipeline(app_class: Type[Any]) -> None:
     def open_paths(self: Any, paths: list[Path], *, replace: bool = False) -> None:
         previous = {str(item.path.expanduser().resolve(strict=False)) for item in self.items}
         original_open_paths(self, paths, replace=replace)
-        settings = self._raw_settings_snapshot()
         new_items = [
             item
             for item in self.items
             if str(item.path.expanduser().resolve(strict=False)) not in previous
         ]
         for item in new_items[:IMPORT_THUMBNAIL_PREFETCH_LIMIT]:
-            self._proxy_service.request_thumbnail(item.path, settings)
+            self._proxy_service.request_thumbnail(
+                item.path,
+                self._raw_settings_snapshot(item),
+            )
 
     def prepare_index_ui(self: Any, index: int) -> None:
         item = self.items[index]
@@ -131,7 +136,7 @@ def apply_proxy_pipeline(app_class: Type[Any]) -> None:
         if hasattr(self, "raw_decode_generation"):
             self.raw_decode_generation += 1
         item = self.items[index]
-        settings = self._raw_settings_snapshot()
+        settings = self._raw_settings_snapshot(item)
         self._prepare_proxy_index_ui(index)
         self.status.set(f"正在读取轻量缩略图：{item.path.name}…")
 
@@ -159,6 +164,7 @@ def apply_proxy_pipeline(app_class: Type[Any]) -> None:
             return
         item = self.items[index]
         shown = rotate_array(frame.image, item.rotation)
+        shown = apply_photo_geometry(shown, item.geometry)
         self._set_display_image(prepare_display_output(shown, frame.metadata))
         self.zoom_fit_view()
         source = frame.metadata.get("thumbnail_source", "thumbnail")
@@ -174,9 +180,11 @@ def apply_proxy_pipeline(app_class: Type[Any]) -> None:
             return
         item = self.items[index]
         self.full_image = None
-        self.preview_source = rotate_array(frame.image, item.rotation)
+        rotated = rotate_array(frame.image, item.rotation)
+        self.preview_source = apply_photo_geometry(rotated, item.geometry)
         self.preview_result = None
         self.metadata = dict(frame.metadata)
+        self.metadata["geometry_applied"] = True
         self.crop_norm = clamp_crop(item.crop)
         self.analysis = Analysis.from_dict(item.analysis) if item.analysis else None
         self._set_display_image(prepare_display_output(self.preview_source, self.metadata))
@@ -203,7 +211,7 @@ def apply_proxy_pipeline(app_class: Type[Any]) -> None:
         if next_index >= len(self.items):
             return
         item = self.items[next_index]
-        settings = self._raw_settings_snapshot()
+        settings = self._raw_settings_snapshot(item)
         self._proxy_service.request_thumbnail(item.path, settings)
         self._proxy_service.request_proxy(item.path, settings)
 
@@ -223,6 +231,8 @@ def apply_proxy_pipeline(app_class: Type[Any]) -> None:
             if original_reload_current_raw is not None:
                 original_reload_current_raw(self)
             return
+        if hasattr(self, "raw_settings_value"):
+            item.raw_settings = self.raw_settings_value().to_dict()
         self._proxy_service.invalidate(item.path)
         item.analysis = None
         self.analysis = None
@@ -250,15 +260,17 @@ def apply_proxy_pipeline(app_class: Type[Any]) -> None:
         destination = Path(target)
         rotation = int(item.rotation)
         crop = tuple(self.crop_norm)
+        geometry = dict(item.geometry)
         analysis = self.analysis
         controls = self.controls_value()
-        settings = self._raw_settings_snapshot()
+        settings = self._raw_settings_snapshot(item)
         self.status.set(f"正在读取全分辨率原图：{item.path.name}…")
 
         def worker() -> None:
             try:
                 image, metadata = load_image(path, raw_settings=settings)
                 image = rotate_array(image, rotation)
+                image = apply_photo_geometry(image, geometry)
                 self.root.after(
                     0,
                     lambda: self._process_and_save(
