@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 
 from .engine import Controls, PROFILES
 
 
 def _wide_sanitized(self: Controls) -> Controls:
-    """Sanitize controls while allowing a full ±255/255 base offset."""
+    """Sanitize controls while allowing direct base values up to 1.5."""
 
     return Controls(
         profile=self.profile if self.profile in PROFILES else "generic",
@@ -26,7 +24,7 @@ def _wide_sanitized(self: Controls) -> Controls:
         white_point=float(np.clip(self.white_point, -1.0, 1.0)),
         shadows=float(np.clip(self.shadows, -1.0, 1.0)),
         highlights=float(np.clip(self.highlights, -1.0, 1.0)),
-        base_adjust=tuple(float(np.clip(value, -1.0, 1.0)) for value in self.base_adjust),
+        base_adjust=tuple(float(np.clip(value, -1.5, 1.5)) for value in self.base_adjust),
     )
 
 
