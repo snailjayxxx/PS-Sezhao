@@ -31,6 +31,7 @@ def apply_project_session(app_class: Type[Any]) -> None:
         self._project_persistence_enabled = lr_job is None
         self._project_restoring = False
         self._project_save_after = None
+        self._project_save_in_progress = False
         self._project_loaded_paths: set[str] = set()
 
         original_init(self, root, lr_job=lr_job, initial_files=initial_files)
@@ -69,7 +70,11 @@ def apply_project_session(app_class: Type[Any]) -> None:
         original_load_index(self, index)
 
     def schedule_project_save(self: Any) -> None:
-        if not self._project_persistence_enabled or self._project_restoring:
+        if (
+            not self._project_persistence_enabled
+            or self._project_restoring
+            or self._project_save_in_progress
+        ):
             return
         pending = self._project_save_after
         if pending is not None:
@@ -81,25 +86,35 @@ def apply_project_session(app_class: Type[Any]) -> None:
 
     def save_project_session_now(self: Any) -> None:
         self._project_save_after = None
-        if not self._project_persistence_enabled or self._project_restoring:
+        if (
+            not self._project_persistence_enabled
+            or self._project_restoring
+            or self._project_save_in_progress
+        ):
             return
 
-        original_store_current_state(self)
-        current = self.current_item()
-        image_states = [
-            {
-                "file_path": item.path,
-                "controls": dict(item.controls),
-                "analysis": None if item.analysis is None else dict(item.analysis),
-                "crop": tuple(item.crop),
-                "rotation": int(getattr(item, "rotation", 0)),
-                "geometry": dict(getattr(item, "geometry", {}) or {}),
-                "raw_settings": dict(getattr(item, "raw_settings", {}) or {}),
-                "output_settings": dict(getattr(item, "output_settings", {}) or {}),
-            }
-            for item in self.items
-        ]
+        # Use the newest installed state writer instead of the function captured
+        # when this storage layer was first applied. Later project layers can
+        # therefore complete shared metadata and frame numbers before the
+        # transaction is assembled. The guard prevents the dynamic state writer
+        # from scheduling a recursive save while this save is already running.
+        self._project_save_in_progress = True
         try:
+            self._store_current_state()
+            current = self.current_item()
+            image_states = [
+                {
+                    "file_path": item.path,
+                    "controls": dict(item.controls),
+                    "analysis": None if item.analysis is None else dict(item.analysis),
+                    "crop": tuple(item.crop),
+                    "rotation": int(getattr(item, "rotation", 0)),
+                    "geometry": dict(getattr(item, "geometry", {}) or {}),
+                    "raw_settings": dict(getattr(item, "raw_settings", {}) or {}),
+                    "output_settings": dict(getattr(item, "output_settings", {}) or {}),
+                }
+                for item in self.items
+            ]
             self.project_store.save_session(
                 image_states=image_states,
                 file_paths=[item.path for item in self.items],
@@ -107,6 +122,8 @@ def apply_project_session(app_class: Type[Any]) -> None:
             )
         except Exception as exc:
             self.status.set(f"自动保存工作状态失败：{exc}")
+        finally:
+            self._project_save_in_progress = False
 
     def restore_project_session(self: Any) -> None:
         if not self._project_persistence_enabled:
