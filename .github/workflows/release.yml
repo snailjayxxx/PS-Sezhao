@@ -82,7 +82,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r standalone/requirements-build.txt
-      - name: Build Apple Silicon standalone app and Lightroom package
+      - name: Build Apple Silicon app, portable package, DMG and Lightroom package
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           pyinstaller --noconfirm --clean --windowed \
@@ -92,20 +92,39 @@ jobs:
             --collect-all rawpy \
             --collect-all tkinterdnd2 \
             standalone/main.py
+
           mkdir -p release-assets lr-stage/PS-Sezhao.lrplugin/bin/macos-arm64
+          mkdir -p portable-stage/PS-Sezhao/project portable-stage/PS-Sezhao/lut dmg-stage
           cp -R lightroom-classic/PS-Sezhao.lrplugin/. lr-stage/PS-Sezhao.lrplugin/
           cp -R dist/PS-Sezhao.app lr-stage/PS-Sezhao.lrplugin/bin/macos-arm64/
-          ditto -c -k --sequesterRsrc --keepParent dist/PS-Sezhao.app \
+          cp -R dist/PS-Sezhao.app portable-stage/PS-Sezhao/
+          cp standalone/installer/INSTALL.zh-CN.html portable-stage/PS-Sezhao/安装说明.html
+          printf '%s\n' 'PS-Sezhao portable data root.' > portable-stage/PS-Sezhao/.ps-sezhao-portable
+
+          ditto -c -k --sequesterRsrc --keepParent portable-stage/PS-Sezhao \
             "release-assets/PS-Sezhao-Standalone-macOS-arm64-v${VERSION}.zip"
           ditto -c -k --sequesterRsrc --keepParent lr-stage/PS-Sezhao.lrplugin \
             "release-assets/PS-Sezhao-LightroomClassic-macOS-arm64-v${VERSION}.zip"
-      - name: Start packaged macOS GUI and verify drag-drop runtime
+
+          cp -R portable-stage/PS-Sezhao dmg-stage/
+          cp standalone/installer/INSTALL.zh-CN.html dmg-stage/安装说明.html
+          cp standalone/installer/install-macos-user.command dmg-stage/安装到用户应用程序.command
+          chmod +x dmg-stage/安装到用户应用程序.command
+          hdiutil create -quiet -format UDZO -fs HFS+ \
+            -volname "PS-Sezhao Installer" \
+            -srcfolder dmg-stage \
+            "release-assets/PS-Sezhao-Installer-macOS-arm64-v${VERSION}.dmg"
+      - name: Start packaged macOS GUI and verify portable folders
         run: |
           dist/PS-Sezhao.app/Contents/MacOS/PS-Sezhao --gui-smoke-test --require-dnd
           if ! find dist/PS-Sezhao.app -iname '*tkdnd*' -print -quit | grep -q .; then
             echo 'The macOS app does not contain the TkDND runtime.' >&2
             exit 1
           fi
+          test -d portable-stage/PS-Sezhao/project
+          test -d portable-stage/PS-Sezhao/lut
+          test -f portable-stage/PS-Sezhao/.ps-sezhao-portable
+          test -f release-assets/PS-Sezhao-Installer-macOS-arm64-v*.dmg
       - uses: actions/upload-artifact@v4
         with:
           name: macos-release-assets
@@ -120,10 +139,12 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install build dependencies
+        shell: pwsh
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r standalone/requirements-build.txt
-      - name: Build Windows standalone app and Lightroom package
+          choco install innosetup --no-progress --limit-output -y
+      - name: Build Windows app, portable package, installer and Lightroom package
         shell: pwsh
         run: |
           $version = (Get-Content VERSION -Raw).Trim()
@@ -134,33 +155,54 @@ jobs:
             --collect-all rawpy `
             --collect-all tkinterdnd2 `
             standalone/main.py
+
           New-Item -ItemType Directory -Force release-assets | Out-Null
           New-Item -ItemType Directory -Force lr-stage/PS-Sezhao.lrplugin/bin/windows-x64 | Out-Null
+          New-Item -ItemType Directory -Force portable-stage/PS-Sezhao/project | Out-Null
+          New-Item -ItemType Directory -Force portable-stage/PS-Sezhao/lut | Out-Null
           Copy-Item lightroom-classic/PS-Sezhao.lrplugin/* lr-stage/PS-Sezhao.lrplugin/ -Recurse -Force
           Copy-Item dist/PS-Sezhao.exe lr-stage/PS-Sezhao.lrplugin/bin/windows-x64/PS-Sezhao.exe -Force
-          Compress-Archive -Path dist/PS-Sezhao.exe -DestinationPath "release-assets/PS-Sezhao-Standalone-Windows-x64-v$version.zip" -Force
+          Copy-Item dist/PS-Sezhao.exe portable-stage/PS-Sezhao/PS-Sezhao.exe -Force
+          Copy-Item standalone/installer/INSTALL.zh-CN.html portable-stage/PS-Sezhao/安装说明.html -Force
+          Set-Content portable-stage/PS-Sezhao/.ps-sezhao-portable 'PS-Sezhao portable data root.' -Encoding UTF8
+          Compress-Archive -Path portable-stage/PS-Sezhao -DestinationPath "release-assets/PS-Sezhao-Standalone-Windows-x64-v$version.zip" -Force
           Compress-Archive -Path lr-stage/PS-Sezhao.lrplugin -DestinationPath "release-assets/PS-Sezhao-LightroomClassic-Windows-x64-v$version.zip" -Force
-      - name: Verify packaged RAW, drag-drop and real GUI startup
+
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler not found: $iscc" }
+          $sourceExe = (Resolve-Path dist/PS-Sezhao.exe).Path
+          $installHtml = (Resolve-Path standalone/installer/INSTALL.zh-CN.html).Path
+          $outputDir = (Resolve-Path release-assets).Path
+          & $iscc "/DMyAppVersion=$version" "/DSourceExe=$sourceExe" "/DInstallHtml=$installHtml" "/DOutputDir=$outputDir" standalone/installer/PS-Sezhao.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
+      - name: Verify packaged RAW, drag-drop, portable layout and installed GUI
         shell: pwsh
         run: |
+          $version = (Get-Content VERSION -Raw).Trim()
           $listing = (& pyi-archive_viewer -l dist/PS-Sezhao.exe | Out-String)
-          if ($listing -notmatch 'rawpy') {
-            throw 'The Windows executable archive does not contain rawpy.'
-          }
-          if ($listing -notmatch '_rawpy') {
-            throw 'The Windows executable archive does not contain the compiled rawpy extension.'
-          }
-          if ($listing -notmatch 'tkinterdnd2') {
-            throw 'The Windows executable archive does not contain tkinterdnd2.'
-          }
-          if ($listing -notmatch 'tkdnd') {
-            throw 'The Windows executable archive does not contain the TkDND runtime.'
-          }
+          if ($listing -notmatch 'rawpy') { throw 'The Windows executable archive does not contain rawpy.' }
+          if ($listing -notmatch '_rawpy') { throw 'The Windows executable archive does not contain the compiled rawpy extension.' }
+          if ($listing -notmatch 'tkinterdnd2') { throw 'The Windows executable archive does not contain tkinterdnd2.' }
+          if ($listing -notmatch 'tkdnd') { throw 'The Windows executable archive does not contain the TkDND runtime.' }
+
           $process = Start-Process -FilePath "dist/PS-Sezhao.exe" -ArgumentList "--gui-smoke-test", "--require-dnd" -Wait -PassThru
-          if ($process.ExitCode -ne 0) {
-            throw "Packaged Windows GUI smoke test failed with exit code $($process.ExitCode)."
+          if ($process.ExitCode -ne 0) { throw "Packaged Windows GUI smoke test failed with exit code $($process.ExitCode)." }
+          if (-not (Test-Path portable-stage/PS-Sezhao/project)) { throw 'Portable project folder is missing.' }
+          if (-not (Test-Path portable-stage/PS-Sezhao/lut)) { throw 'Portable LUT folder is missing.' }
+          if (-not (Test-Path portable-stage/PS-Sezhao/.ps-sezhao-portable)) { throw 'Portable marker is missing.' }
+
+          $installer = "release-assets/PS-Sezhao-Installer-Windows-x64-v$version.exe"
+          if (-not (Test-Path $installer)) { throw "Installer is missing: $installer" }
+          $installDir = Join-Path $env:RUNNER_TEMP 'PS-Sezhao-installed'
+          $arguments = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=$installDir")
+          $install = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Installer validation failed with exit code $($install.ExitCode)." }
+          foreach ($required in @('PS-Sezhao.exe', 'project', 'lut', '.ps-sezhao-portable', '安装说明.html')) {
+            if (-not (Test-Path (Join-Path $installDir $required))) { throw "Installed item is missing: $required" }
           }
-          Write-Host 'Windows archive and packaged GUI validation succeeded.'
+          $installedProcess = Start-Process -FilePath (Join-Path $installDir 'PS-Sezhao.exe') -ArgumentList '--gui-smoke-test', '--require-dnd' -Wait -PassThru
+          if ($installedProcess.ExitCode -ne 0) { throw "Installed Windows GUI smoke test failed with exit code $($installedProcess.ExitCode)." }
+          Write-Host 'Windows portable package, installer and installed GUI validation succeeded.'
       - uses: actions/upload-artifact@v4
         with:
           name: windows-release-assets
