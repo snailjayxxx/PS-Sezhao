@@ -42,7 +42,9 @@ def integration_steps() -> tuple[IntegrationStep, ...]:
     from .app_v061_resizable_layout_patch import apply_v061_resizable_layout_patch
     from .engine_style_v060_patch import apply_style_engine_patch
     from .engine_v053_patch import apply_engine_patch
+    from .services.geometry_history import apply_geometry_history_guard
     from .services.geometry_pipeline import apply_geometry_pipeline
+    from .services.lightroom_job_pipeline import apply_lightroom_job_pipeline
     from .services.output_pipeline import apply_output_pipeline
     from .services.project_session import apply_project_session
     from .services.proxy_pipeline import apply_proxy_pipeline
@@ -74,8 +76,10 @@ def integration_steps() -> tuple[IntegrationStep, ...]:
         IntegrationStep("ui.resizable_layout", lambda: apply_v061_resizable_layout_patch(app_class)),
         IntegrationStep("services.preview_proxy", lambda: apply_proxy_pipeline(app_class)),
         IntegrationStep("services.geometry", lambda: apply_geometry_pipeline(app_class)),
+        IntegrationStep("services.geometry_history", lambda: apply_geometry_history_guard(app_class)),
         IntegrationStep("services.output_queue", lambda: apply_output_pipeline(app_class)),
         IntegrationStep("services.module_sync", lambda: apply_sync_pipeline(app_class)),
+        IntegrationStep("services.lightroom_jobs", lambda: apply_lightroom_job_pipeline(app_class)),
         IntegrationStep("storage.project_session", lambda: apply_project_session(app_class)),
         IntegrationStep("runtime.drag_drop_root", lambda: install_drag_drop_root(app_module)),
     )
