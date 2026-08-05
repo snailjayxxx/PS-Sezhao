@@ -9,7 +9,8 @@ PROXY_CONTRACT_VERSION = 1
 OUTPUT_QUEUE_CONTRACT_VERSION = 2
 OUTPUT_SETTINGS_CONTRACT_VERSION = 1
 GEOMETRY_CONTRACT_VERSION = 1
-PROJECT_SCHEMA_VERSION = 4
+ROLL_PROJECT_CONTRACT_VERSION = 1
+PROJECT_SCHEMA_VERSION = 5
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,7 @@ class ProcessingContract:
     output_queue_version: int = OUTPUT_QUEUE_CONTRACT_VERSION
     output_settings_version: int = OUTPUT_SETTINGS_CONTRACT_VERSION
     geometry_version: int = GEOMETRY_CONTRACT_VERSION
+    roll_project_version: int = ROLL_PROJECT_CONTRACT_VERSION
     project_schema_version: int = PROJECT_SCHEMA_VERSION
 
 
