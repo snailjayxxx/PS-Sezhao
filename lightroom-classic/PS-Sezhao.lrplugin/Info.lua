@@ -3,7 +3,7 @@ return {
     LrSdkMinimumVersion = 15.4,
     LrToolkitIdentifier = 'com.snailjoss.pssezhao.lightroom',
     LrPluginName = 'PS-Sezhao 胶片去色罩',
-    VERSION = { major = 0, minor = 5, revision = 4, build = 0 },
+    VERSION = { major = 0, minor = 5, revision = 5, build = 0 },
 
     LrLibraryMenuItems = {
         {
