@@ -4,6 +4,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from tkinter import ttk
@@ -44,6 +45,8 @@ class UiLayoutV072Tests(unittest.TestCase):
                 root.update_idletasks()
 
                 self.assertTrue(application._v072_workspace_lut_layout_applied)
+                self.assertTrue(application._v072_responsive_group_applied)
+                self.assertEqual(str(application.style_library_frame.cget("text")), "扫描仪与胶卷风格")
                 self.assertIsNotNone(application.scanner_profile_box)
                 self.assertIsNotNone(application.film_profile_box)
                 assert application.scanner_profile_box is not None
@@ -70,6 +73,22 @@ class UiLayoutV072Tests(unittest.TestCase):
                     (0, 1, 2),
                 )
                 self.assertEqual(int(application._v072_geometry_bar.columnconfigure(4)["weight"]), 1)
+
+                application._layout_v072_preview_groups(SimpleNamespace(width=700))
+                self.assertEqual(int(tool_groups[0].grid_info()["row"]), 0)
+                self.assertEqual(int(tool_groups[1].grid_info()["row"]), 0)
+                self.assertEqual(int(tool_groups[2].grid_info()["row"]), 1)
+                application._layout_v072_preview_groups(SimpleNamespace(width=1200))
+                self.assertEqual(int(tool_groups[2].grid_info()["row"]), 0)
+                self.assertEqual(int(tool_groups[2].grid_info()["column"]), 2)
+
+                application._layout_v072_geometry_groups(SimpleNamespace(width=700))
+                self.assertEqual(int(geometry_groups[0].grid_info()["row"]), 0)
+                self.assertEqual(int(geometry_groups[1].grid_info()["row"]), 0)
+                self.assertEqual(int(geometry_groups[2].grid_info()["row"]), 1)
+                application._layout_v072_geometry_groups(SimpleNamespace(width=1200))
+                self.assertEqual(int(geometry_groups[2].grid_info()["row"]), 0)
+                self.assertEqual(int(geometry_groups[2].grid_info()["column"]), 2)
 
                 self.assertTrue(application.project_folder_button.winfo_exists())
                 self.assertTrue((Path(temporary_directory) / "project").is_dir())
