@@ -18,6 +18,7 @@ LEGACY_COMPATIBILITY_COMPONENTS = (
     "apply_v061_resizable_layout_patch",
     "apply_v071_text_layout_patch",
     "apply_v072_workspace_lut_layout_patch",
+    "apply_v072_responsive_group_patch",
 )
 
 
@@ -76,6 +77,7 @@ def install_legacy_ui_group(context: IntegrationContext) -> None:
     from .app_v060_style_library_patch import apply_v060_style_library_patch
     from .app_v061_resizable_layout_patch import apply_v061_resizable_layout_patch
     from .app_v071_text_layout_patch import apply_v071_text_layout_patch
+    from .app_v072_responsive_group_patch import apply_v072_responsive_group_patch
     from .app_v072_workspace_lut_layout_patch import apply_v072_workspace_lut_layout_patch
 
     app_class = context.app_class
@@ -91,6 +93,7 @@ def install_legacy_ui_group(context: IntegrationContext) -> None:
     apply_v061_resizable_layout_patch(app_class)
     apply_v071_text_layout_patch(app_class)
     apply_v072_workspace_lut_layout_patch(app_class)
+    apply_v072_responsive_group_patch(app_class)
 
 
 def install_processing_service_group(context: IntegrationContext) -> None:
