@@ -2,6 +2,7 @@
 
 const { entrypoints } = require("uxp");
 const c = require("./runtime-common.js");
+require("./runtime-engine-v053.js").apply(c.engine);
 const preview = require("./runtime-preview.js");
 const finalOps = require("./runtime-final.js");
 const panelPreview = require("./runtime-panel-preview.js");
@@ -13,7 +14,7 @@ const {
   schedulePreview, resetControls
 } = c;
 
-const VERSION = "0.5.2";
+const VERSION = "0.5.3";
 const V022_UI_IDS = [
   "pickBase", "pickNeutral", "cancelPicker", "sampleSize",
   "panelPreviewStage", "panelPreviewImage", "panelPreviewPlaceholder",
@@ -34,6 +35,15 @@ function updateVersionLabels() {
   const badge = document.querySelector(".badge");
   if (eyebrow) eyebrow.textContent = "PS-SEZHAO · " + VERSION;
   if (badge) badge.textContent = "V5";
+}
+function expandBaseRanges() {
+  ["baseAdjustR", "baseAdjustG", "baseAdjustB"].forEach(function (id) {
+    const range = byId(id);
+    if (!range) return;
+    range.min = "-255";
+    range.max = "255";
+    range.step = "1";
+  });
 }
 function initializeUI() {
   if (state.initialized) return true;
@@ -73,13 +83,14 @@ function initializeUI() {
   bindClick("loadRoll", finalOps.loadRoll);
 
   updateVersionLabels();
+  expandBaseRanges();
   numericControls.initializeNumericControls();
   panelPreview.initialize();
   sampler.initialize();
   applyControls(DEFAULT_CONTROLS);
   refreshOutputs();
   updateReadiness();
-  setStatus("准备就绪。胶片基底吸管始终读取原始负片图层；基底微调支持数字输入和 − / +。", "");
+  setStatus("准备就绪。胶片基底微调已扩大到 −255～+255；吸管仍只读取原始负片图层。", "");
   return true;
 }
 function scheduleInitialize() {
