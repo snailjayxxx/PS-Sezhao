@@ -106,7 +106,7 @@ class StyleLibraryV060Tests(unittest.TestCase):
         runtime = (root / "plugin/runtime-v022.js").read_text(encoding="utf-8")
         html = (root / "plugin/index.html").read_text(encoding="utf-8")
 
-        self.assertEqual(version, "0.6.0")
+        self.assertEqual(version, "0.6.1")
         self.assertEqual(package["version"], version)
         self.assertEqual(manifest["version"], version)
         self.assertIn("apply_style_engine_patch", launcher)
