@@ -3,6 +3,7 @@ set -euo pipefail
 
 VERSION="$(tr -d '[:space:]' < VERSION)"
 APP_PATH="dist/PS-Sezhao.app"
+PLIST_PATH="$APP_PATH/Contents/Info.plist"
 RELEASE_DIR="release-assets"
 SIGNED_BUILD=0
 
@@ -13,6 +14,27 @@ require_signing_secrets() {
   [[ -n "${APPLE_ID:-}" ]] &&
   [[ -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" ]] &&
   [[ -n "${APPLE_TEAM_ID:-}" ]]
+}
+
+set_plist_value() {
+  local key="$1"
+  local value="$2"
+  if ! /usr/libexec/PlistBuddy -c "Set :$key $value" "$PLIST_PATH"; then
+    /usr/libexec/PlistBuddy -c "Add :$key string $value" "$PLIST_PATH"
+  fi
+}
+
+write_bundle_metadata() {
+  test -f "$PLIST_PATH"
+  set_plist_value CFBundleIdentifier com.snailjoss.pssezhao
+  set_plist_value CFBundleName PS-Sezhao
+  set_plist_value CFBundleDisplayName PS-Sezhao
+  set_plist_value CFBundleShortVersionString "$VERSION"
+  set_plist_value CFBundleVersion "$VERSION"
+  set_plist_value NSHighResolutionCapable true
+
+  test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST_PATH")" = "com.snailjoss.pssezhao"
+  test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST_PATH")" = "$VERSION"
 }
 
 sign_and_notarize_app() {
@@ -48,6 +70,8 @@ sign_and_notarize_app() {
 rm -rf "$RELEASE_DIR" lr-stage portable-stage dmg-stage
 mkdir -p "$RELEASE_DIR" lr-stage/PS-Sezhao.lrplugin/bin/macos-arm64
 mkdir -p portable-stage/PS-Sezhao/project portable-stage/PS-Sezhao/lut portable-stage/PS-Sezhao/logs dmg-stage
+
+write_bundle_metadata
 
 if require_signing_secrets; then
   echo "Apple signing credentials detected; signing and notarizing the app."
