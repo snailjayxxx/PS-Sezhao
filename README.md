@@ -11,9 +11,7 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 ## 当前版本
 
-统一测试版本：**v0.7.0-beta.3**
-
-Latest 稳定版继续保留为 **v0.6.3**。
+Latest 稳定版：**v0.7.1**
 
 支持环境：
 
@@ -26,21 +24,31 @@ Latest 稳定版继续保留为 **v0.6.3**。
 
 | 使用场景 | 下载文件 |
 |---|---|
-| macOS 独立版安装器 | `PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.3.dmg` |
-| Windows 独立版安装器 | `PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.3.exe` |
-| macOS 独立版便携包 | `PS-Sezhao-Standalone-macOS-arm64-v0.7.0-beta.3.zip` |
-| Windows 独立版便携包 | `PS-Sezhao-Standalone-Windows-x64-v0.7.0-beta.3.zip` |
-| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.7.0-beta.3.ccx` |
-| Photoshop 开发者加载 | `PS-Sezhao-Photoshop-Developer-v0.7.0-beta.3.zip` |
-| Lightroom Classic · Apple Silicon | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.0-beta.3.zip` |
-| Lightroom Classic · Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.7.0-beta.3.zip` |
-| Lightroom 插件源码 | `PS-Sezhao-LightroomClassic-Source-v0.7.0-beta.3.zip` |
+| macOS 独立版安装器 | `PS-Sezhao-Installer-macOS-arm64-v0.7.1.dmg` |
+| Windows 独立版安装器 | `PS-Sezhao-Installer-Windows-x64-v0.7.1.exe` |
+| macOS 独立版便携包 | `PS-Sezhao-Standalone-macOS-arm64-v0.7.1.zip` |
+| Windows 独立版便携包 | `PS-Sezhao-Standalone-Windows-x64-v0.7.1.zip` |
+| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.7.1.ccx` |
+| Photoshop 开发者加载 | `PS-Sezhao-Photoshop-Developer-v0.7.1.zip` |
+| Lightroom Classic · Apple Silicon | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.1.zip` |
+| Lightroom Classic · Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.7.1.zip` |
+| Lightroom 插件源码 | `PS-Sezhao-LightroomClassic-Source-v0.7.1.zip` |
 
 完整安装步骤见 [`INSTALL.md`](INSTALL.md)。
 
-## 独立版目录结构
+## 数据目录
 
-安装版和便携版都使用应用同级数据目录：
+macOS 标准安装版使用：
+
+```text
+~/Library/Application Support/PS-Sezhao/
+├── workspace.sqlite3
+├── project/
+├── lut/
+└── logs/
+```
+
+Windows 安装版和两平台便携版使用应用外层同级目录：
 
 ```text
 PS-Sezhao/
@@ -48,11 +56,10 @@ PS-Sezhao/
 ├── project/
 │   └── workspace.sqlite3
 ├── lut/
+├── logs/
 ├── 安装说明.html
 └── .ps-sezhao-portable
 ```
-
-`project/workspace.sqlite3` 保存普通工作区、多个胶卷项目、每张图片参数和输出预设。Beta 3 首次启动会从旧位置自动复制数据库，旧文件继续保留。
 
 ## 用户 Cube LUT
 
@@ -61,13 +68,14 @@ PS-Sezhao/
 - 支持 1D 和 3D Cube LUT；
 - 导入时验证尺寸、数据行数和 Domain；
 - 3D LUT 使用三线性插值；
-- LUT 文件复制到同级 `lut` 文件夹；
 - 使用“胶卷强度”控制混合比例；
 - LUT 缺失时项目仍可打开，不会损坏项目数据。
 
 ## 整卷项目与输出
 
-- 多个胶卷项目和跨会话恢复；
+- 多个胶卷项目和手动恢复；
+- 启动时不自动恢复上次照片；
+- 关闭时询问是否保存本次胶卷项目；
 - 图片顺序、当前图片和项目级元数据；
 - 每张图片独立保存转正、RAW、裁切、旋转、拉直、翻转、透视和输出参数；
 - 缩略图、编辑代理和完整分辨率输出三级读取；
@@ -76,14 +84,23 @@ PS-Sezhao/
 - ICC、尺寸调整、最终锐化、命名模板和重名策略；
 - 接触印样和 `.psszproj` 项目归档。
 
+## 裁切与几何校正
+
+- “裁切 → 完成裁切”双状态入口；
+- 黄色裁切边框和八个控制点；
+- 框内移动、边缘缩放和框外重新绘制；
+- 左转 90°、右转 90°；
+- 自动范围、拉直、水平翻转、垂直翻转和四角透视；
+- 所有处理均为非破坏性，并保存到每张照片的独立状态。
+
 ## 风格与手动校正
 
 - 扫描仪风格与胶卷风格独立选择；
+- 右侧栏内嵌完整宽度风格选择器；
 - 胶片基底自动分析和原图吸管；
 - 中性灰吸管修改 RGB 输出增益；
 - 曝光、对比度、中间调、饱和度、色温、色调、RGB 增益、黑白点、阴影和高光；
-- 每张照片独立撤销与重做；
-- 裁切、旋转、自动范围、拉直、翻转和四角透视均为非破坏处理。
+- 每张照片独立撤销与重做。
 
 ## 相机 RAW
 
@@ -107,6 +124,7 @@ bash scripts/build-release.sh
 GitHub Actions 还会验证：
 
 - Linux 虚拟显示器中的真实 Tk 窗口；
+- 实际点击裁切、旋转和翻转按钮；
 - macOS Apple Silicon 打包后窗口；
 - Windows x64 打包后窗口；
 - macOS DMG 结构；
