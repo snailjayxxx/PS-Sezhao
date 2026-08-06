@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>PS-Sezhao v0.7.0-beta.7 安装说明</title>
+  <title>PS-Sezhao v0.7.1 安装说明</title>
   <style>
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei UI",sans-serif;line-height:1.7;max-width:920px;margin:40px auto;padding:0 24px;color:#202124}
     h1,h2{line-height:1.25} code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#f4f5f7;border-radius:6px} code{padding:2px 5px} pre{padding:14px;overflow:auto}.note{border-left:4px solid #4d8bc9;background:#f3f8fc;padding:10px 14px}.warn{border-left-color:#d48a18;background:#fff8e8} li{margin:6px 0}
   </style>
 </head>
 <body>
-<h1>PS-Sezhao v0.7.0-beta.7 安装说明</h1>
+<h1>PS-Sezhao v0.7.1 安装说明</h1>
 
 <h2>macOS Apple Silicon</h2>
 <ol>
-  <li>打开 <code>PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.7.dmg</code>。</li>
+  <li>打开 <code>PS-Sezhao-Installer-macOS-arm64-v0.7.1.dmg</code>。</li>
   <li>将 <code>PS-Sezhao.app</code> 拖到右侧 <code>Applications</code> 文件夹。</li>
   <li>从 Finder 的“应用程序”中打开 PS-Sezhao。</li>
 </ol>
@@ -26,11 +26,11 @@
 └── logs/
     └── startup.log</pre>
 <p>数据库保持旧位置；<code>project</code> 用于项目归档和备份；<code>lut</code> 用于用户 Cube LUT；<code>logs/startup.log</code> 用于启动诊断。</p>
-<p class="note warn">未签名测试包仍会被 Gatekeeper 阻止。只有使用 Apple Developer ID 签名并完成 Apple 公证，才能避免首次手动确认。程序获准运行后若仍启动失败，会显示日志路径。</p>
+<p class="note warn">当前未配置 Apple Developer ID 的发行包仍可能被 Gatekeeper 阻止。只有使用 Apple Developer ID 签名并完成 Apple 公证，才能避免首次手动确认。程序获准运行后若仍启动失败，会显示日志路径。</p>
 
 <h2>Windows 64 位</h2>
 <ol>
-  <li>运行 <code>PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.7.exe</code>。</li>
+  <li>运行 <code>PS-Sezhao-Installer-Windows-x64-v0.7.1.exe</code>。</li>
   <li>默认安装到 <code>%LOCALAPPDATA%\Programs\PS-Sezhao\</code>。</li>
   <li>安装器会创建开始菜单快捷方式，并可选择创建桌面快捷方式。</li>
 </ol>
