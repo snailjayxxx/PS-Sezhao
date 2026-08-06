@@ -51,16 +51,25 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r standalone/requirements-build.txt
-      - name: Build and start packaged macOS window
+      - name: Build and start packaged macOS window without TkDND
         run: |
           pyinstaller --noconfirm --clean --windowed \
             --name PS-Sezhao \
             --paths standalone \
             --additional-hooks-dir=. \
             --collect-all rawpy \
-            --collect-all tkinterdnd2 \
+            --exclude-module tkinterdnd2 \
             standalone/main.py
-          dist/PS-Sezhao.app/Contents/MacOS/PS-Sezhao --gui-smoke-test --require-dnd
+          SMOKE_OUTPUT="$(dist/PS-Sezhao.app/Contents/MacOS/PS-Sezhao --gui-smoke-test)"
+          printf '%s\n' "$SMOKE_OUTPUT"
+          if ! printf '%s\n' "$SMOKE_OUTPUT" | grep -q 'dnd=disabled'; then
+            echo 'The packaged macOS app unexpectedly enabled TkDND.' >&2
+            exit 1
+          fi
+          if find dist/PS-Sezhao.app -iname '*tkdnd*' -print -quit | grep -q .; then
+            echo 'The packaged macOS app still contains the native TkDND runtime.' >&2
+            exit 1
+          fi
 
   packaged-windows:
     needs: standalone

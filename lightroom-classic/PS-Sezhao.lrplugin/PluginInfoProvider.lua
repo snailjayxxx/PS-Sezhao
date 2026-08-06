@@ -14,7 +14,7 @@ return {
         local available = LrFileUtils.exists(path)
         return {
             {
-                title = 'PS-Sezhao 0.7.1',
+                title = 'PS-Sezhao 0.7.2',
                 f:row {
                     spacing = f:control_spacing(),
                     f:static_text { title = '适配版本：' },
@@ -31,7 +31,7 @@ return {
                     f:static_text { title = available and '本地处理器可用' or '处理器缺失，请重新安装对应平台安装包' },
                 },
                 f:static_text {
-                    title = '0.7.1 稳定版包含完整裁切编辑、旋转与翻转修复、整卷项目、用户 LUT 和跨平台安装包。原始图片不会被覆盖。',
+                    title = '0.7.2 修复 macOS 独立版启动与退出时的 TkDND 崩溃，并保留完整裁切、整卷项目、用户 LUT 和跨平台输出。原始图片不会被覆盖。',
                     width_in_chars = 65,
                     height_in_lines = 3,
                 },
