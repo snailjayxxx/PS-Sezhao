@@ -4,10 +4,14 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from ps_sezhao import app_v055_import_drop_patch as import_drop_patch
 from ps_sezhao.app_v055_import_drop_patch import (
     apply_v055_import_drop_patch,
     collect_supported_paths,
+    install_drag_drop_root,
+    tkdnd_supported_on_platform,
 )
 
 
@@ -53,6 +57,29 @@ class ImportDropPatchTests(unittest.TestCase):
             self.assertTrue(hasattr(FakeApp, name), name)
             self.assertEqual(getattr(instance, name)(), name)
 
+    def test_macos_never_loads_or_installs_native_tkdnd(self) -> None:
+        self.assertFalse(tkdnd_supported_on_platform("darwin"))
+        self.assertTrue(tkdnd_supported_on_platform("win32"))
+        self.assertTrue(tkdnd_supported_on_platform("linux"))
+
+        class FakeTkModule:
+            class Tk:
+                pass
+
+        class FakeAppModule:
+            tk = FakeTkModule
+
+        original_tk = FakeAppModule.tk
+        with patch.object(import_drop_patch.sys, "platform", "darwin"):
+            installed = install_drag_drop_root(FakeAppModule)
+            available, error, version = import_drop_patch._load_tkdnd(object())
+
+        self.assertFalse(installed)
+        self.assertIs(FakeAppModule.tk, original_tk)
+        self.assertFalse(available)
+        self.assertIn("macOS", error or "")
+        self.assertIsNone(version)
+
     def test_release_configuration_contains_safe_drag_drop_runtime(self) -> None:
         project_root = Path(__file__).resolve().parents[2]
         version = (project_root / "VERSION").read_text(encoding="utf-8").strip()
@@ -67,6 +94,7 @@ class ImportDropPatchTests(unittest.TestCase):
         requirements = (project_root / "standalone/requirements.txt").read_text(encoding="utf-8")
         workflow = (project_root / ".github/workflows/release.yml").read_text(encoding="utf-8")
         hook = (project_root / "hook-tkinterdnd2.py").read_text(encoding="utf-8")
+        import_patch = (project_root / "standalone/ps_sezhao/app_v055_import_drop_patch.py").read_text(encoding="utf-8")
 
         self.assertEqual(package["version"], version)
         self.assertEqual(manifest["version"], core_version)
@@ -81,8 +109,10 @@ class ImportDropPatchTests(unittest.TestCase):
         self.assertIn("install_drag_drop_root", groups)
         self.assertIn("requested_gui_smoke", bootstrap)
         self.assertIn("tkinterdnd2>=0.6.2,<0.7", requirements)
-        self.assertGreaterEqual(workflow.count("--collect-all tkinterdnd2"), 2)
+        self.assertEqual(workflow.count("--collect-all tkinterdnd2"), 1)
         self.assertIn("--gui-smoke-test --require-dnd", workflow)
+        self.assertIn("MACOS_DND_DISABLED_REASON", import_patch)
+        self.assertIn("tkdnd_supported_on_platform", import_patch)
         self.assertIn("collect_data_files", hook)
 
 
