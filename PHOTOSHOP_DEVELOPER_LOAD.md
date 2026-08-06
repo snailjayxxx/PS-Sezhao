@@ -16,7 +16,7 @@
 下载并解压：
 
 ```text
-PS-Sezhao-Photoshop-Developer-v0.7.1.zip
+PS-Sezhao-Photoshop-Developer-v0.7.2.zip
 ```
 
 1. 完全关闭旧版 PS-Sezhao 面板。
@@ -26,9 +26,9 @@ PS-Sezhao-Photoshop-Developer-v0.7.1.zip
 5. 选择解压目录中的 `manifest.json`。
 6. 点击 `Load`。
 7. 回到 Photoshop，打开 `插件 → 胶片去色罩`。
-8. 确认顶部显示 `PS-SEZHAO · 0.7.1` 和 `STABLE`。
+8. 确认顶部显示 `PS-SEZHAO · 0.7.2` 和 `STABLE`。
 
-## 0.7.1 主要能力
+## 0.7.2 主要能力
 
 - 胶片基底吸管读取记录的原始负片图层，不读取实时预览图层；
 - 胶片基底 R/G/B 支持直接显示和填写最终 0～255 数值；
@@ -38,6 +38,8 @@ PS-Sezhao-Photoshop-Developer-v0.7.1.zip
 - 快捷键为 `Ctrl/Cmd+Z`、`Ctrl/Cmd+Y`、`Ctrl/Cmd+Shift+Z`；
 - 相机 RAW 先通过 Camera Raw 打开，再处理进入 Photoshop 的图层；
 - 最终正片写入新图层，不覆盖原始负片图层。
+
+v0.7.2 的紧急修复只影响 macOS 独立版的 TkDND 运行时，不改变 Photoshop 图像处理结果。
 
 ## 更新源码版本
 
