@@ -12,7 +12,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: ps-sezhao-release-${{ github.ref }}
+  group: ps-sezhao-release-v2-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
