@@ -31,7 +31,7 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install -r standalone/requirements.txt
           sudo apt-get update
-          sudo apt-get install -y lua5.4 xvfb xauth
+          sudo apt-get install -y python3-tk lua5.4 xvfb xauth
           PYTHONPATH=standalone python3 - <<'PY'
           import rawpy
           from ps_sezhao.color_profiles import validate_profiles
