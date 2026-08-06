@@ -1,0 +1,42 @@
+name: Dispatch v0.7.2 release
+
+on:
+  schedule:
+    - cron: '12 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start final v0.7.2 release when needed
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          latest_status="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-v072-final.yml --limit 1 --json status --jq '.[0].status // "none"' 2>/dev/null || echo none)"
+          latest_conclusion="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-v072-final.yml --limit 1 --json conclusion --jq '.[0].conclusion // "none"' 2>/dev/null || echo none)"
+
+          echo "latest status: ${latest_status}"
+          echo "latest conclusion: ${latest_conclusion}"
+
+          case "${latest_status}" in
+            queued|in_progress|waiting|pending|requested)
+              echo 'A final v0.7.2 release run is already active.'
+              exit 0
+              ;;
+          esac
+
+          if [ "${latest_conclusion}" = "success" ]; then
+            echo 'The final v0.7.2 workflow already succeeded.'
+            exit 0
+          fi
+
+          gh workflow run release-v072-final.yml --repo "$GITHUB_REPOSITORY" --ref main
+          echo 'Final v0.7.2 release workflow dispatched.'
