@@ -115,7 +115,9 @@ test("RAW and release workflows remain complete on both platforms", function () 
   assert.match(buildScript, /PS-Sezhao-Photoshop-v\$\{VERSION\}\.ccx/);
   assert.match(buildScript, /PS-Sezhao-LightroomClassic-Source-v\$\{VERSION\}\.zip/);
   assert.equal((workflow.match(/--collect-all rawpy/g) || []).length, 2);
-  assert.equal((workflow.match(/--collect-all tkinterdnd2/g) || []).length, 2);
-  assert.match(workflow, /--gui-smoke-test --require-dnd/);
+  assert.equal((workflow.match(/--collect-all tkinterdnd2/g) || []).length, 1);
+  assert.match(workflow, /--exclude-module tkinterdnd2/);
+  assert.match(workflow, /dnd=disabled/);
+  assert.match(workflow, /--require-dnd/);
   assert.match(workflow, /--prerelease --latest=false/);
 });
