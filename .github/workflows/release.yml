@@ -82,14 +82,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r standalone/requirements-build.txt
-      - name: Build Apple Silicon app
+      - name: Build Apple Silicon app without TkDND
         run: |
           pyinstaller --noconfirm --clean --windowed \
             --name PS-Sezhao \
             --paths standalone \
             --additional-hooks-dir=. \
             --collect-all rawpy \
-            --collect-all tkinterdnd2 \
+            --exclude-module tkinterdnd2 \
             standalone/main.py
       - name: Build portable package, standard DMG and Lightroom package
         env:
@@ -100,13 +100,20 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: bash scripts/build-macos-release.sh
-      - name: Start packaged macOS GUI and verify installer layout
+      - name: Start packaged macOS GUI and verify stable no-DnD layout
         run: |
-          dist/PS-Sezhao.app/Contents/MacOS/PS-Sezhao --gui-smoke-test --require-dnd
-          if ! find dist/PS-Sezhao.app -iname '*tkdnd*' -print -quit | grep -q .; then
-            echo 'The macOS app does not contain the TkDND runtime.' >&2
+          SMOKE_OUTPUT="$(dist/PS-Sezhao.app/Contents/MacOS/PS-Sezhao --gui-smoke-test)"
+          printf '%s\n' "$SMOKE_OUTPUT"
+          if ! printf '%s\n' "$SMOKE_OUTPUT" | grep -q 'dnd=disabled'; then
+            echo 'The macOS app unexpectedly enabled TkDND.' >&2
             exit 1
           fi
+          if find dist/PS-Sezhao.app -iname '*tkdnd*' -print -quit | grep -q .; then
+            echo 'The macOS app still contains the native TkDND runtime.' >&2
+            exit 1
+          fi
+          PLIST_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/PS-Sezhao.app/Contents/Info.plist)"
+          test "$PLIST_VERSION" = "$(tr -d '[:space:]' < VERSION)"
           test -d portable-stage/PS-Sezhao/project
           test -d portable-stage/PS-Sezhao/lut
           test -f portable-stage/PS-Sezhao/.ps-sezhao-portable
@@ -271,8 +278,8 @@ jobs:
           - Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
           - validate: $VALIDATE_RESULT
           - build-common: $COMMON_RESULT
-          - build-macos: $MACOS_RESULT
-          - build-windows: $WINDOWS_RESULT
+          - macOS: $MACOS_RESULT
+          - Windows: $WINDOWS_RESULT
           - release: $RELEASE_RESULT
           - commit: $GITHUB_SHA
           EOF
