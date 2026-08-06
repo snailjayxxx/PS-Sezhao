@@ -1,13 +1,16 @@
-# PS-Sezhao v0.7.1 安装与使用说明
+# PS-Sezhao v0.7.2 安装与使用说明
 
 ## macOS Apple Silicon
 
-1. 下载 `PS-Sezhao-Installer-macOS-arm64-v0.7.1.dmg`。
-2. 打开 DMG。
-3. 将 `PS-Sezhao.app` 拖到右侧 `Applications` 文件夹。
-4. 从 Finder 的“应用程序”中打开 PS-Sezhao。
+1. 删除“应用程序”中的旧版 `PS-Sezhao.app`。
+2. 下载 `PS-Sezhao-Installer-macOS-arm64-v0.7.2.dmg`。
+3. 打开 DMG。
+4. 将 `PS-Sezhao.app` 拖到右侧 `Applications` 文件夹。
+5. 弹出完成后，从 Finder 的“应用程序”中打开 PS-Sezhao。
 
-拖动安装只复制 `.app`。首次成功启动时，程序会自动创建：
+不要直接在 DMG、下载目录或压缩包预览窗口中运行 App。
+
+拖动安装只复制 `.app`。程序数据保存在：
 
 ```text
 ~/Library/Application Support/PS-Sezhao/
@@ -18,23 +21,24 @@
     └── startup.log
 ```
 
-- 数据库保持在旧版本使用的根目录；
-- `project` 用于项目归档和备份；
-- `lut` 用于用户 `.cube` LUT；
-- `logs/startup.log` 记录启动错误；
-- 更新或替换 App 不会删除上述目录。
+替换或删除 App 不会删除上述数据库、项目和 LUT。
 
-当前未配置 Apple Developer ID 的发行包仍会被 Gatekeeper 要求确认。程序代码无法安全绕过 Gatekeeper；只有 Developer ID 签名和 Apple 公证后才能让普通用户直接双击打开。
+### v0.7.2 的 macOS 修复
 
-程序获准运行后若仍启动失败，会弹出错误提示并显示日志路径。也可以在 Finder 中使用“前往文件夹”打开：
+v0.7.1 在部分 Apple Silicon 和 macOS 26 系统上会加载 TkDND 原生扩展。该扩展可能在窗口启动、重绘或退出时回调已经关闭的 Python 解释器，造成 `SIGABRT`、`Abort trap: 6` 或 `PyEval_RestoreThread` 崩溃。
 
-```text
-~/Library/Application Support/PS-Sezhao/logs/
-```
+v0.7.2 的 macOS 包已完全移除 TkDND：
+
+- Finder 拖放暂时不可用；
+- 使用“添加图像”或“添加文件夹”导入；
+- Windows 版拖放不受影响；
+- App 版本信息会正确显示为 0.7.2，不再显示 0.0.0。
+
+当前未配置 Apple Developer ID 的发行包仍可能被 Gatekeeper 要求确认。首次可在 Finder 中右键 App，选择“打开”。
 
 ## Windows x64
 
-1. 下载并运行 `PS-Sezhao-Installer-Windows-x64-v0.7.1.exe`。
+1. 下载并运行 `PS-Sezhao-Installer-Windows-x64-v0.7.2.exe`。
 2. 默认安装到 `%LOCALAPPDATA%\Programs\PS-Sezhao\`。
 3. 安装器会创建开始菜单快捷方式，并可选择创建桌面快捷方式。
 4. SmartScreen 出现时，确认文件来自本仓库 Release，再选择“更多信息 → 仍要运行”。
@@ -49,8 +53,8 @@ logs\
 
 ## 便携 ZIP
 
-- `PS-Sezhao-Standalone-macOS-arm64-v0.7.1.zip`
-- `PS-Sezhao-Standalone-Windows-x64-v0.7.1.zip`
+- `PS-Sezhao-Standalone-macOS-arm64-v0.7.2.zip`
+- `PS-Sezhao-Standalone-Windows-x64-v0.7.2.zip`
 
 便携版必须保留完整外层 `PS-Sezhao` 文件夹：
 
@@ -113,14 +117,14 @@ PS-Sezhao/
 
 ## Photoshop 2024（25.0）或更高版本
 
-1. 下载 `PS-Sezhao-Photoshop-v0.7.1.ccx`。
+1. 下载 `PS-Sezhao-Photoshop-v0.7.2.ccx`。
 2. 完全退出 Photoshop。
 3. 双击 CCX，通过 Creative Cloud Desktop 安装。
 4. 重新打开 Photoshop，从 `插件 → 胶片去色罩` 启动。
 
 ## Lightroom Classic 15.4+
 
-- Apple Silicon Mac：`PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.1.zip`
-- Windows x64：`PS-Sezhao-LightroomClassic-Windows-x64-v0.7.1.zip`
+- Apple Silicon Mac：`PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.2.zip`
+- Windows x64：`PS-Sezhao-LightroomClassic-Windows-x64-v0.7.2.zip`
 
 退出 Lightroom Classic，解压下载文件，在插件管理器中移除旧记录后，重新添加完整的 `PS-Sezhao.lrplugin` 文件夹。

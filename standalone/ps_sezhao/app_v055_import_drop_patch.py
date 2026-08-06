@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any, Iterable, Type
 
@@ -19,7 +20,27 @@ except ImportError:  # pragma: no cover - buttons remain available without DnD
     TkinterDnD = None
 
 
+MACOS_DND_DISABLED_REASON = (
+    "macOS 稳定版已停用 Finder 拖放，以避免 TkDND 与系统 Tk/Tcl 在窗口启动或退出时崩溃。"
+)
+
+
+def tkdnd_supported_on_platform(platform: str | None = None) -> bool:
+    """Return whether the optional native TkDND runtime may be loaded.
+
+    The bundled macOS TkDND library can register Tcl exit handlers that call
+    back into Python after the interpreter starts shutting down. On current
+    Apple Silicon/macOS builds this can abort the whole process in
+    ``PyEval_RestoreThread``. File and folder buttons provide the same import
+    functionality, so the stable macOS build deliberately never loads TkDND.
+    """
+
+    return (sys.platform if platform is None else platform) != "darwin"
+
+
 def _load_tkdnd(root: Any) -> tuple[bool, str | None, str | None]:
+    if not tkdnd_supported_on_platform():
+        return False, MACOS_DND_DISABLED_REASON, None
     if TkinterDnD is None:
         return False, "tkinterdnd2 is not installed", None
 
@@ -38,11 +59,10 @@ def _load_tkdnd(root: Any) -> tuple[bool, str | None, str | None]:
 def build_safe_root_class(original_root_class: Any) -> Any:
     """Build a Tk root that has DnD methods but never requires DnD to start.
 
-    The package's normal ``TkinterDnD.Tk`` constructor raises when its native
-    library is incompatible with the active Tcl/Tk interpreter. This class uses
-    normal ``tk.Tk`` initialization first, then loads TkDND as an optional
-    capability. ``DnDWrapper`` supplies widget registration methods without
-    changing how the interpreter itself is created.
+    Windows uses normal ``tk.Tk`` initialization first, then loads TkDND as an
+    optional capability. macOS never calls this function from
+    ``install_drag_drop_root`` and therefore never loads the native TkDND
+    library into the process.
     """
 
     wrapper_class = (
@@ -88,7 +108,13 @@ class _TkModuleProxy:
 
 
 def install_drag_drop_root(app_module: Any) -> bool:
-    """Install a safe root class with automatic non-DnD fallback."""
+    """Install optional drag/drop only on platforms where it is stable."""
+
+    if not tkdnd_supported_on_platform():
+        # Most importantly, do not call TkinterDnD.require() and do not replace
+        # tkinter.Tk. Merely bundling tkinterdnd2 is harmless; loading its native
+        # Tcl extension is what caused the macOS abort.
+        return False
 
     current_tk = app_module.tk
     if getattr(current_tk, "_ps_sezhao_dnd_proxy", False):
@@ -125,7 +151,11 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
     def build_ui(self: Any) -> None:
         original_build_ui(self)
         self._drag_drop_enabled = False
-        self._drag_drop_error = getattr(self.root, "_ps_sezhao_dnd_error", None)
+        self._drag_drop_error = (
+            MACOS_DND_DISABLED_REASON
+            if not tkdnd_supported_on_platform()
+            else getattr(self.root, "_ps_sezhao_dnd_error", None)
+        )
         self._install_drop_targets()
 
     def install_drop_targets(self: Any) -> None:
@@ -137,10 +167,19 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
             or not hasattr(self.root, "dnd_bind")
         ):
             self._drag_drop_enabled = False
-            self._drag_drop_error = getattr(self.root, "_ps_sezhao_dnd_error", None)
-            self.status.set(
-                "拖放组件不可用；程序仍可正常使用“添加图像”和“添加文件夹”。"
+            self._drag_drop_error = (
+                MACOS_DND_DISABLED_REASON
+                if not tkdnd_supported_on_platform()
+                else getattr(self.root, "_ps_sezhao_dnd_error", None)
             )
+            if not tkdnd_supported_on_platform():
+                self.status.set(
+                    "macOS 稳定模式：请使用“添加图像”或“添加文件夹”；Finder 拖放已停用。"
+                )
+            else:
+                self.status.set(
+                    "拖放组件不可用；程序仍可正常使用“添加图像”和“添加文件夹”。"
+                )
             return
 
         targets: list[Any] = []
@@ -164,7 +203,7 @@ def apply_v055_import_drop_patch(app_class: Type[Any]) -> None:
 
         self._drag_drop_enabled = installed
         if installed:
-            self.status.set("可点击添加图像/文件夹，也可从资源管理器或 Finder 拖入。")
+            self.status.set("可点击添加图像/文件夹，也可从资源管理器拖入。")
         else:
             self._drag_drop_error = "; ".join(errors) or "无法注册拖放目标"
             self.status.set(

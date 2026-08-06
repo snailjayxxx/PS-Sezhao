@@ -11,7 +11,9 @@ PS-Sezhao 是面向彩色负片扫描和相机翻拍的本地图像处理项目�
 
 ## 当前版本
 
-Latest 稳定版：**v0.7.1**
+Latest 稳定版：**v0.7.2**
+
+v0.7.2 修复 macOS Apple Silicon 独立版启动或退出时，由 TkDND 与系统 Tk/Tcl 冲突造成的 `SIGABRT` 崩溃。macOS 版已完全排除 TkDND，Finder 拖放暂时停用；“添加图像”和“添加文件夹”不受影响。Windows 拖放保持可用。
 
 支持环境：
 
@@ -24,15 +26,15 @@ Latest 稳定版：**v0.7.1**
 
 | 使用场景 | 下载文件 |
 |---|---|
-| macOS 独立版安装器 | `PS-Sezhao-Installer-macOS-arm64-v0.7.1.dmg` |
-| Windows 独立版安装器 | `PS-Sezhao-Installer-Windows-x64-v0.7.1.exe` |
-| macOS 独立版便携包 | `PS-Sezhao-Standalone-macOS-arm64-v0.7.1.zip` |
-| Windows 独立版便携包 | `PS-Sezhao-Standalone-Windows-x64-v0.7.1.zip` |
-| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.7.1.ccx` |
-| Photoshop 开发者加载 | `PS-Sezhao-Photoshop-Developer-v0.7.1.zip` |
-| Lightroom Classic · Apple Silicon | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.1.zip` |
-| Lightroom Classic · Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.7.1.zip` |
-| Lightroom 插件源码 | `PS-Sezhao-LightroomClassic-Source-v0.7.1.zip` |
+| macOS 独立版安装器 | `PS-Sezhao-Installer-macOS-arm64-v0.7.2.dmg` |
+| Windows 独立版安装器 | `PS-Sezhao-Installer-Windows-x64-v0.7.2.exe` |
+| macOS 独立版便携包 | `PS-Sezhao-Standalone-macOS-arm64-v0.7.2.zip` |
+| Windows 独立版便携包 | `PS-Sezhao-Standalone-Windows-x64-v0.7.2.zip` |
+| Photoshop 正常安装 | `PS-Sezhao-Photoshop-v0.7.2.ccx` |
+| Photoshop 开发者加载 | `PS-Sezhao-Photoshop-Developer-v0.7.2.zip` |
+| Lightroom Classic · Apple Silicon | `PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.2.zip` |
+| Lightroom Classic · Windows x64 | `PS-Sezhao-LightroomClassic-Windows-x64-v0.7.2.zip` |
+| Lightroom 插件源码 | `PS-Sezhao-LightroomClassic-Source-v0.7.2.zip` |
 
 完整安装步骤见 [`INSTALL.md`](INSTALL.md)。
 
@@ -126,6 +128,7 @@ GitHub Actions 还会验证：
 - Linux 虚拟显示器中的真实 Tk 窗口；
 - 实际点击裁切、旋转和翻转按钮；
 - macOS Apple Silicon 打包后窗口；
+- macOS 包内不包含 TkDND，并报告拖放已停用；
 - Windows x64 打包后窗口；
 - macOS DMG 结构；
 - Windows 安装器静默安装后的目录和真实窗口；
@@ -135,6 +138,7 @@ GitHub Actions 还会验证：
 
 - rawpy：LibRaw 的 Python 封装，用于相机 RAW 解码；
 - LibRaw：随 rawpy 平台包提供的 RAW 解码运行库；
+- tkinterdnd2：仅 Windows 版用于资源管理器拖放；
 - Compact ICC Profiles：内置 `ProPhoto-v2-micro.icc`，按 CC0 发布。
 
 ## 许可证
