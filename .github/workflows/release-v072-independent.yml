@@ -1,0 +1,253 @@
+name: Independent v0.7.2 release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/release-v072-independent.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit without checkout action
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --no-checkout "https://github.com/${GITHUB_REPOSITORY}.git" repo
+          cd repo
+          git fetch --depth=1 origin "${GITHUB_SHA}"
+          git checkout --detach "${GITHUB_SHA}"
+      - name: Validate all editions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd repo
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r standalone/requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y lua5.4 xvfb xauth
+          PYTHONPATH=standalone python3 - <<'PY'
+          import rawpy
+          from ps_sezhao.color_profiles import validate_profiles
+          validate_profiles()
+          print('rawpy', rawpy.__version__, 'LibRaw', rawpy.libraw_version)
+          PY
+          node scripts/validate.mjs
+          node --test tests/*.test.js
+          xvfb-run -a env PYTHONPATH=standalone python3 -m unittest discover -s standalone/tests -v
+          luac5.4 -p lightroom-classic/PS-Sezhao.lrplugin/*.lua
+          lua5.4 lightroom-classic/tests/native_profiles_test.lua lightroom-classic/PS-Sezhao.lrplugin/NativeProfiles.lua
+      - name: Create clean draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd repo
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          TAG="v${VERSION}"
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release delete "${TAG}" --yes --cleanup-tag || true
+          fi
+          gh release create "${TAG}" \
+            --target "${GITHUB_SHA}" \
+            --title "PS-Sezhao ${TAG}" \
+            --notes-file RELEASE_NOTES.md \
+            --draft
+
+  build-common:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --no-checkout "https://github.com/${GITHUB_REPOSITORY}.git" repo
+          cd repo
+          git fetch --depth=1 origin "${GITHUB_SHA}"
+          git checkout --detach "${GITHUB_SHA}"
+      - name: Build and upload common assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd repo
+          bash scripts/build-release.sh
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          gh release upload "v${VERSION}" dist/* --clobber
+
+  build-macos:
+    needs: prepare
+    runs-on: macos-26
+    steps:
+      - name: Checkout exact commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --no-checkout "https://github.com/${GITHUB_REPOSITORY}.git" repo
+          cd repo
+          git fetch --depth=1 origin "${GITHUB_SHA}"
+          git checkout --detach "${GITHUB_SHA}"
+      - name: Build and upload macOS assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          cd repo
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r standalone/requirements-build.txt
+          pyinstaller --noconfirm --clean --windowed \
+            --name PS-Sezhao \
+            --paths standalone \
+            --additional-hooks-dir=. \
+            --collect-all rawpy \
+            --exclude-module tkinterdnd2 \
+            standalone/main.py
+          bash scripts/build-macos-release.sh
+          SMOKE_OUTPUT="$(dist/PS-Sezhao.app/Contents/MacOS/PS-Sezhao --gui-smoke-test)"
+          printf '%s\n' "${SMOKE_OUTPUT}"
+          printf '%s\n' "${SMOKE_OUTPUT}" | grep -q 'dnd=disabled'
+          if find dist/PS-Sezhao.app -iname '*tkdnd*' -print -quit | grep -q .; then
+            echo 'The macOS app still contains TkDND.' >&2
+            exit 1
+          fi
+          PLIST_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/PS-Sezhao.app/Contents/Info.plist)"
+          test "${PLIST_VERSION}" = "$(tr -d '[:space:]' < VERSION)"
+          test -d portable-stage/PS-Sezhao/project
+          test -d portable-stage/PS-Sezhao/lut
+          test -f portable-stage/PS-Sezhao/.ps-sezhao-portable
+          test -L dmg-stage/Applications
+          test -d dmg-stage/PS-Sezhao.app
+          test ! -e dmg-stage/安装到用户应用程序.command
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          gh release upload "v${VERSION}" release-assets/* --clobber
+
+  build-windows:
+    needs: prepare
+    runs-on: windows-2025
+    steps:
+      - name: Checkout exact commit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git clone --no-checkout "https://github.com/$env:GITHUB_REPOSITORY.git" repo
+          Set-Location repo
+          git fetch --depth=1 origin $env:GITHUB_SHA
+          git checkout --detach $env:GITHUB_SHA
+      - name: Build, verify and upload Windows assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location repo
+          python -m pip install --upgrade pip
+          python -m pip install -r standalone/requirements-build.txt
+          choco install innosetup --no-progress --limit-output -y
+          $version = (Get-Content VERSION -Raw).Trim()
+          pyinstaller --noconfirm --clean --onefile --windowed `
+            --name PS-Sezhao `
+            --paths standalone `
+            --additional-hooks-dir=. `
+            --collect-all rawpy `
+            --collect-all tkinterdnd2 `
+            standalone/main.py
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          New-Item -ItemType Directory -Force lr-stage/PS-Sezhao.lrplugin/bin/windows-x64 | Out-Null
+          New-Item -ItemType Directory -Force portable-stage/PS-Sezhao/project | Out-Null
+          New-Item -ItemType Directory -Force portable-stage/PS-Sezhao/lut | Out-Null
+          Copy-Item lightroom-classic/PS-Sezhao.lrplugin/* lr-stage/PS-Sezhao.lrplugin/ -Recurse -Force
+          Copy-Item dist/PS-Sezhao.exe lr-stage/PS-Sezhao.lrplugin/bin/windows-x64/PS-Sezhao.exe -Force
+          Copy-Item dist/PS-Sezhao.exe portable-stage/PS-Sezhao/PS-Sezhao.exe -Force
+          Copy-Item standalone/installer/INSTALL.zh-CN.html portable-stage/PS-Sezhao/安装说明.html -Force
+          Set-Content portable-stage/PS-Sezhao/.ps-sezhao-portable 'PS-Sezhao portable data root.' -Encoding UTF8
+          Compress-Archive -Path portable-stage/PS-Sezhao -DestinationPath "release-assets/PS-Sezhao-Standalone-Windows-x64-v$version.zip" -Force
+          Compress-Archive -Path lr-stage/PS-Sezhao.lrplugin -DestinationPath "release-assets/PS-Sezhao-LightroomClassic-Windows-x64-v$version.zip" -Force
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler not found: $iscc" }
+          $sourceExe = (Resolve-Path dist/PS-Sezhao.exe).Path
+          $installHtml = (Resolve-Path standalone/installer/INSTALL.zh-CN.html).Path
+          $outputDir = (Resolve-Path release-assets).Path
+          & $iscc "/DMyAppVersion=$version" "/DSourceExe=$sourceExe" "/DInstallHtml=$installHtml" "/DOutputDir=$outputDir" standalone/installer/PS-Sezhao.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
+          $listing = (& pyi-archive_viewer -l dist/PS-Sezhao.exe | Out-String)
+          if ($listing -notmatch 'rawpy') { throw 'rawpy is missing' }
+          if ($listing -notmatch '_rawpy') { throw '_rawpy is missing' }
+          if ($listing -notmatch 'tkinterdnd2') { throw 'tkinterdnd2 is missing' }
+          if ($listing -notmatch 'tkdnd') { throw 'TkDND runtime is missing' }
+          $process = Start-Process -FilePath 'dist/PS-Sezhao.exe' -ArgumentList '--gui-smoke-test', '--require-dnd' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Windows GUI smoke test failed: $($process.ExitCode)" }
+          $installer = "release-assets/PS-Sezhao-Installer-Windows-x64-v$version.exe"
+          if (-not (Test-Path $installer)) { throw "Installer is missing: $installer" }
+          $installDir = Join-Path $env:RUNNER_TEMP 'PS-Sezhao-installed'
+          $install = Start-Process -FilePath $installer -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$installDir") -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Installer validation failed: $($install.ExitCode)" }
+          foreach ($required in @('PS-Sezhao.exe','project','lut','.ps-sezhao-portable','安装说明.html')) {
+            if (-not (Test-Path (Join-Path $installDir $required))) { throw "Installed item is missing: $required" }
+          }
+          $installedProcess = Start-Process -FilePath (Join-Path $installDir 'PS-Sezhao.exe') -ArgumentList '--gui-smoke-test','--require-dnd' -Wait -PassThru
+          if ($installedProcess.ExitCode -ne 0) { throw "Installed GUI smoke test failed: $($installedProcess.ExitCode)" }
+          gh release upload "v$version" release-assets/* --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Release upload failed: $LASTEXITCODE" }
+
+  publish:
+    needs: [build-common, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --no-checkout "https://github.com/${GITHUB_REPOSITORY}.git" repo
+          cd repo
+          git fetch --depth=1 origin "${GITHUB_SHA}"
+          git checkout --detach "${GITHUB_SHA}"
+      - name: Verify assets, create checksums and publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd repo
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          TAG="v${VERSION}"
+          mkdir -p release-assets
+          gh release download "${TAG}" --dir release-assets
+          expected=(
+            "PS-Sezhao-Photoshop-v${VERSION}.ccx"
+            "PS-Sezhao-Photoshop-Developer-v${VERSION}.zip"
+            "PS-Sezhao-LightroomClassic-Source-v${VERSION}.zip"
+            "PS-Sezhao-LightroomClassic-macOS-arm64-v${VERSION}.zip"
+            "PS-Sezhao-LightroomClassic-Windows-x64-v${VERSION}.zip"
+            "PS-Sezhao-Standalone-macOS-arm64-v${VERSION}.zip"
+            "PS-Sezhao-Standalone-Windows-x64-v${VERSION}.zip"
+            "PS-Sezhao-Installer-macOS-arm64-v${VERSION}.dmg"
+            "PS-Sezhao-Installer-Windows-x64-v${VERSION}.exe"
+          )
+          for file in "${expected[@]}"; do
+            test -f "release-assets/${file}" || { echo "Missing ${file}" >&2; exit 1; }
+          done
+          cd release-assets
+          sha256sum "${expected[@]}" > CHECKSUMS.txt
+          cd ..
+          gh release upload "${TAG}" release-assets/CHECKSUMS.txt --clobber
+          gh release edit "${TAG}" \
+            --draft=false \
+            --latest \
+            --title "PS-Sezhao ${TAG}" \
+            --notes-file RELEASE_NOTES.md

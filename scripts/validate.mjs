@@ -237,6 +237,8 @@ const dragDropPatch = read("standalone/ps_sezhao/app_v055_import_drop_patch.py")
 for (const token of ["DnDWrapper", "_ps_sezhao_dnd_available", "_ps_sezhao_dnd_error"]) {
   requireToken(dragDropPatch, token, `Drag-drop fallback is incomplete: ${token}`);
 }
+requireToken(dragDropPatch, "tkdnd_supported_on_platform", "macOS TkDND platform guard is missing");
+requireToken(dragDropPatch, "MACOS_DND_DISABLED_REASON", "macOS TkDND fallback message is missing");
 
 const buildScript = read("scripts/build-release.sh");
 for (const token of [
@@ -256,13 +258,18 @@ for (const token of [
   "ln -s /Applications",
   "Applying an ad-hoc signature",
   "portable-stage/PS-Sezhao/logs",
+  "CFBundleIdentifier",
+  "CFBundleShortVersionString",
+  "com.snailjoss.pssezhao",
 ]) requireToken(macBuildScript, token, `macOS release/signing flow is incomplete: ${token}`);
 
 const workflow = read(".github/workflows/release.yml");
 if ((workflow.match(/--collect-all rawpy/g) || []).length < 2) throw new Error("Both desktop packages must collect rawpy");
-if ((workflow.match(/--collect-all tkinterdnd2/g) || []).length < 2) throw new Error("Both desktop packages must collect TkDND");
+if ((workflow.match(/--collect-all tkinterdnd2/g) || []).length !== 1) throw new Error("Only the Windows package may collect TkDND");
 for (const token of [
-  "--gui-smoke-test --require-dnd",
+  "--exclude-module tkinterdnd2",
+  "dnd=disabled",
+  "--require-dnd",
   "bash scripts/build-macos-release.sh",
   "APPLE_CERTIFICATE_P12_BASE64",
   "test -L dmg-stage/Applications",
