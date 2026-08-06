@@ -235,3 +235,5 @@ jobs:
           cd ..
           gh release upload "${TAG}" release-assets/CHECKSUMS.txt --clobber
           gh release edit "${TAG}" --draft=false --latest --title "PS-Sezhao ${TAG}" --notes-file RELEASE_NOTES.md
+
+# force release trigger after Tkinter CI fix
