@@ -9,7 +9,7 @@ const {
   deletePreviewInsideModal, tileHeightFor, ROLL_KEY, FINAL_LAYER_PREFIX,
   DEFAULT_CONTROLS
 } = c;
-const VERSION = "0.7.0-beta.6";
+const VERSION = "0.7.0-beta.7";
 
 async function convert() {
   if (state.operation || state.previewRendering) return;

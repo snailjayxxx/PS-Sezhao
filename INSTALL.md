@@ -1,8 +1,8 @@
-# PS-Sezhao v0.7.0-beta.6 安装与使用说明
+# PS-Sezhao v0.7.0-beta.7 安装与使用说明
 
 ## macOS Apple Silicon
 
-1. 下载 `PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.6.dmg`。
+1. 下载 `PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.7.dmg`。
 2. 打开 DMG。
 3. 将 `PS-Sezhao.app` 拖到右侧 `Applications` 文件夹。
 4. 从 Finder 的“应用程序”中打开 PS-Sezhao。
@@ -34,7 +34,7 @@
 
 ## Windows x64
 
-1. 下载并运行 `PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.6.exe`。
+1. 下载并运行 `PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.7.exe`。
 2. 默认安装到 `%LOCALAPPDATA%\Programs\PS-Sezhao\`。
 3. 安装器会创建开始菜单快捷方式，并可选择创建桌面快捷方式。
 4. SmartScreen 出现时，确认文件来自本仓库 Release，再选择“更多信息 → 仍要运行”。
@@ -49,8 +49,8 @@ logs\
 
 ## 便携 ZIP
 
-- `PS-Sezhao-Standalone-macOS-arm64-v0.7.0-beta.6.zip`
-- `PS-Sezhao-Standalone-Windows-x64-v0.7.0-beta.6.zip`
+- `PS-Sezhao-Standalone-macOS-arm64-v0.7.0-beta.7.zip`
+- `PS-Sezhao-Standalone-Windows-x64-v0.7.0-beta.7.zip`
 
 便携版必须保留完整外层 `PS-Sezhao` 文件夹：
 
@@ -65,9 +65,28 @@ PS-Sezhao/
 └── .ps-sezhao-portable
 ```
 
+## 裁切工具
+
+点击“裁切”后会进入完整画面编辑模式：
+
+- 按钮文字变为“完成裁切”；
+- 显示黄色裁切边框和八个控制点；
+- 可拖动角点、边框中点改变范围；
+- 可拖动框内区域移动裁切框；
+- 可在框外重新拖出一个裁切范围；
+- 再次点击“完成裁切”后应用范围并回到普通预览；
+- “重置裁切”恢复完整画面。
+
+## 旋转与几何调整
+
+- “左转 90°”“右转 90°”会立即更新预览、裁切方向和导出方向；
+- “水平翻转”“垂直翻转”会立即更新当前照片的几何状态；
+- 拉直、四角透视和重置几何继续使用同一套每张照片独立设置；
+- 操作失败时会显示具体错误，不再静默无反应。
+
 ## 风格选择
 
-右侧“扫描仪与胶卷风格”区域现在使用内嵌选择器：
+右侧“扫描仪与胶卷风格”区域使用内嵌选择器：
 
 ```text
 扫描仪风格  [完整宽度选择框 ▼]
@@ -94,14 +113,14 @@ PS-Sezhao/
 
 ## Photoshop 2024（25.0）或更高版本
 
-1. 下载 `PS-Sezhao-Photoshop-v0.7.0-beta.6.ccx`。
+1. 下载 `PS-Sezhao-Photoshop-v0.7.0-beta.7.ccx`。
 2. 完全退出 Photoshop。
 3. 双击 CCX，通过 Creative Cloud Desktop 安装。
 4. 重新打开 Photoshop，从 `插件 → 胶片去色罩` 启动。
 
 ## Lightroom Classic 15.4+
 
-- Apple Silicon Mac：`PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.0-beta.6.zip`
-- Windows x64：`PS-Sezhao-LightroomClassic-Windows-x64-v0.7.0-beta.6.zip`
+- Apple Silicon Mac：`PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.0-beta.7.zip`
+- Windows x64：`PS-Sezhao-LightroomClassic-Windows-x64-v0.7.0-beta.7.zip`
 
 退出 Lightroom Classic，解压下载文件，在插件管理器中移除旧记录后，重新添加完整的 `PS-Sezhao.lrplugin` 文件夹。
