@@ -16,7 +16,7 @@
 下载并解压：
 
 ```text
-PS-Sezhao-Photoshop-Developer-v0.5.4.zip
+PS-Sezhao-Photoshop-Developer-v0.7.1.zip
 ```
 
 1. 完全关闭旧版 PS-Sezhao 面板。
@@ -26,16 +26,18 @@ PS-Sezhao-Photoshop-Developer-v0.5.4.zip
 5. 选择解压目录中的 `manifest.json`。
 6. 点击 `Load`。
 7. 回到 Photoshop，打开 `插件 → 胶片去色罩`。
-8. 确认顶部显示 `PS-SEZHAO · 0.5.4`。
+8. 确认顶部显示 `PS-SEZHAO · 0.7.1` 和 `STABLE`。
 
-## v0.5.4 操作变化
+## 0.7.1 主要能力
 
-- 胶片基底吸管继续读取记录的原始负片图层，不读取实时预览图层；
-- 胶片基底 R/G/B 改为直接显示和填写最终 0～255 数值，不再显示识别值上的正负偏移；
-- 中性灰吸管修改的是红、绿、蓝输出增益，三个值可继续手动输入和微调；
-- 面板增加“撤销”和“重做”；
+- 胶片基底吸管读取记录的原始负片图层，不读取实时预览图层；
+- 胶片基底 R/G/B 支持直接显示和填写最终 0～255 数值；
+- 中性灰吸管修改红、绿、蓝输出增益；
+- 扫描仪风格与胶卷风格独立选择和调整强度；
+- 面板提供撤销、重做和大图预览；
 - 快捷键为 `Ctrl/Cmd+Z`、`Ctrl/Cmd+Y`、`Ctrl/Cmd+Shift+Z`；
-- 相机 RAW 仍先通过 Camera Raw 打开，再处理进入 Photoshop 的图层。
+- 相机 RAW 先通过 Camera Raw 打开，再处理进入 Photoshop 的图层；
+- 最终正片写入新图层，不覆盖原始负片图层。
 
 ## 更新源码版本
 

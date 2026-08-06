@@ -1,8 +1,8 @@
-# PS-Sezhao v0.7.0-beta.7 安装与使用说明
+# PS-Sezhao v0.7.1 安装与使用说明
 
 ## macOS Apple Silicon
 
-1. 下载 `PS-Sezhao-Installer-macOS-arm64-v0.7.0-beta.7.dmg`。
+1. 下载 `PS-Sezhao-Installer-macOS-arm64-v0.7.1.dmg`。
 2. 打开 DMG。
 3. 将 `PS-Sezhao.app` 拖到右侧 `Applications` 文件夹。
 4. 从 Finder 的“应用程序”中打开 PS-Sezhao。
@@ -24,7 +24,7 @@
 - `logs/startup.log` 记录启动错误；
 - 更新或替换 App 不会删除上述目录。
 
-当前未配置 Apple Developer ID 的测试包仍会被 Gatekeeper 要求确认。程序代码无法安全绕过 Gatekeeper；只有 Developer ID 签名和 Apple 公证后才能让普通用户直接双击打开。
+当前未配置 Apple Developer ID 的发行包仍会被 Gatekeeper 要求确认。程序代码无法安全绕过 Gatekeeper；只有 Developer ID 签名和 Apple 公证后才能让普通用户直接双击打开。
 
 程序获准运行后若仍启动失败，会弹出错误提示并显示日志路径。也可以在 Finder 中使用“前往文件夹”打开：
 
@@ -34,7 +34,7 @@
 
 ## Windows x64
 
-1. 下载并运行 `PS-Sezhao-Installer-Windows-x64-v0.7.0-beta.7.exe`。
+1. 下载并运行 `PS-Sezhao-Installer-Windows-x64-v0.7.1.exe`。
 2. 默认安装到 `%LOCALAPPDATA%\Programs\PS-Sezhao\`。
 3. 安装器会创建开始菜单快捷方式，并可选择创建桌面快捷方式。
 4. SmartScreen 出现时，确认文件来自本仓库 Release，再选择“更多信息 → 仍要运行”。
@@ -49,8 +49,8 @@ logs\
 
 ## 便携 ZIP
 
-- `PS-Sezhao-Standalone-macOS-arm64-v0.7.0-beta.7.zip`
-- `PS-Sezhao-Standalone-Windows-x64-v0.7.0-beta.7.zip`
+- `PS-Sezhao-Standalone-macOS-arm64-v0.7.1.zip`
+- `PS-Sezhao-Standalone-Windows-x64-v0.7.1.zip`
 
 便携版必须保留完整外层 `PS-Sezhao` 文件夹：
 
@@ -113,14 +113,14 @@ PS-Sezhao/
 
 ## Photoshop 2024（25.0）或更高版本
 
-1. 下载 `PS-Sezhao-Photoshop-v0.7.0-beta.7.ccx`。
+1. 下载 `PS-Sezhao-Photoshop-v0.7.1.ccx`。
 2. 完全退出 Photoshop。
 3. 双击 CCX，通过 Creative Cloud Desktop 安装。
 4. 重新打开 Photoshop，从 `插件 → 胶片去色罩` 启动。
 
 ## Lightroom Classic 15.4+
 
-- Apple Silicon Mac：`PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.0-beta.7.zip`
-- Windows x64：`PS-Sezhao-LightroomClassic-Windows-x64-v0.7.0-beta.7.zip`
+- Apple Silicon Mac：`PS-Sezhao-LightroomClassic-macOS-arm64-v0.7.1.zip`
+- Windows x64：`PS-Sezhao-LightroomClassic-Windows-x64-v0.7.1.zip`
 
 退出 Lightroom Classic，解压下载文件，在插件管理器中移除旧记录后，重新添加完整的 `PS-Sezhao.lrplugin` 文件夹。

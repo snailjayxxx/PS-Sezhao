@@ -19,7 +19,7 @@ const {
   schedulePreview, resetControls
 } = c;
 
-const VERSION = "0.7.0-beta.7";
+const VERSION = "0.7.1";
 const V022_UI_IDS = [
   "pickBase", "pickNeutral", "cancelPicker", "sampleSize",
   "panelPreviewStage", "panelPreviewImage", "panelPreviewPlaceholder",
@@ -44,7 +44,7 @@ function updateVersionLabels() {
   const eyebrow = document.querySelector(".eyebrow");
   const badge = document.querySelector(".badge");
   if (eyebrow) eyebrow.textContent = "PS-SEZHAO · " + VERSION;
-  if (badge) badge.textContent = "BETA";
+  if (badge) badge.textContent = "STABLE";
 }
 function configureDirectBaseRanges() {
   ["baseAdjustR", "baseAdjustG", "baseAdjustB"].forEach(function (id) {
@@ -110,7 +110,7 @@ function initializeUI() {
   refreshOutputs();
   history.initialize();
   updateReadiness();
-  setStatus("Beta 版准备就绪。扫描仪风格与胶卷风格可独立选择和调整强度。", "");
+  setStatus("稳定版准备就绪。扫描仪风格与胶卷风格可独立选择和调整强度。", "");
   return true;
 }
 function scheduleInitialize() {
